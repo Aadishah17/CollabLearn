@@ -1,0 +1,2 @@
+2. Clear all data in DB and put proper data. (Do it on disc when together)
+4. 1v1 Booking only. 
