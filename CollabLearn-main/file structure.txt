@@ -1,0 +1,27 @@
+A. User Profiles
+Sign Up & Login: Simple registration via email
+Personalized Profiles: Users can fill out their profile with:
+Skills they are offering to teach/share.
+Skills they are looking to learn.
+Experience level (Beginner, Intermediate, Advanced).
+Availability and preferred time for sessions.
+
+B. Skill Listings & Search
+
+Skill Categories: Create coding skills and academics
+Skill Tags: Enable skills to be tagged for more specific searches (e.g., "JavaScript," "Piano," "Spanish").
+Search Filters: Allow users to search based on skills they want to learn or teach
+
+D. Booking System
+
+Calendar Integration: Users can set available times for skill-swapping sessions and book others.
+
+Automatic Notifications: Remind users of upcoming sessions, confirm bookings, and allow users to reschedule.
+
+Session Duration: Allow flexibility in setting the duration (e.g., 30 minutes, 1 hour, etc.).
+
+F. Rating & Feedback System
+
+After each skill swap, both users can rate each other based on the experience.
+
+Collect feedback to continuously improve the experience.
