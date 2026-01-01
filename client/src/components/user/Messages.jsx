@@ -3,8 +3,8 @@ import { io } from 'socket.io-client';
 import MainNavbar from "../../navbar/mainNavbar.jsx";
 import Avatar from './Avatar.jsx';
 
-const SOCKET_SERVER_URL = 'http://localhost:5000';
-const API_URL = 'http://localhost:5000/api';
+const SOCKET_SERVER_URL = 'http://localhost:5001';
+const API_URL = 'http://localhost:5001/api';
 
 const getLoggedInUserId = () => {
   return localStorage.getItem('userId');

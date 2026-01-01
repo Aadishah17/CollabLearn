@@ -35,7 +35,7 @@ const SignupPage = () => {
     setLoading(true);
 
     try {
-      const response = await fetch('http://localhost:5000/api/auth/register', {
+      const response = await fetch('http://localhost:5001/api/auth/register', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -62,7 +62,7 @@ const SignupPage = () => {
   const handleGoogleSuccess = async (credentialResponse) => {
     setLoading(true);
     try {
-      const response = await fetch('http://localhost:5000/api/auth/google', {
+      const response = await fetch('http://localhost:5001/api/auth/google', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

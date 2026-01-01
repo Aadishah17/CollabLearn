@@ -18,7 +18,7 @@ export default function ManagePosts() {
             setLoading(true);
             try {
                 const token = localStorage.getItem('token');
-                const response = await fetch('http://localhost:5000/api/admin/posts', {
+                const response = await fetch('http://localhost:5001/api/admin/posts', {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 const result = await response.json();
@@ -42,7 +42,7 @@ export default function ManagePosts() {
         setActionLoading(postId);
         try {
             const token = localStorage.getItem('token');
-            const response = await fetch(`http://localhost:5000/api/admin/posts/${postId}`, {
+            const response = await fetch(`http://localhost:5001/api/admin/posts/${postId}`, {
                 method: 'DELETE',
                 headers: { 'Authorization': `Bearer ${token}` }
             });

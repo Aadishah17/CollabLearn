@@ -28,7 +28,7 @@ const PostPage = () => {
     setLoading(true);
     try {
       // Fetch post details
-      const postRes = await fetch(`http://localhost:5000/api/posts/${postId}`);
+      const postRes = await fetch(`http://localhost:5001/api/posts/${postId}`);
       if (!postRes.ok) throw new Error(`HTTP error! status: ${postRes.status}`);
       const postData = await postRes.json();
       setPost(postData);
@@ -52,7 +52,7 @@ const PostPage = () => {
 
   const handleLike = async () => {
     try {
-      const response = await fetch(`http://localhost:5000/api/posts/${post._id}/like`, {
+      const response = await fetch(`http://localhost:5001/api/posts/${post._id}/like`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ userId: currentUser.id }),
@@ -69,7 +69,7 @@ const PostPage = () => {
     if ((e.type === 'click' || e.key === 'Enter') && commentText.trim()) {
       e.preventDefault();
       try {
-        const response = await fetch(`http://localhost:5000/api/posts/${post._id}/comment`, {
+        const response = await fetch(`http://localhost:5001/api/posts/${post._id}/comment`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({

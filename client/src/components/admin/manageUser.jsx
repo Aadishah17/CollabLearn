@@ -23,7 +23,7 @@ export default function ManageUsers() {
             setLoading(true);
             try {
                 const token = localStorage.getItem('token');
-                const response = await fetch('http://localhost:5000/api/admin/users', {
+                const response = await fetch('http://localhost:5001/api/admin/users', {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 const result = await response.json();
@@ -47,7 +47,7 @@ export default function ManageUsers() {
         setActionLoading(userId);
         try {
             const token = localStorage.getItem('token');
-            const response = await fetch(`http://localhost:5000/api/admin/users/${userId}/block`, {
+            const response = await fetch(`http://localhost:5001/api/admin/users/${userId}/block`, {
                 method: 'PUT',
                 headers: { 'Authorization': `Bearer ${token}` }
             });
@@ -71,7 +71,7 @@ export default function ManageUsers() {
         setActionLoading(userId);
         try {
             const token = localStorage.getItem('token');
-            const response = await fetch(`http://localhost:5000/api/admin/users/${userId}/unblock`, {
+            const response = await fetch(`http://localhost:5001/api/admin/users/${userId}/unblock`, {
                 method: 'PUT',
                 headers: { 'Authorization': `Bearer ${token}` }
             });
@@ -114,7 +114,7 @@ export default function ManageUsers() {
             console.log('New subscription:', newSubscription);
             console.log('Sending isPremium:', newSubscription === 'premium');
             
-            const response = await fetch(`http://localhost:5000/api/admin/users/${selectedUser.id}/subscription`, {
+            const response = await fetch(`http://localhost:5001/api/admin/users/${selectedUser.id}/subscription`, {
                 method: 'PUT',
                 headers: { 
                     'Authorization': `Bearer ${token}`,

@@ -154,7 +154,7 @@ export default function BookingSessionPage() {
       return;
     }
 
-    fetch("http://localhost:5000/api/auth/me", {
+    fetch("http://localhost:5001/api/auth/me", {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then((res) => res.json())
@@ -195,7 +195,7 @@ export default function BookingSessionPage() {
         return;
       }
 
-      const res = await fetch("http://localhost:5000/api/booking", {
+      const res = await fetch("http://localhost:5001/api/booking", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

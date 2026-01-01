@@ -23,7 +23,7 @@ export default function GooglePayExample() {
     // Update backend to mark user as premium
     const tokenAuth = localStorage.getItem('token');
     if (tokenAuth) {
-      fetch('http://localhost:5000/api/auth/profile', {
+      fetch('http://localhost:5001/api/auth/profile', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

@@ -7,7 +7,7 @@ require('dotenv').config();
 const app = express();
 const http = require('http');
 const { Server } = require('socket.io');
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 5001;
 
 // Create HTTP server and initialize Socket.IO
 const server = http.createServer(app);
@@ -166,6 +166,7 @@ app.use('/api/dashboard', require('./routes/dashboard'));
 app.use('/api/admin', require('./routes/admin'));
 app.use('/api/courses', require('./routes/courses'));
 app.use('/api/ai', require('./routes/ai'));
+app.use('/api/modules', require('./routes/moduleRoutes'));
 
 console.log('✅ All routes loaded, including /api/admin routes');
 

@@ -71,7 +71,7 @@ export default function SettingsPage({ isDarkMode, toggleDarkMode }) {
             // There is no explicit revoke route in the API docs, but we'll attempt a safe POST to /api/auth/logout-all
             if (token) {
                 try {
-                    const resp = await fetch('http://localhost:5000/api/auth/logout-all', {
+                    const resp = await fetch('http://localhost:5001/api/auth/logout-all', {
                         method: 'POST',
                         headers: {
                             'Authorization': `Bearer ${token}`,
@@ -117,7 +117,7 @@ export default function SettingsPage({ isDarkMode, toggleDarkMode }) {
                         return;
                     }
 
-                    const resp = await fetch('http://localhost:5000/api/auth/delete', {
+                    const resp = await fetch('http://localhost:5001/api/auth/delete', {
                         method: 'DELETE',
                         headers: {
                             'Authorization': `Bearer ${token}`,

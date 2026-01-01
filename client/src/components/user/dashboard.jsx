@@ -85,7 +85,7 @@ const Dashboard = React.memo(() => {
       }
 
       // Fetch fresh data with optimized single API call
-      const dashboardResponse = await fetch('http://localhost:5000/api/dashboard/stats', {
+      const dashboardResponse = await fetch('http://localhost:5001/api/dashboard/stats', {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -161,7 +161,7 @@ const Dashboard = React.memo(() => {
 
   const fetchFallbackData = async (token) => {
     // Fetch user profile
-    const userResponse = await fetch('http://localhost:5000/api/auth/me', {
+    const userResponse = await fetch('http://localhost:5001/api/auth/me', {
       headers: {
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json'
@@ -177,7 +177,7 @@ const Dashboard = React.memo(() => {
 
     // Fetch user's skills
     try {
-      const skillsResponse = await fetch('http://localhost:5000/api/skills/my-skills', {
+      const skillsResponse = await fetch('http://localhost:5001/api/skills/my-skills', {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'

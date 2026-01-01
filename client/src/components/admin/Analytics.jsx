@@ -94,7 +94,7 @@ export default function AnalyticsDashboard() {
             setLoading(true);
             try {
                 const token = localStorage.getItem('token');
-                const response = await fetch('http://localhost:5000/api/admin/stats', {
+                const response = await fetch('http://localhost:5001/api/admin/stats', {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 const result = await response.json();

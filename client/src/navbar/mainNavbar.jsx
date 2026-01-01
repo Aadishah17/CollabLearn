@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Search, Home, Calendar, MessageSquare, Users, Trophy, Bell, User, UserCircle, Settings, FileText, LogOut, Moon, Sun, Play, Sparkles } from 'lucide-react';
+import { Search, Home, Calendar, MessageSquare, Users, Trophy, Bell, User, UserCircle, Settings, FileText, LogOut, Moon, Sun, Play, Sparkles, Book } from 'lucide-react';
 
 import CollabLearnLogo from '../assets/Collablearn Logo.png';
 import Notification from '../components/Notification';
@@ -46,7 +46,7 @@ export default function MainNavbar() {
         return;
       }
 
-      const response = await fetch('http://localhost:5000/api/auth/me', {
+      const response = await fetch('http://localhost:5001/api/auth/me', {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -134,10 +134,10 @@ export default function MainNavbar() {
 
       try {
         const [studentResponse, instructorResponse] = await Promise.all([
-          fetch(`http://localhost:5000/api/booking/student/${userId}`, {
+          fetch(`http://localhost:5001/api/booking/student/${userId}`, {
             headers: { 'Authorization': `Bearer ${token}` }
           }),
-          fetch(`http://localhost:5000/api/booking/instructor/${userId}`, {
+          fetch(`http://localhost:5001/api/booking/instructor/${userId}`, {
             headers: { 'Authorization': `Bearer ${token}` }
           })
         ]);
@@ -253,6 +253,10 @@ export default function MainNavbar() {
             <Link to="/dashboard" className={getLinkClass('/dashboard')}>
               <Home size={20} />
               <span className="font-medium">Dashboard</span>
+            </Link>
+            <Link to="/modules" className={getLinkClass('/modules')}>
+              <Book size={20} />
+              <span className="font-medium">Study Modules</span>
             </Link>
             <Link to="/browse-skills" className={getLinkClass('/browse-skills')}>
               <Search size={20} />

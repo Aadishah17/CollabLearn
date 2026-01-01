@@ -53,7 +53,7 @@ const SkillRecommendations = () => {
         };
 
         // Use the new personalized recommendations endpoint
-        const response = await fetch('http://localhost:5000/api/skills/recommendations', {
+        const response = await fetch('http://localhost:5001/api/skills/recommendations', {
           headers,
           cache: 'no-store'
         });
@@ -82,7 +82,7 @@ const SkillRecommendations = () => {
         // Fallback to basic search if advanced recommendations fail
         try {
           const token = localStorage.getItem('token');
-          const fallbackResponse = await fetch('http://localhost:5000/api/skills/search?offering=true', {
+          const fallbackResponse = await fetch('http://localhost:5001/api/skills/search?offering=true', {
             headers: {
               'Authorization': `Bearer ${token}`,
               'Content-Type': 'application/json'

@@ -61,7 +61,7 @@ const SkillSessions = () => {
       setLoading(true);
       
       // Get current user
-      const userResponse = await fetch('http://localhost:5000/api/auth/me', {
+      const userResponse = await fetch('http://localhost:5001/api/auth/me', {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -74,14 +74,14 @@ const SkillSessions = () => {
       
       // Determine user role for this skill by checking if user appears as instructor in any session
       // Try both endpoints to determine role
-      const instructorResponse = await fetch(`http://localhost:5000/api/booking/instructor/${userData.user.id}`, {
+      const instructorResponse = await fetch(`http://localhost:5001/api/booking/instructor/${userData.user.id}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         }
       });
       
-      const studentResponse = await fetch(`http://localhost:5000/api/booking/student/${userData.user.id}`, {
+      const studentResponse = await fetch(`http://localhost:5001/api/booking/student/${userData.user.id}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -189,7 +189,7 @@ const SkillSessions = () => {
 
     try {
       // Upload to the first session (skill-level documents)
-      const response = await fetch(`http://localhost:5000/api/booking/${sessions[0]._id}/upload-document`, {
+      const response = await fetch(`http://localhost:5001/api/booking/${sessions[0]._id}/upload-document`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -219,7 +219,7 @@ const SkillSessions = () => {
     if (!confirm('Are you sure you want to delete this skill resource?')) return;
 
     try {
-      const response = await fetch(`http://localhost:5000/api/booking/${sessions[0]._id}/delete-document/${documentId}`, {
+      const response = await fetch(`http://localhost:5001/api/booking/${sessions[0]._id}/delete-document/${documentId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -241,7 +241,7 @@ const SkillSessions = () => {
   };
 
   const downloadDocument = (document) => {
-    const downloadUrl = `http://localhost:5000/uploads/sessions/${document.filename}`;
+    const downloadUrl = `http://localhost:5001/uploads/sessions/${document.filename}`;
     const link = document.createElement('a');
     link.href = downloadUrl;
     link.download = document.title || document.filename;
@@ -271,7 +271,7 @@ const SkillSessions = () => {
 
   const submitCourseRating = async () => {
     try {
-      const response = await fetch('http://localhost:5000/api/booking/complete-course', {
+      const response = await fetch('http://localhost:5001/api/booking/complete-course', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,

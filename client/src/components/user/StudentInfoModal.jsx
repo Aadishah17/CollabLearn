@@ -21,7 +21,7 @@ const StudentInfoModal = ({ student, skill, onClose, onMessage }) => {
       }
 
       // Fetch student details from API
-      const response = await fetch(`http://localhost:5000/api/dashboard/student/${student.id}`, {
+      const response = await fetch(`http://localhost:5001/api/dashboard/student/${student.id}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'

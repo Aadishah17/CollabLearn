@@ -18,6 +18,8 @@ import MessagesPage from './components/user/Messages';
 import PostPage from './components/user/PostPage';
 import BookingSessionPage from './components/user/bookSession';
 import SettingsPage from './components/user/settingsPage';
+import ModuleDashboard from './components/ModuleDashboard';
+import ModuleEditor from './components/ModuleEditor';
 import ManageUsers from './components/admin/manageUser';
 import ManagePosts from './components/admin/ManagePosts';
 import AnalyticsDashboard from './components/admin/Analytics';
@@ -44,6 +46,9 @@ function App() {
             <Route path="/signup" element={<SignupPage />} />
             <Route path="/admin" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
             <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+            <Route path="/modules" element={<ProtectedRoute><ModuleDashboard /></ProtectedRoute>} />
+            <Route path="/modules/create" element={<ProtectedRoute><ModuleEditor /></ProtectedRoute>} />
+            <Route path="/modules/:id" element={<ProtectedRoute><ModuleEditor /></ProtectedRoute>} />
             <Route path="/browse-skills" element={<ProtectedRoute><BrowseSkills /></ProtectedRoute>} />
             <Route path="/skill-recommendations" element={<ProtectedRoute><SkillRecommendations /></ProtectedRoute>} />
             <Route path="/calendar" element={<ProtectedRoute><CalendarPage /></ProtectedRoute>} />

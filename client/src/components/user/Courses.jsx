@@ -87,6 +87,9 @@ const Courses = () => {
         return params.get('category') || 'All';
     });
 
+    const [courses, setCourses] = useState([]);
+    const [loading, setLoading] = useState(true);
+
     // Update state if URL changes (e.g. navigation)
     useEffect(() => {
         const params = new URLSearchParams(location.search);
@@ -100,7 +103,7 @@ const Courses = () => {
         const fetchCourses = async () => {
             try {
                 setLoading(true);
-                let url = 'http://localhost:5000/api/courses';
+                let url = 'http://localhost:5001/api/courses';
                 if (selectedCategory !== 'All') {
                     url += `?category=${encodeURIComponent(selectedCategory)}`;
                 }

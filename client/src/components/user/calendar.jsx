@@ -39,8 +39,8 @@ const CalendarPage = () => {
         setLoadingRequests(true);
         try {
       const [instructorBookingsRes, studentBookingsRes] = await Promise.all([
-        fetch(`http://localhost:5000/api/booking/instructor/${userId}`, { headers: { 'Authorization': `Bearer ${token}` } }),
-        fetch(`http://localhost:5000/api/booking/student/${userId}`, { headers: { 'Authorization': `Bearer ${token}` } })
+        fetch(`http://localhost:5001/api/booking/instructor/${userId}`, { headers: { 'Authorization': `Bearer ${token}` } }),
+        fetch(`http://localhost:5001/api/booking/student/${userId}`, { headers: { 'Authorization': `Bearer ${token}` } })
       ]);
 
       let instructorBookingsData = { success: false, bookings: [] };
@@ -112,7 +112,7 @@ const CalendarPage = () => {
     }
 
     try {
-    const response = await fetch(`http://localhost:5000/api/booking/${bookingId}`, {
+    const response = await fetch(`http://localhost:5001/api/booking/${bookingId}`, {
             method: 'PATCH',
             headers: {
                 'Content-Type': 'application/json',

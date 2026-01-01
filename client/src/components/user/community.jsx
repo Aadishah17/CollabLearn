@@ -48,7 +48,7 @@ const PostCard = ({ post, handleDeletePost, currentUserId, fetchPosts, currentUs
   );
 
   const handleLike = async () => {
-    await fetch(`http://localhost:5000/api/posts/${post._id}/like`, {
+    await fetch(`http://localhost:5001/api/posts/${post._id}/like`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ userId: currentUserId }),
@@ -58,7 +58,7 @@ const PostCard = ({ post, handleDeletePost, currentUserId, fetchPosts, currentUs
 
   const handleAddComment = async (e) => {
     if (e.key === "Enter" && commentText.trim()) {
-      await fetch(`http://localhost:5000/api/posts/${post._id}/comment`, {
+      await fetch(`http://localhost:5001/api/posts/${post._id}/comment`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -381,7 +381,7 @@ const CommunityPage = () => {
     }
 
     try {
-      const response = await fetch(`http://localhost:5000/api/auth/user/${localUser.id}`);
+      const response = await fetch(`http://localhost:5001/api/auth/user/${localUser.id}`);
       if (response.ok) {
         const data = await response.json();
         if (data.success && data.user) {
@@ -406,7 +406,7 @@ const CommunityPage = () => {
   const fetchPosts = async (page = 1, append = false) => {
     try {
       setLoadingPosts(true);
-      const response = await fetch(`http://localhost:5000/api/posts?page=${page}&limit=${POSTS_PAGE_SIZE}`);
+      const response = await fetch(`http://localhost:5001/api/posts?page=${page}&limit=${POSTS_PAGE_SIZE}`);
       if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
       const data = await response.json();
       const incoming = data?.posts || [];
@@ -422,7 +422,7 @@ const CommunityPage = () => {
 
   const fetchTopContributors = async () => {
     try {
-      const response = await fetch('http://localhost:5000/api/posts/top-contributors?limit=3');
+      const response = await fetch('http://localhost:5001/api/posts/top-contributors?limit=3');
       if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
       const data = await response.json();
       const contributors = (data && data.contributors) ? data.contributors : [];
@@ -460,7 +460,7 @@ const CommunityPage = () => {
 
   const handleAddPost = async (newPostData) => {
     try {
-      const response = await fetch('http://localhost:5000/api/posts', {
+      const response = await fetch('http://localhost:5001/api/posts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newPostData),
@@ -477,7 +477,7 @@ const CommunityPage = () => {
   const handleDeletePost = async (postId) => {
     if (window.confirm('Are you sure you want to delete this post? This action cannot be undone.')) {
       try {
-        const response = await fetch(`http://localhost:5000/api/posts/${postId}`, { 
+        const response = await fetch(`http://localhost:5001/api/posts/${postId}`, { 
           method: 'DELETE',
           headers: {
             'Content-Type': 'application/json',

@@ -23,7 +23,7 @@ export default function AdminSettings() {
             setLoading(true);
             try {
                 const token = localStorage.getItem('token');
-                const response = await fetch('http://localhost:5000/api/admin/settings', {
+                const response = await fetch('http://localhost:5001/api/admin/settings', {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 const result = await response.json();
@@ -54,7 +54,7 @@ export default function AdminSettings() {
         setSaveStatus('saving');
         try {
             const token = localStorage.getItem('token');
-            const response = await fetch('http://localhost:5000/api/admin/settings', {
+            const response = await fetch('http://localhost:5001/api/admin/settings', {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',

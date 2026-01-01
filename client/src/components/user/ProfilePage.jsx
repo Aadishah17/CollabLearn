@@ -70,7 +70,7 @@ export default function ProfilePage() {
 
         // Fetch user profile
         const profileResponse = await fetch(
-          "http://localhost:5000/api/auth/me",
+          "http://localhost:5001/api/auth/me",
           {
             method: "GET",
             headers: {
@@ -88,7 +88,7 @@ export default function ProfilePage() {
 
         // Fetch user skills separately
         const skillsResponse = await fetch(
-          "http://localhost:5000/api/skills/my-skills",
+          "http://localhost:5001/api/skills/my-skills",
           {
             method: "GET",
             headers: {
@@ -159,7 +159,7 @@ export default function ProfilePage() {
       if (!token) return;
 
       const skillsResponse = await fetch(
-        "http://localhost:5000/api/skills/my-skills",
+        "http://localhost:5001/api/skills/my-skills",
         {
           method: "GET",
           headers: {
@@ -196,7 +196,7 @@ export default function ProfilePage() {
     try {
       const token = localStorage.getItem("token");
       const response = await fetch(
-        "http://localhost:5000/api/skills/offering",
+        "http://localhost:5001/api/skills/offering",
         {
           method: "POST",
           headers: {
@@ -233,7 +233,7 @@ export default function ProfilePage() {
     try {
       const token = localStorage.getItem("token");
       const response = await fetch(
-        `http://localhost:5000/api/skills/offering/${skillId}`,
+        `http://localhost:5001/api/skills/offering/${skillId}`,
         {
           method: "DELETE",
           headers: {
@@ -266,7 +266,7 @@ export default function ProfilePage() {
     try {
       const token = localStorage.getItem("token");
       const response = await fetch(
-        `http://localhost:5000/api/skills/seeking/${skillId}`,
+        `http://localhost:5001/api/skills/seeking/${skillId}`,
         {
           method: "DELETE",
           headers: {
@@ -324,7 +324,7 @@ export default function ProfilePage() {
     try {
       const token = localStorage.getItem("token");
 
-      const response = await fetch("http://localhost:5000/api/auth/profile", {
+      const response = await fetch("http://localhost:5001/api/auth/profile", {
         method: "PUT",
         headers: {
           Authorization: `Bearer ${token}`,
