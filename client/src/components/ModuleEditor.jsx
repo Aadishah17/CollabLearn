@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import ReactQuill from 'react-quill';
-import 'react-quill/dist/quill.snow.css'; // Import styles
+import ReactQuill from 'react-quill-new';
+import 'react-quill-new/dist/quill.snow.css'; // Import styles
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { Save, Share2, ArrowLeft, Users } from 'lucide-react';
@@ -109,8 +109,8 @@ const ModuleEditor = () => {
                         onClick={handleSave}
                         disabled={saving}
                         className={`flex items-center gap-2 px-5 py-2 rounded-lg text-sm font-bold transition-all shadow-lg ${saving
-                                ? 'bg-blue-800 text-blue-200 cursor-wait'
-                                : 'bg-blue-600 hover:bg-blue-500 text-white shadow-blue-500/20'
+                            ? 'bg-blue-800 text-blue-200 cursor-wait'
+                            : 'bg-blue-600 hover:bg-blue-500 text-white shadow-blue-500/20'
                             }`}
                     >
                         <Save size={18} />

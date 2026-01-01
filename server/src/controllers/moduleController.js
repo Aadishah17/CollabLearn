@@ -14,8 +14,8 @@ exports.createModule = async (req, res) => {
             content,
             tags,
             visibility,
-            owner: req.user._id,
-            collaborators: [{ user: req.user._id, role: 'editor' }] // Owner is automatically an editor
+            owner: req.userId,
+            collaborators: [{ user: req.userId, role: 'editor' }] // Owner is automatically an editor
         });
 
         res.status(201).json({
@@ -78,12 +78,12 @@ exports.getModule = async (req, res) => {
         // Access Control
         if (module.visibility === 'private') {
             // Must be owner or collaborator
-            if (!req.user) {
+            if (!req.userId) {
                 return res.status(401).json({ success: false, message: 'Please log in to view this module' });
             }
 
-            const isOwner = module.owner._id.toString() === req.user._id.toString();
-            const isCollaborator = module.collaborators.some(c => c.user._id.toString() === req.user._id.toString());
+            const isOwner = module.owner._id.toString() === req.userId.toString();
+            const isCollaborator = module.collaborators.some(c => c.user._id.toString() === req.userId.toString());
 
             if (!isOwner && !isCollaborator) {
                 return res.status(403).json({ success: false, message: 'Not authorized to view this module' });
@@ -115,8 +115,8 @@ exports.updateModule = async (req, res) => {
         }
 
         // Check ownership or editor role
-        const isOwner = module.owner.toString() === req.user._id.toString();
-        const collaborator = module.collaborators.find(c => c.user.toString() === req.user._id.toString());
+        const isOwner = module.owner.toString() === req.userId.toString();
+        const collaborator = module.collaborators.find(c => c.user.toString() === req.userId.toString());
         const isEditor = collaborator && collaborator.role === 'editor';
 
         if (!isOwner && !isEditor) {
@@ -153,7 +153,7 @@ exports.deleteModule = async (req, res) => {
         }
 
         // Only owner can delete
-        if (module.owner.toString() !== req.user._id.toString()) {
+        if (module.owner.toString() !== req.userId.toString()) {
             return res.status(403).json({ success: false, message: 'Not authorized to delete this module' });
         }
 
