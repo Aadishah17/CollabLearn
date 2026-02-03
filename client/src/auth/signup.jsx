@@ -100,10 +100,10 @@ const SignupPage = () => {
       {/* Left Side - Signup Form */}
       <div className="w-full lg:w-1/2 flex flex-col justify-center p-8 sm:p-12 lg:p-24 relative">
         <Link to="/" className="absolute top-8 left-8 flex items-center gap-2 group">
-          <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-indigo-200 dark:shadow-indigo-900/20">
+          <div className="w-10 h-10 bg-red-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-red-200 dark:shadow-red-900/20">
             <span className="font-bold text-xl">C</span>
           </div>
-          <span className="font-bold text-gray-900 dark:text-white text-xl tracking-tight group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">CollabLearn</span>
+          <span className="font-bold text-gray-900 dark:text-white text-xl tracking-tight group-hover:text-red-600 dark:group-hover:text-red-500 transition-colors">CollabLearn</span>
         </Link>
 
         <div className="max-w-md w-full mx-auto">
@@ -120,7 +120,7 @@ const SignupPage = () => {
                   type="text"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  className="w-full pl-5 pr-4 py-3.5 bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-2xl focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 text-gray-900 dark:text-white transition-all shadow-sm"
+                  className="w-full pl-5 pr-4 py-3.5 bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-2xl focus:outline-none focus:ring-2 focus:ring-red-500/50 focus:border-red-500 text-gray-900 dark:text-white transition-all shadow-sm"
                   placeholder="John Doe"
                   required
                 />
@@ -134,7 +134,7 @@ const SignupPage = () => {
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full pl-5 pr-4 py-3.5 bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-2xl focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 text-gray-900 dark:text-white transition-all shadow-sm"
+                  className="w-full pl-5 pr-4 py-3.5 bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-2xl focus:outline-none focus:ring-2 focus:ring-red-500/50 focus:border-red-500 text-gray-900 dark:text-white transition-all shadow-sm"
                   placeholder="john@example.com"
                   required
                 />
@@ -157,7 +157,7 @@ const SignupPage = () => {
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-red-600 dark:hover:text-red-500 transition-colors"
                   >
                     {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                   </button>
@@ -173,7 +173,7 @@ const SignupPage = () => {
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     className={`w-full pl-5 pr-10 py-3.5 bg-gray-50 dark:bg-zinc-900 border rounded-2xl focus:outline-none focus:ring-2 transition-all shadow-sm ${!passwordsMatch && confirmPassword
                       ? 'border-red-500/50 focus:ring-red-500/30'
-                      : 'border-gray-200 dark:border-zinc-800 focus:ring-indigo-500/50 focus:border-indigo-500 text-gray-900 dark:text-white'
+                      : 'border-gray-200 dark:border-zinc-800 focus:ring-red-500/50 focus:border-red-500 text-gray-900 dark:text-white'
                       }`}
                     placeholder="Confirm"
                     required
@@ -192,16 +192,16 @@ const SignupPage = () => {
             </div>
 
             <div className="flex items-start gap-3 mt-2">
-              <input type="checkbox" required className="mt-1 w-4 h-4 rounded border-gray-300 dark:border-zinc-700 text-indigo-600 focus:ring-indigo-500 bg-gray-50 dark:bg-zinc-900" />
+              <input type="checkbox" required className="mt-1 w-4 h-4 rounded border-gray-300 dark:border-zinc-700 text-red-600 focus:ring-red-500 bg-gray-50 dark:bg-zinc-900" />
               <span className="text-sm text-gray-500 dark:text-zinc-400">
-                I agree to the <a href="#" className="text-indigo-600 dark:text-indigo-400 hover:underline">Terms of Service</a> and <a href="#" className="text-indigo-600 dark:text-indigo-400 hover:underline">Privacy Policy</a>.
+                I agree to the <a href="#" className="text-red-600 dark:text-red-500 hover:underline">Terms of Service</a> and <a href="#" className="text-red-600 dark:text-red-500 hover:underline">Privacy Policy</a>.
               </span>
             </div>
 
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3.5 bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-600 bg-size-200 bg-pos-0 hover:bg-pos-100 text-white font-bold rounded-2xl shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/40 transform hover:-translate-y-0.5 transition-all duration-300 flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
+              className="w-full py-3.5 bg-red-600 hover:bg-red-700 text-white font-bold rounded-2xl shadow-lg shadow-red-500/20 hover:shadow-red-500/40 transform hover:-translate-y-0.5 transition-all duration-300 flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
             >
               {loading ? (
                 <>
@@ -244,7 +244,7 @@ const SignupPage = () => {
 
           <p className="mt-8 text-center text-gray-500 dark:text-zinc-400 text-sm">
             Already have an account?{' '}
-            <Link to="/login" className="text-indigo-600 dark:text-indigo-400 font-semibold hover:text-indigo-700 dark:hover:text-indigo-300 hover:underline decoration-2 underline-offset-4 transition-all">
+            <Link to="/login" className="text-red-600 dark:text-red-500 font-semibold hover:text-red-700 dark:hover:text-red-400 hover:underline decoration-2 underline-offset-4 transition-all">
               Sign in
             </Link>
           </p>
@@ -253,20 +253,19 @@ const SignupPage = () => {
 
       {/* Right Side - Image/Decoration */}
       <div className="hidden lg:block w-1/2 bg-zinc-900 relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-purple-600/20 via-black/50 to-indigo-600/20 z-10" />
+        <div className="absolute inset-0 bg-gradient-to-br from-red-600/10 via-black/50 to-black z-10" />
         <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1531403009284-440f080d1e12?q=80&w=2670&auto=format&fit=crop')] bg-cover bg-center opacity-30 mix-blend-overlay"></div>
 
-        {/* Animated Background Elements */}
-        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-indigo-500/30 rounded-full blur-[128px] animate-pulse"></div>
-        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-purple-500/30 rounded-full blur-[128px] animate-pulse delay-1000"></div>
+        {/* Subtle Background Accent */}
+        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-red-600/20 rounded-full blur-[100px]"></div>
 
 
         <div className="absolute inset-0 z-20 flex flex-col justify-center px-16 text-white">
           <div className="mb-8 inline-flex items-center gap-2 px-3 py-1 bg-white/10 backdrop-blur-md rounded-full border border-white/10 w-fit">
-            <Sparkles size={14} className="text-amber-400" />
+            <Sparkles size={14} className="text-red-400" />
             <span className="text-xs font-medium text-white/90">Join 10,000+ Builders</span>
           </div>
-          <h2 className="text-5xl font-bold mb-6 leading-tight tracking-tight">Start your journey <br /> <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-indigo-400">today.</span></h2>
+          <h2 className="text-5xl font-bold mb-6 leading-tight tracking-tight">Start your journey <br /> <span className="text-gradient-red">today.</span></h2>
           <p className="text-zinc-400 text-xl leading-relaxed max-w-lg mb-12">
             "Joining CollabLearn was the best career decision I ever made. The mentors are world-class and the platform is incredibly easy to use."
           </p>

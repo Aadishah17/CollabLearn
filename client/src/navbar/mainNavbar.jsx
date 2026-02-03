@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Search, Home, Calendar, MessageSquare, Users, Trophy, Bell, User, UserCircle, Settings, FileText, LogOut, Moon, Sun, Play, Sparkles, Book } from 'lucide-react';
 
-import CollabLearnLogo from '../assets/Collablearn Logo.png';
+import CollabLearnLogo from '../assets/react.svg';
 import Notification from '../components/Notification';
 import { useTheme } from '../components/user/ThemeContext';
 
@@ -229,13 +229,13 @@ export default function MainNavbar() {
   const getLinkClass = (path) => {
     const baseClasses = 'nav-item flex items-center gap-2 px-4 py-2 rounded-lg transition-all duration-200 transform hover:-translate-y-0.5';
     return location.pathname === path
-      ? `${baseClasses} bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-md`
-      : `${baseClasses} text-gray-600 hover:text-indigo-700 hover:bg-indigo-50`;
+      ? `${baseClasses} bg-red-600 text-white shadow-md`
+      : `${baseClasses} text-gray-600 hover:text-red-600 hover:bg-red-50`;
   };
 
   return (
     <>
-      <nav className="fixed top-0 left-0 right-0 bg-white border-b border-gray-200 z-50 shadow-sm">
+      <nav className="fixed top-0 left-0 right-0 bg-black border-b border-white z-50 shadow-sm">
         {/* The change is in the line below */}
         <div className="flex justify-between items-center h-20 px-8">
           {/* Logo */}
@@ -245,7 +245,7 @@ export default function MainNavbar() {
               alt="CollabLearn Logo"
               className="w-12 h-12 rounded-xl object-cover hover:scale-110 hover:rotate-3 transition-all duration-300 cursor-pointer"
             />
-            <span className="text-2xl font-bold text-indigo-600">CollabLearn</span>
+            <span className="text-2xl font-bold text-red-600">CollabLearn</span>
           </div>
 
           {/* Navigation Items */}
@@ -281,7 +281,7 @@ export default function MainNavbar() {
             <Link to="/teach" className={getLinkClass('/teach')}>
               <span className="font-medium">Teach</span>
             </Link>
-            <Link to="/ai-learning" className={`${getLinkClass('/ai-learning')} text-indigo-600 font-semibold bg-indigo-50`}>
+            <Link to="/ai-learning" className={`${getLinkClass('/ai-learning')} text-red-600 font-semibold bg-red-50`}>
               <Sparkles size={18} />
               <span className="font-medium">AI Learning</span>
             </Link>
@@ -303,13 +303,13 @@ export default function MainNavbar() {
               <div className="flex items-center gap-3">
                 <Link
                   to="/login"
-                  className="px-5 py-2.5 text-gray-700 font-bold hover:text-indigo-600 transition-colors text-sm"
+                  className="px-5 py-2.5 text-gray-700 font-bold hover:text-red-600 transition-colors text-sm"
                 >
                   Log In
                 </Link>
                 <Link
                   to="/signup"
-                  className="px-5 py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-bold rounded-xl shadow-lg shadow-indigo-200 hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200 text-sm flex items-center gap-2"
+                  className="px-5 py-2.5 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl shadow-lg shadow-red-200 hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200 text-sm flex items-center gap-2"
                 >
                   <UserCircle size={18} />
                   Sign Up Free
@@ -335,7 +335,7 @@ export default function MainNavbar() {
                     className="flex items-center gap-2 cursor-pointer hover:bg-gray-100 rounded-lg p-2 transition-all duration-200"
                     onClick={() => setIsDropdownOpen(!isDropdownOpen)}
                   >
-                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold text-sm">
+                    <div className="w-8 h-8 rounded-full bg-red-600 flex items-center justify-center text-white font-bold text-sm">
                       {username.charAt(0).toUpperCase()}
                     </div>
                     <span className="text-sm font-semibold text-gray-900 hidden md:block">{username}</span>
@@ -363,16 +363,16 @@ export default function MainNavbar() {
                       <div className="p-2">
                         <button
                           onClick={() => handleMenuClick('/profile')}
-                          className="w-full flex items-center gap-3 px-4 py-2.5 text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 rounded-lg transition-colors group"
+                          className="w-full flex items-center gap-3 px-4 py-2.5 text-gray-700 hover:bg-red-50 hover:text-red-600 rounded-lg transition-colors group"
                         >
-                          <UserCircle size={18} className="text-gray-500 group-hover:text-indigo-600 transition-colors" />
+                          <UserCircle size={18} className="text-gray-500 group-hover:text-red-600 transition-colors" />
                           <span className="font-medium">Profile</span>
                         </button>
                         <button
                           onClick={() => handleMenuClick('/settings')}
-                          className="w-full flex items-center gap-3 px-4 py-2.5 text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 rounded-lg transition-colors group"
+                          className="w-full flex items-center gap-3 px-4 py-2.5 text-gray-700 hover:bg-red-50 hover:text-red-600 rounded-lg transition-colors group"
                         >
-                          <Settings size={18} className="text-gray-500 group-hover:text-indigo-600 transition-colors" />
+                          <Settings size={18} className="text-gray-500 group-hover:text-red-600 transition-colors" />
                           <Link to="/settings"><span className="font-medium">Settings</span></Link>
                         </button>
                       </div>

@@ -84,7 +84,7 @@ const AiChatbot = () => {
             {!isOpen && (
                 <button
                     onClick={() => setIsOpen(true)}
-                    className="fixed bottom-6 right-6 w-14 h-14 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-full shadow-lg flex items-center justify-center text-white hover:scale-110 transition-transform z-50 animate-bounce-slow"
+                    className="fixed bottom-6 right-6 w-14 h-14 bg-gradient-to-r from-red-600 to-red-800 rounded-full shadow-lg flex items-center justify-center text-white hover:scale-110 transition-transform z-50 animate-bounce-slow"
                 >
                     <Sparkles size={24} />
                 </button>
@@ -92,9 +92,9 @@ const AiChatbot = () => {
 
             {/* Chat Window */}
             {isOpen && (
-                <div className="fixed bottom-6 right-6 w-96 h-[600px] bg-white rounded-2xl shadow-2xl flex flex-col z-50 border border-gray-200 overflow-hidden animate-slideUp">
+                <div className="fixed bottom-6 right-6 w-96 h-[600px] bg-black rounded-2xl shadow-2xl flex flex-col z-50 border border-white overflow-hidden animate-slideUp">
                     {/* Header */}
-                    <div className="bg-gradient-to-r from-indigo-600 to-purple-600 p-4 flex items-center justify-between text-white">
+                    <div className="bg-gradient-to-r from-red-600 to-red-800 p-4 flex items-center justify-between text-white">
                         <div className="flex items-center gap-2">
                             <Sparkles size={20} />
                             <span className="font-bold">AI Learning Assistant</span>
@@ -105,12 +105,12 @@ const AiChatbot = () => {
                     </div>
 
                     {/* Messages Area */}
-                    <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50">
+                    <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-900 scrollbar-thin scrollbar-thumb-gray-700">
                         {messages.map((msg, idx) => (
                             <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                                 <div className={`max-w-[80%] p-3 rounded-2xl text-sm ${msg.role === 'user'
-                                        ? 'bg-indigo-600 text-white rounded-tr-none'
-                                        : 'bg-white border border-gray-200 text-gray-800 rounded-tl-none shadow-sm'
+                                    ? 'bg-red-600 text-white rounded-tr-none'
+                                    : 'bg-black border border-gray-700 text-gray-200 rounded-tl-none shadow-sm'
                                     }`}>
                                     {msg.content}
                                 </div>
@@ -119,23 +119,23 @@ const AiChatbot = () => {
 
                         {/* Roadmap Display */}
                         {roadmap && (
-                            <div className="bg-white border border-indigo-100 rounded-xl p-4 shadow-sm animate-fadeIn">
-                                <div className="flex items-center gap-2 mb-3 text-indigo-700 font-bold border-b border-indigo-50 pb-2">
+                            <div className="bg-black border border-white rounded-xl p-4 shadow-sm animate-fadeIn">
+                                <div className="flex items-center gap-2 mb-3 text-red-500 font-bold border-b border-gray-700 pb-2">
                                     <Map size={18} />
                                     <span>Detailed Roadmap</span>
                                 </div>
                                 <div className="space-y-4 relative">
                                     {/* Vertical Line */}
-                                    <div className="absolute left-[15px] top-2 bottom-2 w-0.5 bg-indigo-100"></div>
+                                    <div className="absolute left-[15px] top-2 bottom-2 w-0.5 bg-gray-700"></div>
 
                                     {roadmap.map((step, i) => (
                                         <div key={i} className="relative flex gap-3">
-                                            <div className="w-8 h-8 rounded-full bg-indigo-50 border-2 border-indigo-200 flex items-center justify-center text-xs font-bold text-indigo-700 flex-shrink-0 z-10">
+                                            <div className="w-8 h-8 rounded-full bg-gray-800 border-2 border-red-500 flex items-center justify-center text-xs font-bold text-red-500 flex-shrink-0 z-10">
                                                 {i + 1}
                                             </div>
                                             <div>
-                                                <h4 className="font-bold text-gray-900 text-sm">{step.title}</h4>
-                                                <p className="text-xs text-gray-600 mt-1">{step.description}</p>
+                                                <h4 className="font-bold text-white text-sm">{step.title}</h4>
+                                                <p className="text-xs text-gray-400 mt-1">{step.description}</p>
                                             </div>
                                         </div>
                                     ))}
@@ -145,9 +145,9 @@ const AiChatbot = () => {
 
                         {isLoading && (
                             <div className="flex justify-start">
-                                <div className="bg-white border border-gray-200 p-3 rounded-2xl rounded-tl-none shadow-sm flex items-center gap-2">
-                                    <Loader2 size={16} className="animate-spin text-indigo-600" />
-                                    <span className="text-xs text-gray-500">Thinking...</span>
+                                <div className="bg-black border border-gray-700 p-3 rounded-2xl rounded-tl-none shadow-sm flex items-center gap-2">
+                                    <Loader2 size={16} className="animate-spin text-red-600" />
+                                    <span className="text-xs text-gray-400">Thinking...</span>
                                 </div>
                             </div>
                         )}
@@ -155,7 +155,7 @@ const AiChatbot = () => {
                     </div>
 
                     {/* Input Area */}
-                    <div className="p-4 bg-white border-t border-gray-200">
+                    <div className="p-4 bg-black border-t border-white">
                         <div className="flex items-center gap-2 relative">
                             <input
                                 type="text"
@@ -163,12 +163,12 @@ const AiChatbot = () => {
                                 onChange={(e) => setInput(e.target.value)}
                                 onKeyDown={handleKeyPress}
                                 placeholder="Ask for a roadmap..."
-                                className="w-full pl-4 pr-12 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all text-sm"
+                                className="w-full pl-4 pr-12 py-3 bg-gray-900 border border-gray-700 text-white rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 transition-all text-sm placeholder:text-gray-500"
                             />
                             <button
                                 onClick={handleSend}
                                 disabled={!input.trim() || isLoading}
-                                className="absolute right-2 p-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                className="absolute right-2 p-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                             >
                                 <Send size={16} />
                             </button>

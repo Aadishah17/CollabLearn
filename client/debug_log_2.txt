@@ -1,0 +1,30 @@
+STARTING_DEBUG 
+========================================== 
+NPM INSTALL (LEGACY PEER DEPS) 
+
+up to date, audited 324 packages in 5s
+
+65 packages are looking for funding
+  run `npm fund` for details
+
+9 vulnerabilities (7 moderate, 2 high)
+
+To address issues that do not require attention, run:
+  npm audit fix
+
+To address all issues (including breaking changes), run:
+  npm audit fix --force
+
+Run `npm audit` for details.
+========================================== 
+NPM RUN DEV 
+
+> client@0.0.0 dev
+> vite
+
+Port 5173 is in use, trying another one...
+
+  [32m[1mVITE[22m v7.1.7[39m  [2mready in [0m[1m1490[22m[2m[0m ms[22m
+
+  [32m➜[39m  [1mLocal[22m:   [36mhttp://localhost:[1m5174[22m/[39m
+[2m  [32m➜[39m  [1mNetwork[22m[2m: use [22m[1m--host[22m[2m to expose[22m

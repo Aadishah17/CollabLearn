@@ -602,7 +602,7 @@ export default function SkillSwapBrowse() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-black">
       <style>{`
         @keyframes fadeInUp {
           from {
@@ -706,7 +706,7 @@ export default function SkillSwapBrowse() {
         <div className="max-w-[1400px] mx-auto px-6 py-12">
           {/* Header Section */}
           <div className="mb-8 animate-fadeInUp">
-            <h1 className="text-4xl font-bold text-gray-900 mb-3">Discover Amazing Skills</h1>
+            <h1 className="text-4xl font-bold text-white mb-3">Discover Amazing Skills</h1>
           </div>
 
           {/* Success Message */}
@@ -724,27 +724,27 @@ export default function SkillSwapBrowse() {
           {/* Search and Filters */}
           <div className="flex items-center gap-4 mb-12 animate-fadeInUp" style={{ animationDelay: '0.1s' }}>
             <div className="flex-1 relative group">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-indigo-600 transition-colors" size={20} />
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-red-600 transition-colors" size={20} />
               <input
                 type="text"
                 placeholder="Search skills, instructors, or topics..."
-                className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:border-transparent transition-all"
+                className="w-full pl-12 pr-4 py-3 bg-black border border-white text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-red-600 focus:border-red-600 transition-all placeholder-gray-400"
               />
             </div>
             {/* category select removed to simplify UI */}
             {isPremiumUser ? (
-              <Link to="/skill-recommendations" className="flex items-center gap-2 px-4 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg hover:from-indigo-700 hover:to-purple-700 transition-all hover:shadow-lg font-medium cursor-pointer">
+              <Link to="/skill-recommendations" className="flex items-center gap-2 px-4 py-3 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-all hover:shadow-lg font-medium cursor-pointer border border-white">
                 <Sparkles size={18} className="text-white" />
                 <span className="font-medium">Recommendations</span>
               </Link>
             ) : (
-              <button onClick={() => window.location.assign('/get-premium')} className="flex items-center gap-2 px-4 py-3 border border-indigo-200 text-indigo-700 rounded-lg hover:bg-indigo-50 transition-all font-medium cursor-pointer">
-                <Sparkles size={18} className="text-indigo-600" />
+              <button onClick={() => window.location.assign('/get-premium')} className="flex items-center gap-2 px-4 py-3 border border-white text-white rounded-lg hover:bg-red-600 transition-all font-medium cursor-pointer">
+                <Sparkles size={18} className="text-red-500" />
                 <span className="font-medium">Recommendations (Premium)</span>
               </button>
             )}
             <button
-              className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg hover:from-indigo-700 hover:to-purple-700 transition-all hover:shadow-lg font-semibold cursor-pointer"
+              className="flex items-center gap-2 px-6 py-3 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-all hover:shadow-lg font-semibold cursor-pointer border border-white"
               onClick={() => setShowPostSkillModal(true)}
             >
               <UserPlus size={20} />
@@ -754,23 +754,23 @@ export default function SkillSwapBrowse() {
 
           {/* Browse by Category */}
           <div className="mb-12 animate-fadeInUp" style={{ animationDelay: '0.2s' }}>
-            <h2 className="text-2xl font-bold text-gray-900 mb-6">Browse by Category</h2>
+            <h2 className="text-2xl font-bold text-white mb-6">Browse by Category</h2>
             <div className="grid grid-cols-4 lg:grid-cols-8 gap-4">
               {categories.map((cat, idx) => (
                 <button
                   key={idx}
                   onClick={() => handleCategorySelect(cat.name)}
                   className={`category-card group p-6 rounded-xl border-2 flex flex-col items-center text-center cursor-pointer ${cat.active
-                    ? 'border-indigo-600 bg-indigo-50'
-                    : 'border-gray-200 bg-white hover:border-indigo-300 hover:bg-indigo-50'
+                    ? 'border-red-600 bg-black'
+                    : 'border-white bg-black hover:border-red-600'
                     }`}
                   style={{ animationDelay: `${0.3 + idx * 0.05}s` }}
                 >
-                  <div className="bg-indigo-100 rounded-2xl p-4 mb-4 text-indigo-600 transition-transform duration-300 group-hover:scale-110 group-hover:rotate-6 shadow-sm">
+                  <div className="bg-red-600 rounded-2xl p-4 mb-4 text-white transition-transform duration-300 group-hover:scale-110 group-hover:rotate-6 shadow-sm">
                     {cat.icon}
                   </div>
-                  <div className="font-semibold text-gray-900 text-sm mb-1">{cat.name}</div>
-                  <div className="text-xs text-gray-500">{cat.count} skills</div>
+                  <div className="font-semibold text-white text-sm mb-1">{cat.name}</div>
+                  <div className="text-xs text-gray-400">{cat.count} skills</div>
                 </button>
               ))}
             </div>
@@ -778,10 +778,10 @@ export default function SkillSwapBrowse() {
 
           {/* Skills Available with Refresh Button */}
           <div className="mb-8 flex items-center justify-between animate-fadeInUp" style={{ animationDelay: '0.5s' }}>
-            <h2 className="text-2xl font-bold text-gray-900">
+            <h2 className="text-2xl font-bold text-white">
               {filteredSkills.length} Skills Available
               {selectedCategory && selectedCategory !== 'All Categories' && (
-                <span className="text-lg font-normal text-gray-600 ml-2">
+                <span className="text-lg font-normal text-gray-400 ml-2">
                   in {selectedCategory}
                 </span>
               )}
@@ -790,9 +790,9 @@ export default function SkillSwapBrowse() {
               <button
                 onClick={() => fetchPostedSkills(false)}
                 disabled={isRefreshing}
-                className={`flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg font-medium transition-all ${isRefreshing
+                className={`flex items-center gap-2 px-4 py-2 bg-black border border-white text-white rounded-lg font-medium transition-all ${isRefreshing
                   ? 'opacity-50 cursor-not-allowed'
-                  : 'hover:bg-gray-50 hover:border-indigo-400 cursor-pointer'
+                  : 'hover:bg-red-600 hover:border-red-600 cursor-pointer'
                   }`}
                 title="Refresh skills"
               >
@@ -812,7 +812,7 @@ export default function SkillSwapBrowse() {
             <div className="grid grid-cols-3 gap-6 mb-8">
               {/* Skeleton Loading Cards */}
               {Array.from({ length: 6 }).map((_, index) => (
-                <div key={index} className="bg-white rounded-xl border border-gray-200 p-6 animate-pulse">
+                <div key={index} className="bg-black rounded-xl border border-white p-6 animate-pulse">
                   {/* Header skeleton */}
                   <div className="flex items-center gap-3 mb-4">
                     <div className="w-12 h-12 bg-gray-200 rounded-full"></div>
@@ -848,9 +848,9 @@ export default function SkillSwapBrowse() {
               {/* Refresh indicator */}
               {isRefreshing && (
                 <div className="mb-6 animate-fadeIn">
-                  <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 flex items-center justify-center gap-3">
-                    <div className="w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-                    <span className="text-blue-700 font-medium">Refreshing skills...</span>
+                  <div className="bg-black border border-white rounded-xl p-4 flex items-center justify-center gap-3">
+                    <div className="w-5 h-5 border-2 border-red-600 border-t-transparent rounded-full animate-spin"></div>
+                    <span className="text-white font-medium">Refreshing skills...</span>
                   </div>
                 </div>
               )}
@@ -869,7 +869,7 @@ export default function SkillSwapBrowse() {
 
               <div className="grid grid-cols-3 gap-6 mb-8">
                 {filteredSkills.slice(0, visibleSkills).map((skill, idx) => (
-                  <div key={skill._id} className="skill-card bg-white rounded-xl border border-gray-200 p-6 animate-fadeInUp" style={{ animationDelay: `${0.6 + idx * 0.1}s` }}>
+                  <div key={skill._id} className="skill-card bg-black rounded-xl border border-white p-6 animate-fadeInUp" style={{ animationDelay: `${0.6 + idx * 0.1}s` }}>
                     {/* Instructor Info */}
                     <div className="flex items-center gap-3 mb-4">
                       {(() => {
@@ -936,7 +936,7 @@ export default function SkillSwapBrowse() {
                         }
                       })()}
                       <div className="flex-1">
-                        <div className="font-semibold text-gray-900">{skill.user?.name || 'Unknown User'}</div>
+                        <div className="font-semibold text-white">{skill.user?.name || 'Unknown User'}</div>
                         <div className="flex items-center gap-1 text-sm">
                           <Star size={14} className="fill-yellow-400 text-yellow-400" />
                           <span className="font-medium">{skill.user?.rating?.average?.toFixed(1) || 'N/A'}</span>
@@ -946,25 +946,25 @@ export default function SkillSwapBrowse() {
                     </div>
 
                     {/* Skill Title & Description */}
-                    <h3 className="text-lg font-bold text-gray-900 mb-2 hover:text-indigo-600 transition-colors">{skill.name}</h3>
+                    <h3 className="text-lg font-bold text-white mb-2 hover:text-red-500 transition-colors">{skill.name}</h3>
                     {skill.subCategory && (
-                      <span className="inline-block px-2 py-0.5 bg-purple-100 text-purple-700 text-xs rounded-md mb-2 font-medium">
+                      <span className="inline-block px-2 py-0.5 bg-red-600 text-white text-xs rounded-md mb-2 font-medium">
                         {skill.subCategory}
                       </span>
                     )}
-                    <p className="text-sm text-gray-600 mb-4">{skill.offering?.description}</p>
+                    <p className="text-sm text-gray-400 mb-4">{skill.offering?.description}</p>
 
                     {/* Tags */}
                     <div className="flex flex-wrap gap-2 mb-4">
                       {skill.tags.map((tag, i) => (
-                        <span key={i} className="tag-item px-3 py-1 bg-indigo-500 text-white text-xs rounded-full font-medium cursor-pointer">
+                        <span key={i} className="tag-item px-3 py-1 bg-red-600 text-white text-xs rounded-full font-medium cursor-pointer">
                           {tag}
                         </span>
                       ))}
                     </div>
 
                     {/* Details */}
-                    <div className="flex items-center gap-4 text-sm text-gray-600 mb-4">
+                    <div className="flex items-center gap-4 text-sm text-gray-400 mb-4">
                       <div className="flex items-center gap-1">
                         <Clock size={16} />
                         <span>{skill.offering?.duration}</span>
@@ -998,7 +998,7 @@ export default function SkillSwapBrowse() {
                     </div>
 
                     <div className="flex items-center justify-end mb-4">
-                      <span className={`text-lg font-bold ${skill.offering?.price === 0 ? 'text-indigo-600' : 'text-gray-900'}`}>
+                      <span className={`text-lg font-bold ${skill.offering?.price === 0 ? 'text-red-500' : 'text-white'}`}>
                         {skill.offering?.price === 0 ? 'Free' : `${formatINR(skill.offering?.price)}/hr`}
                       </span>
                     </div>
@@ -1023,15 +1023,15 @@ export default function SkillSwapBrowse() {
                         return (
                           <Link
                             to={`/book-session?skillId=${skill._id}&instructorId=${ownerId}&skillTitle=${encodeURIComponent(skill.name)}&instructorName=${encodeURIComponent(skill.user?.name || 'Unknown User')}`}
-                            className="flex-1 text-center bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-3 rounded-lg font-semibold hover:from-indigo-700 hover:to-purple-700 transition-all hover:shadow-lg cursor-pointer px-28"
+                            className="flex-1 text-center bg-red-600 hover:bg-red-700 text-white py-3 rounded-lg font-semibold transition-all hover:shadow-lg cursor-pointer px-28 border border-white"
                           >
                             Book Session
                           </Link>
                         );
                       })()}
 
-                      <button className="p-3 border border-gray-300 rounded-lg hover:bg-gray-50 hover:border-indigo-400 transition-all cursor-pointer">
-                        <UserPlus size={20} className="text-gray-600" />
+                      <button className="p-3 border border-white rounded-lg hover:bg-red-600 transition-all cursor-pointer">
+                        <UserPlus size={20} className="text-white" />
                       </button>
                     </div>
                   </div>
@@ -1045,7 +1045,7 @@ export default function SkillSwapBrowse() {
             <div className="text-center animate-fadeInUp">
               <button
                 onClick={() => setVisibleSkills(prev => prev + 3)}
-                className="px-8 py-3 border-2 border-gray-300 rounded-lg font-semibold hover:bg-gray-50 transition-all text-gray-700 hover:border-indigo-600 hover:text-indigo-600 hover:shadow-md cursor-pointer"
+                className="px-8 py-3 bg-black border-2 border-white rounded-lg font-semibold hover:bg-red-600 transition-all text-white hover:border-red-600 hover:shadow-md cursor-pointer"
               >
                 Load More Skills
               </button>
@@ -1155,12 +1155,12 @@ export default function SkillSwapBrowse() {
                 {/* Selected Skill Display */}
                 {postSkillForm.skills && (
                   <div className="flex flex-wrap gap-2 mb-2">
-                    <span className="inline-flex items-center gap-1 px-3 py-1 bg-indigo-100 text-indigo-800 text-sm rounded-full">
+                    <span className="inline-flex items-center gap-1 px-3 py-1 bg-red-900/40 text-red-300 text-sm rounded-full border border-red-500">
                       {postSkillForm.skills}
                       <button
                         type="button"
                         onClick={() => setPostSkillForm(prev => ({ ...prev, skills: '' }))}
-                        className="hover:bg-indigo-200 rounded-full p-0.5 cursor-pointer"
+                        className="hover:bg-red-800 rounded-full p-0.5 cursor-pointer"
                       >
                         <X size={14} />
                       </button>
@@ -1173,7 +1173,7 @@ export default function SkillSwapBrowse() {
                   <button
                     type="button"
                     onClick={() => setShowSkillsDropdown(!showSkillsDropdown)}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:border-transparent text-left flex items-center justify-between cursor-pointer"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent text-left flex items-center justify-between cursor-pointer"
                   >
                     <span className={!postSkillForm.skills ? "text-gray-400" : "text-gray-900"}>
                       {!postSkillForm.skills
@@ -1202,12 +1202,12 @@ export default function SkillSwapBrowse() {
                             key={index}
                             type="button"
                             onClick={() => handleSkillSelect(skill)}
-                            className={`w-full text-left px-4 py-3 hover:bg-gray-50 flex items-center justify-between cursor-pointer ${postSkillForm.skills === skill ? 'bg-indigo-50 text-indigo-700' : 'text-gray-900'
+                            className={`w-full text-left px-4 py-3 hover:bg-gray-50 flex items-center justify-between cursor-pointer ${postSkillForm.skills === skill ? 'bg-red-900/30 text-red-300' : 'text-gray-900'
                               }`}
                           >
                             <span>{skill}</span>
                             {postSkillForm.skills === skill && (
-                              <span className="text-indigo-600">✓</span>
+                              <span className="text-red-500">✓</span>
                             )}
                           </button>
                         ))

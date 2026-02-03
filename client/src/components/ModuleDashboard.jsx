@@ -19,7 +19,13 @@ const ModuleDashboard = () => {
 
     const fetchModules = async () => {
         try {
-            const response = await axios.get('http://localhost:5001/api/modules'); // Direct URL for now or use proxy
+            const token = localStorage.getItem('token');
+            const config = {
+                headers: {
+                    Authorization: `Bearer ${token}`
+                }
+            };
+            const response = await axios.get('http://localhost:5001/api/modules', config);
             setModules(response.data.data);
             setLoading(false);
         } catch (error) {

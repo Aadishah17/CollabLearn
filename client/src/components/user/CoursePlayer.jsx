@@ -29,7 +29,7 @@ const CoursePlayer = () => {
     if (loading) {
         return (
             <div className="min-h-screen bg-black flex items-center justify-center">
-                <div className="animate-spin text-indigo-500 w-12 h-12 border-4 border-indigo-500 border-t-transparent rounded-full"></div>
+                <div className="animate-spin text-red-600 w-12 h-12 border-4 border-red-600 border-t-transparent rounded-full"></div>
             </div>
         );
     }
@@ -39,9 +39,9 @@ const CoursePlayer = () => {
     }
 
     return (
-        <div className="min-h-screen bg-gray-900 text-white">
+        <div className="min-h-screen bg-black text-white">
             {/* Navigation */}
-            <nav className="border-b border-gray-800 bg-gray-900 px-4 h-16 flex items-center justify-between sticky top-0 z-50">
+            <nav className="border-b border-white bg-black px-4 h-16 flex items-center justify-between sticky top-0 z-50">
                 <Link to="/courses" className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors">
                     <ChevronLeft size={20} />
                     <span>Back to Courses</span>
@@ -73,10 +73,10 @@ const CoursePlayer = () => {
                 </div>
 
                 {/* Sidebar (Course Details) - Hidden on mobile, usually would be collapsible or below */}
-                <div className="hidden lg:flex w-96 border-l border-gray-800 flex-col bg-gray-900 h-full overflow-y-auto">
-                    <div className="p-6 border-b border-gray-800">
+                <div className="hidden lg:flex w-96 border-l border-white flex-col bg-black h-full overflow-y-auto">
+                    <div className="p-6 border-b border-white">
                         <div className="flex items-center gap-3 mb-4">
-                            <div className="w-10 h-10 rounded-full bg-indigo-600 flex items-center justify-center font-bold text-lg">
+                            <div className="w-10 h-10 rounded-full bg-red-600 flex items-center justify-center font-bold text-lg">
                                 {course.instructor.charAt(0)}
                             </div>
                             <div>
@@ -92,8 +92,8 @@ const CoursePlayer = () => {
 
                         <div className="flex items-center justify-between text-sm text-gray-400">
                             <div className="flex items-center gap-2">
-                                <span className="bg-gray-800 px-2 py-1 rounded text-xs text-gray-300">{course.category}</span>
-                                <span className="bg-gray-800 px-2 py-1 rounded text-xs text-gray-300">{course.difficulty}</span>
+                                <span className="bg-black border border-white px-2 py-1 rounded text-xs text-white">{course.category}</span>
+                                <span className="bg-black border border-white px-2 py-1 rounded text-xs text-white">{course.difficulty}</span>
                             </div>
                             <span>{course.duration}</span>
                         </div>
@@ -102,16 +102,16 @@ const CoursePlayer = () => {
                     <div className="p-6">
                         <h3 className="font-bold text-gray-300 mb-4 text-sm uppercase tracking-wider">Actions</h3>
                         <div className="grid grid-cols-2 gap-3">
-                            <button className="flex items-center justify-center gap-2 bg-gray-800 hover:bg-gray-700 py-2 rounded-lg transition-colors text-sm">
+                            <button className="flex items-center justify-center gap-2 bg-black border border-white hover:bg-gray-900 py-2 rounded-lg transition-colors text-sm">
                                 <ThumbsUp size={16} /> Like
                             </button>
-                            <button className="flex items-center justify-center gap-2 bg-gray-800 hover:bg-gray-700 py-2 rounded-lg transition-colors text-sm">
+                            <button className="flex items-center justify-center gap-2 bg-black border border-white hover:bg-gray-900 py-2 rounded-lg transition-colors text-sm">
                                 <Share2 size={16} /> Share
                             </button>
-                            <button className="flex items-center justify-center gap-2 bg-gray-800 hover:bg-gray-700 py-2 rounded-lg transition-colors text-sm">
+                            <button className="flex items-center justify-center gap-2 bg-black border border-white hover:bg-gray-900 py-2 rounded-lg transition-colors text-sm">
                                 <Bookmark size={16} /> Save
                             </button>
-                            <button className="flex items-center justify-center gap-2 bg-gray-800 hover:bg-gray-700 py-2 rounded-lg transition-colors text-sm">
+                            <button className="flex items-center justify-center gap-2 bg-black border border-white hover:bg-gray-900 py-2 rounded-lg transition-colors text-sm">
                                 <Download size={16} /> Resources
                             </button>
                         </div>

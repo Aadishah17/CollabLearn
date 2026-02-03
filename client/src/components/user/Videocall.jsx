@@ -5,7 +5,7 @@ const VideoCall = () => {
   const { roomID: urlRoomID } = useParams();
   const location = useLocation();
   const { userID: stateUserID, userName: stateUserName } = location.state || {};
-  
+
   const containerRef = useRef(null);
   const zpRef = useRef(null);
 
@@ -14,7 +14,7 @@ const VideoCall = () => {
     const roomID = urlRoomID || (Math.floor(Math.random() * 10000) + "");
     const userID = stateUserID || (Math.floor(Math.random() * 10000) + "");
     const userName = stateUserName || ("userName" + userID);
-    
+
     const appID = 1888548866;
     const serverSecret = "78db5cc0bc70a631137cf34c97fb9322";
 
@@ -56,10 +56,10 @@ const VideoCall = () => {
           container: containerRef.current,
           sharedLinks: [{
             name: 'Personal link',
-            url: window.location.protocol + '//' + 
-                 window.location.host + 
-                 window.location.pathname + 
-                 '?roomID=' + roomID,
+            url: window.location.protocol + '//' +
+              window.location.host +
+              window.location.pathname +
+              '?roomID=' + roomID,
           }],
           scenario: {
             mode: window.ZegoUIKitPrebuilt.VideoConference,
@@ -97,14 +97,15 @@ const VideoCall = () => {
   }, [urlRoomID, stateUserID, stateUserName]);
 
   return (
-    <div 
-      ref={containerRef} 
-      style={{ 
-        width: '100vw', 
+    <div
+      ref={containerRef}
+      style={{
+        width: '100vw',
         height: '100vh',
         position: 'fixed',
         top: 0,
-        left: 0
+        left: 0,
+        backgroundColor: 'black'
       }}
     />
   );

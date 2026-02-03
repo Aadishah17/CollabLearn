@@ -3,24 +3,24 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { BarChart2, Users, Settings, LogOut, User, LayoutDashboard, Trash2, Home, Bell } from 'lucide-react';
 
 // Assuming the logo is imported
-import CollabLearnLogo from '../assets/Collablearn Logo.png'; 
+import CollabLearnLogo from '../assets/react.svg';
 
 export default function AdminNavbar() {
   const location = useLocation();
   const navigate = useNavigate();
   const dropdownRef = useRef(null);
-  
+
   // State and user data from localStorage
   const [username, setUsername] = useState(localStorage.getItem('username') || 'Admin');
   const [email, setEmail] = useState(localStorage.getItem('email') || 'admin@collab.com');
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const userRole = localStorage.getItem('userRole'); 
+  const userRole = localStorage.getItem('userRole');
 
   // --- Styling Helper Functions (Light Mode Only) ---
-  
+
   // Base class for navigation links
   const linkBase = 'nav-item flex items-center gap-2 px-4 py-2 rounded-lg transition-all duration-200 transform hover:-translate-y-0.5';
-  
+
   // Link styling helper function for admin tabs (match mainNavbar colors)
   const getLinkClass = (path) => {
     const active = `${linkBase} bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-md`;
@@ -50,7 +50,7 @@ export default function AdminNavbar() {
 
   const handleLogout = () => {
     // Clear all user data
-    localStorage.clear(); 
+    localStorage.clear();
     setUsername('Guest');
     setEmail('');
     setIsDropdownOpen(false);
@@ -61,11 +61,11 @@ export default function AdminNavbar() {
     setIsDropdownOpen(false);
     navigate(path);
   };
-  
+
   // Define Admin Navigation Tabs
   const adminNavTabs = [
     { path: '/admin', icon: LayoutDashboard, label: 'Admin Dashboard' },
-    { path: '/admin/manage-users', icon: Users, label: 'Manage Users' }, 
+    { path: '/admin/manage-users', icon: Users, label: 'Manage Users' },
     { path: '/admin/manage-posts', icon: Trash2, label: 'Manage Posts' },
     { path: '/admin/analytics', icon: BarChart2, label: 'Analytics' },
     { path: '/admin/settings', icon: Settings, label: 'Admin Settings' },
@@ -74,17 +74,17 @@ export default function AdminNavbar() {
   // --- Render ---
   return (
     <>
-      <nav className="fixed top-0 left-0 right-0 bg-white border-b border-gray-200 z-50 shadow-sm">
+      <nav className="fixed top-0 left-0 right-0 bg-black border-b border-white z-50 shadow-sm">
         <div className="flex justify-between items-center h-20 px-8">
-          
+
           {/* Logo / Title */}
           <div className="flex items-center gap-3">
-            <img 
+            <img
               src={CollabLearnLogo}
-              alt="CollabLearn Logo" 
+              alt="CollabLearn Logo"
               className="w-12 h-12 rounded-xl object-cover"
             />
-            <span className="text-2xl font-bold text-indigo-600">CollabLearn</span>
+            <span className="text-2xl font-bold text-red-600">CollabLearn</span>
           </div>
 
           {/* Admin Navigation Tabs */}
@@ -107,18 +107,18 @@ export default function AdminNavbar() {
 
             {/* Profile Dropdown */}
             <div className="relative" ref={dropdownRef}>
-              <div 
+              <div
                 className="flex items-center gap-2 cursor-pointer hover:bg-gray-100 rounded-lg p-2 transition-all duration-200"
                 onClick={() => setIsDropdownOpen(!isDropdownOpen)}
               >
                 <User size={20} className="text-gray-600" />
                 <span className="text-base font-semibold text-gray-900">{username}</span>
               </div>
-              
+
               {isDropdownOpen && (
                 <div className="absolute right-0 mt-2 w-72 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50 animate-dropdown">
-                  
-                  
+
+
                   {/* <div className="px-4 py-3 border-b border-gray-200">
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 bg-gray-300 rounded-full flex items-center justify-center">
@@ -132,7 +132,7 @@ export default function AdminNavbar() {
                   </div> */}
 
                   {/* Admin Menu Items */}
-                    <div className="p-2">
+                  <div className="p-2">
                     {/* Link back to regular dashboard (Optional for quick switching) */}
                     {/* {userRole === 'admin' && (
                         <button
@@ -164,7 +164,7 @@ export default function AdminNavbar() {
                   {/* <div className="px-4 pb-2 pt-1 border-t border-gray-200">
                     <button
                       onClick={handleLogout}
-                      className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white rounded-lg font-medium transition-all transform hover:scale-105"
+                      className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-all transform hover:scale-105"
                     >
                       <LogOut size={18} />
                       <span>Sign Out</span>

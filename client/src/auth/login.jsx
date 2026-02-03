@@ -94,10 +94,10 @@ const LoginPage = () => {
       {/* Left Side - Login Form */}
       <div className="w-full lg:w-1/2 flex flex-col justify-center p-8 sm:p-12 lg:p-24 relative">
         <Link to="/" className="absolute top-8 left-8 flex items-center gap-2 group">
-          <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-indigo-200 dark:shadow-indigo-900/20">
+          <div className="w-10 h-10 bg-red-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-red-200 dark:shadow-red-900/20">
             <span className="font-bold text-xl">C</span>
           </div>
-          <span className="font-bold text-gray-900 dark:text-white text-xl tracking-tight group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">CollabLearn</span>
+          <span className="font-bold text-gray-900 dark:text-white text-xl tracking-tight group-hover:text-red-600 dark:group-hover:text-red-500 transition-colors">CollabLearn</span>
         </Link>
 
         <div className="max-w-md w-full mx-auto">
@@ -114,7 +114,7 @@ const LoginPage = () => {
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full pl-5 pr-4 py-3.5 bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-2xl focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 text-gray-900 dark:text-white transition-all shadow-sm"
+                  className="w-full pl-5 pr-4 py-3.5 bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-2xl focus:outline-none focus:ring-2 focus:ring-red-500/50 focus:border-red-500 text-gray-900 dark:text-white transition-all shadow-sm"
                   placeholder="Enter your email"
                   required
                 />
@@ -128,14 +128,14 @@ const LoginPage = () => {
                   type={showPassword ? 'text' : 'password'}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full pl-5 pr-12 py-3.5 bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-2xl focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 text-gray-900 dark:text-white transition-all shadow-sm"
+                  className="w-full pl-5 pr-12 py-3.5 bg-gray-50 dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-2xl focus:outline-none focus:ring-2 focus:ring-red-500/50 focus:border-red-500 text-gray-900 dark:text-white transition-all shadow-sm"
                   placeholder="••••••••"
                   required
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
+                  className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 hover:text-red-600 dark:hover:text-red-500 transition-colors"
                 >
                   {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                 </button>
@@ -144,10 +144,10 @@ const LoginPage = () => {
 
             <div className="flex items-center justify-between">
               <label className="flex items-center gap-2 cursor-pointer group">
-                <input type="checkbox" className="w-4 h-4 rounded border-gray-300 dark:border-zinc-700 text-indigo-600 focus:ring-indigo-500 bg-gray-50 dark:bg-zinc-900" />
+                <input type="checkbox" className="w-4 h-4 rounded border-gray-300 dark:border-zinc-700 text-red-600 focus:ring-red-500 bg-gray-50 dark:bg-zinc-900" />
                 <span className="text-sm text-gray-500 dark:text-zinc-400 group-hover:text-gray-700 dark:group-hover:text-zinc-300 transition-colors">Remember me</span>
               </label>
-              <button type="button" className="text-sm font-semibold text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300">
+              <button type="button" className="text-sm font-semibold text-red-600 hover:text-red-700 dark:text-red-500 dark:hover:text-red-400">
                 Forgot password?
               </button>
             </div>
@@ -155,7 +155,7 @@ const LoginPage = () => {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3.5 bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-600 bg-size-200 bg-pos-0 hover:bg-pos-100 text-white font-bold rounded-2xl shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/40 transform hover:-translate-y-0.5 transition-all duration-300 flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
+              className="w-full py-3.5 bg-red-600 hover:bg-red-700 text-white font-bold rounded-2xl shadow-lg shadow-red-500/20 hover:shadow-red-500/40 transform hover:-translate-y-0.5 transition-all duration-300 flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
             >
               {loading ? (
                 <>
@@ -198,7 +198,7 @@ const LoginPage = () => {
 
           <p className="mt-8 text-center text-gray-500 dark:text-zinc-400 text-sm">
             Don't have an account?{' '}
-            <Link to="/signup" className="text-indigo-600 dark:text-indigo-400 font-semibold hover:text-indigo-700 dark:hover:text-indigo-300 hover:underline decoration-2 underline-offset-4 transition-all">
+            <Link to="/signup" className="text-red-600 dark:text-red-500 font-semibold hover:text-red-700 dark:hover:text-red-400 hover:underline decoration-2 underline-offset-4 transition-all">
               Create free account
             </Link>
           </p>
@@ -207,19 +207,18 @@ const LoginPage = () => {
 
       {/* Right Side - Image/Decoration */}
       <div className="hidden lg:block w-1/2 bg-zinc-900 relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-indigo-600/20 via-black/50 to-purple-600/20 z-10" />
+        <div className="absolute inset-0 bg-gradient-to-br from-red-600/10 via-black/50 to-black z-10" />
         <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1620912189865-1e8a33da4c5e?q=80&w=2669&auto=format&fit=crop')] bg-cover bg-center opacity-30 mix-blend-overlay"></div>
 
-        {/* Animated Background Elements */}
-        <div className="absolute top-1/4 right-1/4 w-96 h-96 bg-purple-500/30 rounded-full blur-[128px] animate-pulse"></div>
-        <div className="absolute bottom-1/4 left-1/4 w-96 h-96 bg-indigo-500/30 rounded-full blur-[128px] animate-pulse delay-1000"></div>
+        {/* Subtle Background Accent */}
+        <div className="absolute top-1/4 right-1/4 w-96 h-96 bg-red-600/20 rounded-full blur-[100px]"></div>
 
         <div className="absolute inset-0 z-20 flex flex-col justify-center px-16 text-white">
           <div className="mb-8 inline-flex items-center gap-2 px-3 py-1 bg-white/10 backdrop-blur-md rounded-full border border-white/10 w-fit">
-            <Sparkles size={14} className="text-amber-400" />
+            <Sparkles size={14} className="text-red-400" />
             <span className="text-xs font-medium text-white/90">AI-Powered Collaboration</span>
           </div>
-          <h2 className="text-5xl font-bold mb-6 leading-tight tracking-tight">Turn your ideas into <br /> <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-purple-400">reality.</span></h2>
+          <h2 className="text-5xl font-bold mb-6 leading-tight tracking-tight">Turn your ideas into <br /> <span className="text-gradient-red">reality.</span></h2>
           <p className="text-zinc-400 text-xl leading-relaxed max-w-lg mb-12">
             "The AI roadmap generator saved us weeks of planning. It felt like having a CTO in our pocket from day one."
           </p>
