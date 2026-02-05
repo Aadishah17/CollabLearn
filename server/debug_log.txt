@@ -1,0 +1,85 @@
+STARTING_DEBUG 
+========================================== 
+NPM INSTALL 
+
+up to date, audited 269 packages in 2s
+
+46 packages are looking for funding
+  run `npm fund` for details
+
+3 vulnerabilities (1 moderate, 2 high)
+
+To address all issues, run:
+  npm audit fix
+
+Run `npm audit` for details.
+========================================== 
+NPM RUN DEV 
+
+> server@1.0.0 dev
+> nodemon src/index.js
+
+[33m[nodemon] 3.1.10[39m
+[33m[nodemon] to restart at any time, enter `rs`[39m
+[33m[nodemon] watching path(s): *.*[39m
+[33m[nodemon] watching extensions: js,mjs,cjs,json[39m
+[32m[nodemon] starting `node src/index.js`[39m
+[dotenv@17.2.2] injecting env (0) from .env -- tip: ⚙️  suppress all logs with { quiet: true }
+✅ All routes loaded, including /api/admin routes
+(node:18248) [MONGOOSE] Warning: Duplicate schema index on {"email":1} found. This is often due to declaring an index using both "index: true" and "schema.index()". Please remove the duplicate index definition.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:18248) [MONGODB DRIVER] Warning: useNewUrlParser is a deprecated option: useNewUrlParser has no effect since Node.js Driver version 4.0.0 and will be removed in the next major version
+(node:18248) [MONGODB DRIVER] Warning: useUnifiedTopology is a deprecated option: useUnifiedTopology has no effect since Node.js Driver version 4.0.0 and will be removed in the next major version
+(node:18248) [MONGOOSE] Warning: Duplicate schema index on {"email":1} found. This is often due to declaring an index using both "index: true" and "schema.index()". Please remove the duplicate index definition.
+🚀 Server running on port 5001
+✅ MongoDB connected
+✅ MongoDB connected (Local)
+Dashboard stats endpoint hit for user: 6953980b6a485d827616269f
+Dashboard stats endpoint hit for user: 6953980b6a485d827616269f
+Fetching posts - Page: 1, Limit: 10, Skip: 0
+Fetching posts - Page: 1, Limit: 10, Skip: 0
+Found skills with user data: []
+Found skills with user data: []
+Found skills with user data: []
+Found skills with user data: []
+Found skills with user data: []
+Found skills with user data: []
+Dashboard stats endpoint hit for user: 6953980b6a485d827616269f
+Dashboard stats endpoint hit for user: 6953980b6a485d827616269f
+Found skills with user data: []
+Found skills with user data: []
+Found skills with user data: []
+Found skills with user data: []
+Found skills with user data: []
+Dashboard stats endpoint hit for user: 6953980b6a485d827616269f
+Dashboard stats endpoint hit for user: 6953980b6a485d827616269f
+Found skills with user data: []
+Found skills with user data: []
+Fetching posts - Page: 1, Limit: 10, Skip: 0
+Fetching posts - Page: 1, Limit: 10, Skip: 0
+Dashboard stats endpoint hit for user: 6953980b6a485d827616269f
+Dashboard stats endpoint hit for user: 6953980b6a485d827616269f
+Found skills with user data: []
+Found skills with user data: []
+Dashboard stats endpoint hit for user: 6953980b6a485d827616269f
+Dashboard stats endpoint hit for user: 6953980b6a485d827616269f
+Dashboard stats endpoint hit for user: 6953980b6a485d827616269f
+Dashboard stats endpoint hit for user: 6953980b6a485d827616269f
+Dashboard stats endpoint hit for user: 6953980b6a485d827616269f
+Dashboard stats endpoint hit for user: 6953980b6a485d827616269f
+Dashboard stats endpoint hit for user: 6953980b6a485d827616269f
+Dashboard stats endpoint hit for user: 6953980b6a485d827616269f
+Dashboard stats endpoint hit for user: 6953980b6a485d827616269f
+Dashboard stats endpoint hit for user: 6953980b6a485d827616269f
+Found skills with user data: []
+Found skills with user data: []
+Fetching posts - Page: 1, Limit: 10, Skip: 0
+Fetching posts - Page: 1, Limit: 10, Skip: 0
+Dashboard stats endpoint hit for user: 6953980b6a485d827616269f
+Dashboard stats endpoint hit for user: 6953980b6a485d827616269f
+Dashboard stats endpoint hit for user: 6953980b6a485d827616269f
+Dashboard stats endpoint hit for user: 6953980b6a485d827616269f
+Found skills with user data: []
+Found skills with user data: []
+Found skills with user data: []
+Found skills with user data: []

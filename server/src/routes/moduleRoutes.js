@@ -25,7 +25,7 @@ const protect = require('../middleware/auth');
 // Route definitions
 router.route('/')
     .post(protect, createModule)
-    .get(getModules);
+    .get(protect, getModules);
 
 router.route('/:id')
     .get(protect, getModule) // Middleware handles optional auth inside controller if needed, but here we protect it. 

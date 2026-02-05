@@ -1,0 +1,6 @@
+START DEBUG 
+Checking Node... 
+v24.11.1
+Checking NPM... 
+11.6.2
+END DEBUG 
