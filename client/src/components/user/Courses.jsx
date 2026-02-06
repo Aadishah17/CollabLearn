@@ -2,10 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Play, Clock, BarChart } from 'lucide-react';
 import MainNavbar from '../../navbar/mainNavbar';
+import { API_URL } from '../../config';
+
 
 const CourseCard = ({ course }) => (
     <Link to={`/courses/${course._id}/learn`} className="group">
-        <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden border border-gray-100 dark:border-slate-700 flex flex-col h-full">
+        <div className="bg-black dark:bg-black rounded-xl shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden border border-white dark:border-white flex flex-col h-full">
             {/* Thumbnail */}
             <div className="relative aspect-video overflow-hidden">
                 <img
@@ -15,7 +17,7 @@ const CourseCard = ({ course }) => (
                 />
                 <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
                     <div className="w-12 h-12 bg-white/90 rounded-full flex items-center justify-center backdrop-blur-sm">
-                        <Play size={24} className="text-indigo-600 ml-1" />
+                        <Play size={24} className="text-red-600 ml-1" />
                     </div>
                 </div>
                 <div className="absolute top-2 right-2 bg-black/60 backdrop-blur-md text-white text-xs px-2 py-1 rounded-md">
@@ -26,7 +28,7 @@ const CourseCard = ({ course }) => (
             {/* Content */}
             <div className="p-4 flex flex-col flex-grow">
                 <div className="flex items-center gap-2 mb-2">
-                    <span className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/30 px-2 py-0.5 rounded-full">
+                    <span className="text-xs font-semibold text-red-600 dark:text-red-400 bg-red-100 dark:bg-black border border-red-600 px-2 py-0.5 rounded-full">
                         {course.category}
                     </span>
                     <span className="text-xs text-gray-500 flex items-center gap-1">
@@ -35,7 +37,7 @@ const CourseCard = ({ course }) => (
                     </span>
                 </div>
 
-                <h3 className="font-bold text-gray-900 dark:text-white mb-1 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors line-clamp-2">
+                <h3 className="font-bold text-white dark:text-white mb-1 group-hover:text-red-600 dark:group-hover:text-red-400 transition-colors line-clamp-2">
                     {course.title}
                 </h3>
 
@@ -44,7 +46,7 @@ const CourseCard = ({ course }) => (
                 </p>
 
                 <div className="flex items-center gap-2 pt-3 border-t border-gray-100 mt-auto">
-                    <div className="w-6 h-6 rounded-full bg-indigo-100 dark:bg-indigo-900/50 flex items-center justify-center text-xs font-bold text-indigo-600 dark:text-indigo-400">
+                    <div className="w-6 h-6 rounded-full bg-red-100 dark:bg-red-900/50 flex items-center justify-center text-xs font-bold text-red-600 dark:text-red-400">
                         {course.instructor.charAt(0)}
                     </div>
                     <span className="text-sm text-gray-600 dark:text-gray-300">{course.instructor}</span>
@@ -103,7 +105,7 @@ const Courses = () => {
         const fetchCourses = async () => {
             try {
                 setLoading(true);
-                let url = 'http://localhost:5001/api/courses';
+                let url = `${API_URL}/api/courses`;
                 if (selectedCategory !== 'All') {
                     url += `?category=${encodeURIComponent(selectedCategory)}`;
                 }
@@ -125,13 +127,13 @@ const Courses = () => {
     }, [selectedCategory]);
 
     return (
-        <div className="min-h-screen bg-gray-50 dark:bg-slate-900 transition-colors duration-300">
+        <div className="min-h-screen bg-black dark:bg-black transition-colors duration-300">
             <MainNavbar />
 
             <main className="max-w-7xl mx-auto px-4 py-8 pt-24">
                 {/* Header */}
                 <div className="mb-8">
-                    <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
+                    <h1 className="text-3xl font-bold text-white dark:text-white mb-2">
                         {selectedCategory === 'All' ? 'Explore Courses' : `${selectedCategory} Courses`}
                     </h1>
                     <p className="text-gray-600 dark:text-gray-400 text-lg">
@@ -146,8 +148,8 @@ const Courses = () => {
                             key={category}
                             onClick={() => setSelectedCategory(category)}
                             className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${selectedCategory === category
-                                ? 'bg-indigo-600 text-white shadow-md shadow-indigo-200 dark:shadow-none'
-                                : 'bg-white dark:bg-slate-800 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-700 border border-gray-200 dark:border-slate-700'
+                                ? 'bg-red-600 text-white shadow-md shadow-red-900 dark:shadow-none border border-red-600'
+                                : 'bg-black dark:bg-black text-white dark:text-gray-300 hover:bg-gray-900 dark:hover:bg-slate-700 border border-white dark:border-white'
                                 }`}
                         >
                             {category}
@@ -159,7 +161,7 @@ const Courses = () => {
                 {loading ? (
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                         {[1, 2, 3, 4, 5, 6, 7, 8].map(i => (
-                            <div key={i} className="bg-white dark:bg-slate-800 rounded-xl h-80 animate-pulse shadow-sm border border-gray-100 dark:border-slate-700">
+                            <div key={i} className="bg-black dark:bg-black rounded-xl h-80 animate-pulse shadow-sm border border-white dark:border-white">
                                 <div className="h-40 bg-gray-200 dark:bg-slate-700 w-full"></div>
                                 <div className="p-4">
                                     <div className="h-4 bg-gray-200 w-1/3 mb-2 rounded"></div>

@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Trash2, Loader, MessageSquare } from 'lucide-react';
 import AdminNavbar from '../../navbar/adminNavbar'; // Corrected import path
+import { API_URL } from '../../config';
+
 
 // --- Static Theme Classes (Light Mode) ---
 const themeBg = 'bg-gray-100 text-gray-900';
@@ -18,7 +20,7 @@ export default function ManagePosts() {
             setLoading(true);
             try {
                 const token = localStorage.getItem('token');
-                const response = await fetch('http://localhost:5001/api/admin/posts', {
+                const response = await fetch(`${API_URL}/api/admin/posts`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 const result = await response.json();
@@ -42,7 +44,7 @@ export default function ManagePosts() {
         setActionLoading(postId);
         try {
             const token = localStorage.getItem('token');
-            const response = await fetch(`http://localhost:5001/api/admin/posts/${postId}`, {
+            const response = await fetch(`${API_URL}/api/admin/posts/${postId}`, {
                 method: 'DELETE',
                 headers: { 'Authorization': `Bearer ${token}` }
             });
@@ -63,8 +65,8 @@ export default function ManagePosts() {
     // --- Render ---
     return (
         <div className={`min-h-screen ${themeBg} font-sans transition-colors duration-500`}>
-            <AdminNavbar /> 
-            
+            <AdminNavbar />
+
             <div className="pt-24 max-w-7xl mx-auto px-6 py-12">
                 <header className="mb-10">
                     <h1 className="text-4xl font-bold flex items-center">
@@ -75,12 +77,12 @@ export default function ManagePosts() {
 
                 <div className={`shadow-xl rounded-xl p-6 bg-white border border-gray-200 overflow-x-auto`}>
                     <h3 className="text-xl font-bold mb-6">Community Posts ({posts.length})</h3>
-                    
+
                     {loading ? (
-                         <div className="text-center py-10">
+                        <div className="text-center py-10">
                             <Loader size={32} className="animate-spin inline text-indigo-600" />
                             <p className="mt-2">Loading posts...</p>
-                         </div>
+                        </div>
                     ) : (
                         <table className="min-w-full divide-y divide-gray-200">
                             <thead>
@@ -94,8 +96,8 @@ export default function ManagePosts() {
                             </thead>
                             <tbody className="divide-y divide-gray-200">
                                 {posts.map(post => (
-                                    <tr 
-                                        key={post.id} 
+                                    <tr
+                                        key={post.id}
                                         className={post.reports > 0 ? 'bg-red-50 hover:bg-red-100 transition-colors' : 'hover:bg-gray-100 transition-colors'}
                                     >
                                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">{post.author}</td>

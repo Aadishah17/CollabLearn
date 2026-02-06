@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { 
-  Calendar, 
-  Users, 
-  Clock, 
-  BookOpen, 
-  ArrowLeft, 
-  Star, 
-  Award, 
-  CheckCircle, 
+import {
+  Calendar,
+  Users,
+  Clock,
+  BookOpen,
+  ArrowLeft,
+  Star,
+  Award,
+  CheckCircle,
   User,
   Upload,
   FileText,
@@ -20,12 +20,14 @@ import {
 } from 'lucide-react';
 import MainNavbar from '../../navbar/mainNavbar';
 import { formatINR } from '../../utils/currencyUtils';
+import { API_URL } from '../../config';
+
 
 const SkillSessions = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { skill } = location.state || {};
-  
+
   const [sessions, setSessions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -36,7 +38,7 @@ const SkillSessions = () => {
   const [showFinishCourseModal, setShowFinishCourseModal] = useState(false);
   const [courseRating, setCourseRating] = useState(5);
   const [courseReview, setCourseReview] = useState('');
-  
+
   // Skill-level document upload states
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [selectedFile, setSelectedFile] = useState(null);
@@ -59,57 +61,57 @@ const SkillSessions = () => {
   const fetchSessions = async () => {
     try {
       setLoading(true);
-      
+
       // Get current user
-      const userResponse = await fetch('http://localhost:5001/api/auth/me', {
+      const userResponse = await fetch(`${API_URL}/api/auth/me`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         }
       });
-      
+
       if (!userResponse.ok) throw new Error('Failed to fetch user data');
       const userData = await userResponse.json();
       setCurrentUser(userData.user);
-      
+
       // Determine user role for this skill by checking if user appears as instructor in any session
       // Try both endpoints to determine role
-      const instructorResponse = await fetch(`http://localhost:5001/api/booking/instructor/${userData.user.id}`, {
+      const instructorResponse = await fetch(`${API_URL}/api/booking/instructor/${userData.user.id}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         }
       });
-      
-      const studentResponse = await fetch(`http://localhost:5001/api/booking/student/${userData.user.id}`, {
+
+      const studentResponse = await fetch(`${API_URL}/api/booking/student/${userData.user.id}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         }
       });
-      
+
       let role = 'student'; // default
       let allSessions = [];
       let instructor = null;
-      
+
       if (instructorResponse.ok) {
         const instructorData = await instructorResponse.json();
         const instructorSessions = instructorData.bookings?.filter(
           booking => booking && booking.skill && booking.skill._id === skill._id
         ) || [];
-        
+
         if (instructorSessions.length > 0) {
           role = 'instructor';
           allSessions = instructorSessions;
         }
       }
-      
+
       if (allSessions.length === 0 && studentResponse.ok) {
         const studentData = await studentResponse.json();
         const studentSessions = studentData.bookings?.filter(
           booking => booking && booking.skill && booking.skill._id === skill._id
         ) || [];
-        
+
         if (studentSessions.length > 0) {
           role = 'student';
           allSessions = studentSessions;
@@ -119,11 +121,11 @@ const SkillSessions = () => {
           }
         }
       }
-      
+
       setUserRole(role);
       setSessions(allSessions);
       setInstructorInfo(instructor);
-      
+
       // Get skill-level documents from the first session (they're shared across all sessions for this skill)
       if (allSessions.length > 0 && allSessions[0].sessionDocuments) {
         setSkillDocuments(allSessions[0].sessionDocuments);
@@ -148,10 +150,10 @@ const SkillSessions = () => {
 
   const formatDate = (dateString) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', { 
+    return date.toLocaleDateString('en-US', {
       weekday: 'long',
-      year: 'numeric', 
-      month: 'long', 
+      year: 'numeric',
+      month: 'long',
       day: 'numeric',
       hour: '2-digit',
       minute: '2-digit'
@@ -189,7 +191,7 @@ const SkillSessions = () => {
 
     try {
       // Upload to the first session (skill-level documents)
-      const response = await fetch(`http://localhost:5001/api/booking/${sessions[0]._id}/upload-document`, {
+      const response = await fetch(`${API_URL}/api/booking/${sessions[0]._id}/upload-document`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -219,7 +221,7 @@ const SkillSessions = () => {
     if (!confirm('Are you sure you want to delete this skill resource?')) return;
 
     try {
-      const response = await fetch(`http://localhost:5001/api/booking/${sessions[0]._id}/delete-document/${documentId}`, {
+      const response = await fetch(`${API_URL}/api/booking/${sessions[0]._id}/delete-document/${documentId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -241,7 +243,7 @@ const SkillSessions = () => {
   };
 
   const downloadDocument = (document) => {
-    const downloadUrl = `http://localhost:5001/uploads/sessions/${document.filename}`;
+    const downloadUrl = `${API_URL}/uploads/sessions/${document.filename}`;
     const link = document.createElement('a');
     link.href = downloadUrl;
     link.download = document.title || document.filename;
@@ -271,7 +273,7 @@ const SkillSessions = () => {
 
   const submitCourseRating = async () => {
     try {
-      const response = await fetch('http://localhost:5001/api/booking/complete-course', {
+      const response = await fetch(`${API_URL}/api/booking/complete-course`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -299,10 +301,10 @@ const SkillSessions = () => {
 
   if (loading) {
     return (
-      <div className="flex h-screen bg-gray-100 items-center justify-center">
+      <div className="flex h-screen bg-black items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-indigo-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading sessions...</p>
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-red-600 mx-auto mb-4"></div>
+          <p className="text-gray-400">Loading sessions...</p>
         </div>
       </div>
     );
@@ -310,13 +312,13 @@ const SkillSessions = () => {
 
   if (error) {
     return (
-      <div className="flex h-screen bg-gray-100 items-center justify-center">
+      <div className="flex h-screen bg-black items-center justify-center">
         <div className="text-center">
           <h2 className="text-2xl font-bold text-red-600 mb-4">Error</h2>
-          <p className="text-gray-600 mb-4">{error}</p>
-          <button 
+          <p className="text-gray-400 mb-4">{error}</p>
+          <button
             onClick={() => navigate('/dashboard')}
-            className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+            className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
           >
             Back to Dashboard
           </button>
@@ -328,28 +330,28 @@ const SkillSessions = () => {
   const filteredSessions = getFilteredSessions();
 
   return (
-    <div className="flex h-screen bg-gray-100 font-sans">
+    <div className="flex h-screen bg-black font-sans">
       <div className="flex-1 flex flex-col overflow-auto">
         <MainNavbar />
-        
-        <main className="flex-1 p-6 bg-gray-100 pt-24">
+
+        <main className="flex-1 p-6 bg-black pt-24">
           {/* Header */}
           <div className="mb-8">
             <div className="flex items-center mb-4">
-              <button 
+              <button
                 onClick={() => navigate('/dashboard')}
-                className="mr-4 p-2 hover:bg-gray-200 rounded-full transition-colors"
+                className="mr-4 p-2 hover:bg-gray-800 rounded-full transition-colors"
               >
-                <ArrowLeft className="w-6 h-6 text-gray-600" />
+                <ArrowLeft className="w-6 h-6 text-white" />
               </button>
               <div>
-                <h1 className="text-3xl font-bold text-gray-800 mb-2">
+                <h1 className="text-3xl font-bold text-white mb-2">
                   {skill?.name} Sessions
                 </h1>
-                <p className="text-gray-600">
-                  {userRole === 'instructor' 
-                    ? 'Manage your teaching sessions and course materials for this skill' 
-                    : instructorInfo 
+                <p className="text-gray-400">
+                  {userRole === 'instructor'
+                    ? 'Manage your teaching sessions and course materials for this skill'
+                    : instructorInfo
                       ? `Learning from ${instructorInfo.name}`
                       : 'Learning sessions for this skill'
                   }
@@ -358,25 +360,22 @@ const SkillSessions = () => {
             </div>
 
             {/* Skill Info Card */}
-            <div className={`bg-white p-6 rounded-xl shadow-md border-l-4 mb-6 ${
-              userRole === 'instructor' ? 'border-indigo-600' : 'border-purple-600'
-            }`}>
+            <div className={`bg-black p-6 rounded-xl shadow-md border-l-4 mb-6 ${userRole === 'instructor' ? 'border-red-600' : 'border-red-600'
+              } border-white border text-white custom-card-border`}>
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-4">
-                  <div className={`text-white rounded-full h-16 w-16 flex items-center justify-center font-bold text-xl ${
-                    userRole === 'instructor' ? 'bg-indigo-600' : 'bg-purple-600'
-                  }`}>
+                  <div className={`text-white rounded-full h-16 w-16 flex items-center justify-center font-bold text-xl ${userRole === 'instructor' ? 'bg-red-600' : 'bg-red-600'
+                    }`}>
                     {skill?.name?.split(' ').map(word => word.charAt(0).toUpperCase()).join('').substring(0, 2)}
                   </div>
                   <div>
-                    <h3 className="text-xl font-semibold text-gray-800">{skill?.name}</h3>
-                    <div className="flex items-center space-x-4 text-sm text-gray-600 mt-1">
+                    <h3 className="text-xl font-semibold text-white">{skill?.name}</h3>
+                    <div className="flex items-center space-x-4 text-sm text-gray-400 mt-1">
                       <span className="flex items-center">
-                        <span className={`w-2 h-2 rounded-full mr-1 ${
-                          userRole === 'instructor' ? 'bg-blue-500' : 'bg-purple-500'
-                        }`}></span>
-                        {userRole === 'instructor' ? 'Teaching' : 'Learning'} 
-                        {userRole === 'student' && instructorInfo && 
+                        <span className={`w-2 h-2 rounded-full mr-1 ${userRole === 'instructor' ? 'bg-blue-500' : 'bg-purple-500'
+                          }`}></span>
+                        {userRole === 'instructor' ? 'Teaching' : 'Learning'}
+                        {userRole === 'student' && instructorInfo &&
                           ` from ${instructorInfo.name}`
                         }
                         {userRole === 'instructor' && sessions.length > 0 && sessions[0].student &&
@@ -394,14 +393,14 @@ const SkillSessions = () => {
                     </div>
                     {/* Show instructor info prominently for students */}
                     {userRole === 'student' && instructorInfo && (
-                      <div className="mt-2 p-2 bg-purple-50 rounded-lg border border-purple-200">
+                      <div className="mt-2 p-2 bg-gray-900 rounded-lg border border-gray-700">
                         <div className="flex items-center space-x-2">
-                          <div className="bg-purple-600 text-white rounded-full h-8 w-8 flex items-center justify-center font-semibold text-sm">
+                          <div className="bg-red-600 text-white rounded-full h-8 w-8 flex items-center justify-center font-semibold text-sm">
                             {instructorInfo.name?.charAt(0).toUpperCase()}
                           </div>
                           <div>
-                            <p className="text-sm font-medium text-purple-800">Your Instructor</p>
-                            <p className="text-sm text-purple-600">{instructorInfo.name}</p>
+                            <p className="text-sm font-medium text-red-500">Your Instructor</p>
+                            <p className="text-sm text-gray-300">{instructorInfo.name}</p>
                           </div>
                         </div>
                       </div>
@@ -410,9 +409,9 @@ const SkillSessions = () => {
                 </div>
                 <div className="flex items-center space-x-4">
                   <div className="text-right">
-                    <p className="text-2xl font-bold text-indigo-600">
-                      {userRole === 'instructor' 
-                        ? `${formatINR(skill?.offering?.price || 0)}/hr` 
+                    <p className="text-2xl font-bold text-red-600">
+                      {userRole === 'instructor'
+                        ? `${formatINR(skill?.offering?.price || 0)}/hr`
                         : `${sessions.filter(s => s.status === 'completed').length}/${sessions.length}`
                       }
                     </p>
@@ -420,7 +419,7 @@ const SkillSessions = () => {
                       {userRole === 'instructor' ? 'Rate' : 'Progress'}
                     </p>
                   </div>
-                  
+
                   {/* Skill-level Action Buttons - Available to Both Roles */}
                   <div className="flex items-center space-x-3">
                     <button
@@ -430,7 +429,7 @@ const SkillSessions = () => {
                       <Upload className="w-4 h-4" />
                       <span>Upload Resource</span>
                     </button>
-                    
+
                     {/* Finish Course Button for Both Roles */}
                     <button
                       onClick={handleFinishCourse}
@@ -447,31 +446,29 @@ const SkillSessions = () => {
             </div>
 
             {/* Tab Navigation */}
-            <div className="bg-white rounded-lg shadow-md">
-              <div className="flex border-b">
+            <div className="bg-black rounded-lg shadow-md border border-white">
+              <div className="flex border-b border-white">
                 <button
                   onClick={() => setActiveTab('ongoing')}
-                  className={`flex-1 py-4 px-6 text-sm font-medium transition-colors ${
-                    activeTab === 'ongoing'
-                      ? 'border-b-2 border-indigo-500 text-indigo-600 bg-indigo-50'
-                      : 'text-gray-500 hover:text-gray-700'
-                  }`}
+                  className={`flex-1 py-4 px-6 text-sm font-medium transition-colors ${activeTab === 'ongoing'
+                    ? 'border-b-2 border-red-500 text-red-500 bg-red-900/30'
+                    : 'text-gray-400 hover:text-white'
+                    }`}
                 >
                   <div className="flex items-center justify-center space-x-2">
                     <Calendar className="w-4 h-4" />
                     <span>All Sessions</span>
-                    <span className="bg-indigo-100 text-indigo-800 text-xs px-2 py-1 rounded-full">
+                    <span className="bg-red-900/30 text-red-200 text-xs px-2 py-1 rounded-full">
                       {sessions.length}
                     </span>
                   </div>
                 </button>
                 <button
                   onClick={() => setActiveTab('completed')}
-                  className={`flex-1 py-4 px-6 text-sm font-medium transition-colors ${
-                    activeTab === 'completed'
-                      ? 'border-b-2 border-indigo-500 text-indigo-600 bg-indigo-50'
-                      : 'text-gray-500 hover:text-gray-700'
-                  }`}
+                  className={`flex-1 py-4 px-6 text-sm font-medium transition-colors ${activeTab === 'completed'
+                    ? 'border-b-2 border-indigo-500 text-indigo-600 bg-indigo-50'
+                    : 'text-gray-500 hover:text-gray-700'
+                    }`}
                 >
                   <div className="flex items-center justify-center space-x-2">
                     <BookOpen className="w-4 h-4" />
@@ -488,14 +485,14 @@ const SkillSessions = () => {
           {/* Skill Resources Section */}
           {skillDocuments.length > 0 && (
             <div className="mb-8">
-              <div className="bg-white rounded-xl shadow-md p-6">
-                <h3 className="text-xl font-semibold text-gray-800 mb-4 flex items-center">
-                  <FileText className="w-6 h-6 mr-2 text-indigo-600" />
+              <div className="bg-black rounded-xl shadow-md p-6 border border-white">
+                <h3 className="text-xl font-semibold text-white mb-4 flex items-center">
+                  <FileText className="w-6 h-6 mr-2 text-red-600" />
                   Course Resources ({skillDocuments.length})
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {skillDocuments.map((doc, index) => (
-                    <div 
+                    <div
                       key={doc._id || index}
                       className="border border-gray-200 rounded-lg p-4 hover:border-indigo-300 transition-colors"
                     >
@@ -505,33 +502,33 @@ const SkillSessions = () => {
                             {getFileIcon(doc.filename)}
                           </span>
                           <div className="min-w-0 flex-1">
-                            <h4 className="font-medium text-gray-800 truncate" title={doc.title}>
+                            <h4 className="font-medium text-white truncate" title={doc.title}>
                               {doc.title}
                             </h4>
-                            <div className="flex items-center space-x-2 text-sm text-gray-500 mt-1">
+                            <div className="flex items-center space-x-2 text-sm text-gray-400 mt-1">
                               <span>Uploaded by {doc.uploadedBy}</span>
                               <span>•</span>
                               <span>{new Date(doc.uploadedAt).toLocaleDateString()}</span>
                             </div>
                             <div className="mt-1">
-                              <span className="text-xs bg-gray-200 px-2 py-1 rounded">
+                              <span className="text-xs bg-gray-800 text-gray-200 px-2 py-1 rounded">
                                 {doc.filename?.split('.').pop()?.toUpperCase()}
                               </span>
                             </div>
                           </div>
                         </div>
-                        
+
                         <div className="flex items-center space-x-2 flex-shrink-0">
                           <button
                             onClick={() => downloadDocument(doc)}
-                            className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+                            className="p-2 text-red-500 hover:bg-gray-800 rounded-lg transition-colors"
                             title="Download"
                           >
                             <Download className="w-5 h-5" />
                           </button>
                           <button
                             onClick={() => deleteSkillDocument(doc._id)}
-                            className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                            className="p-2 text-red-600 hover:bg-red-900/30 rounded-lg transition-colors"
                             title="Delete"
                           >
                             <Trash2 className="w-5 h-5" />
@@ -552,73 +549,71 @@ const SkillSessions = () => {
                 if (!session || !session.student || !session.skill) {
                   return null;
                 }
-                
+
                 const otherParticipant = userRole === 'instructor' ? session.student : session.instructor;
-                
+
                 return (
-                <div 
-                  key={session._id || index} 
-                  className="bg-white p-6 rounded-xl shadow-md border border-gray-200 hover:border-indigo-300"
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-4">
-                      <div className={`text-white rounded-full h-12 w-12 flex items-center justify-center font-semibold text-lg ${
-                        userRole === 'instructor' 
-                          ? 'bg-gradient-to-r from-indigo-400 to-purple-400' 
-                          : 'bg-gradient-to-r from-purple-400 to-pink-400'
-                      }`}>
-                        {otherParticipant?.name?.charAt(0).toUpperCase() || (userRole === 'instructor' ? 'S' : 'T')}
-                      </div>
-                      <div>
-                        <h4 className="text-lg font-semibold text-gray-800">
-                          {userRole === 'instructor' 
-                            ? `Session with ${otherParticipant?.name || 'Unknown Student'}`
-                            : `Learning from ${otherParticipant?.name || 'Unknown Instructor'}`
-                          }
-                        </h4>
-                        <div className="flex items-center space-x-4 text-sm text-gray-600 mt-1">
-                          <span className="flex items-center">
-                            <Calendar className="w-4 h-4 mr-1" />
-                            {formatDate(session.date)}
-                          </span>
-                          <span className="flex items-center">
-                            <Clock className="w-4 h-4 mr-1" />
-                            {session.duration} minutes
-                          </span>
-                          {session.sessionCount && (
+                  <div
+                    key={session._id || index}
+                    className="bg-black p-6 rounded-xl shadow-md border border-white hover:border-red-500"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-4">
+                        <div className={`text-white rounded-full h-12 w-12 flex items-center justify-center font-semibold text-lg ${userRole === 'instructor'
+                          ? 'bg-gradient-to-r from-red-600 to-red-800'
+                          : 'bg-gradient-to-r from-red-600 to-red-800'
+                          }`}>
+                          {otherParticipant?.name?.charAt(0).toUpperCase() || (userRole === 'instructor' ? 'S' : 'T')}
+                        </div>
+                        <div>
+                          <h4 className="text-lg font-semibold text-white">
+                            {userRole === 'instructor'
+                              ? `Session with ${otherParticipant?.name || 'Unknown Student'}`
+                              : `Learning from ${otherParticipant?.name || 'Unknown Instructor'}`
+                            }
+                          </h4>
+                          <div className="flex items-center space-x-4 text-sm text-gray-400 mt-1">
                             <span className="flex items-center">
-                              <Users className="w-4 h-4 mr-1" />
-                              Session {session.sessionCount.current || 1} of {session.sessionCount.total || 1}
+                              <Calendar className="w-4 h-4 mr-1" />
+                              {formatDate(session.date)}
                             </span>
-                          )}
+                            <span className="flex items-center">
+                              <Clock className="w-4 h-4 mr-1" />
+                              {session.duration} minutes
+                            </span>
+                            {session.sessionCount && (
+                              <span className="flex items-center">
+                                <Users className="w-4 h-4 mr-1" />
+                                Session {session.sessionCount.current || 1} of {session.sessionCount.total || 1}
+                              </span>
+                            )}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                    
-                    <div className="flex items-center space-x-3">
-                      <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-                        session.status === 'completed' 
-                          ? 'bg-green-100 text-green-800' 
+
+                      <div className="flex items-center space-x-3">
+                        <span className={`px-3 py-1 rounded-full text-sm font-medium ${session.status === 'completed'
+                          ? 'bg-green-900/30 text-green-200'
                           : session.status === 'ongoing'
-                          ? 'bg-blue-100 text-blue-800'
-                          : 'bg-yellow-100 text-yellow-800'
-                      }`}>
-                        {session.status?.charAt(0).toUpperCase() + session.status?.slice(1) || 'Unknown'}
-                      </span>
+                            ? 'bg-blue-900/30 text-blue-200'
+                            : 'bg-yellow-900/30 text-yellow-200'
+                          }`}>
+                          {session.status?.charAt(0).toUpperCase() + session.status?.slice(1) || 'Unknown'}
+                        </span>
+                      </div>
                     </div>
                   </div>
-                </div>
                 );
               })
             ) : (
-              <div className="text-center py-12 bg-white rounded-xl shadow-md">
-                <div className="bg-gray-100 text-gray-600 rounded-full h-16 w-16 flex items-center justify-center mx-auto mb-4">
+              <div className="text-center py-12 bg-black rounded-xl shadow-md border border-white">
+                <div className="bg-gray-800 text-gray-400 rounded-full h-16 w-16 flex items-center justify-center mx-auto mb-4">
                   <Calendar className="w-8 h-8" />
                 </div>
-                <h3 className="text-xl font-semibold text-gray-800 mb-2">
+                <h3 className="text-xl font-semibold text-white mb-2">
                   No sessions found
                 </h3>
-                <p className="text-gray-600">
+                <p className="text-gray-400">
                   You don't have any sessions for this skill yet.
                 </p>
               </div>
@@ -639,27 +634,27 @@ const SkillSessions = () => {
           </span>
         </button>
         {/* Debug info */}
-        <div className="absolute -top-8 left-0 bg-black text-white text-xs px-2 py-1 rounded">
+        <div className="absolute -top-8 left-0 bg-black border border-white text-white text-xs px-2 py-1 rounded">
           Role: {userRole || 'loading...'}
         </div>
       </div>
 
       {/* Finish Course Modal - Available for Both Roles */}
       {showFinishCourseModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-            <h3 className="text-xl font-semibold text-gray-800 mb-4">
+        <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
+          <div className="bg-black border border-white rounded-lg p-6 max-w-md w-full mx-4">
+            <h3 className="text-xl font-semibold text-white mb-4">
               {userRole === 'instructor' ? 'Mark Course as Complete' : 'Finish Course'}
             </h3>
-            <p className="text-gray-600 mb-4">
-              {userRole === 'instructor' 
+            <p className="text-gray-400 mb-4">
+              {userRole === 'instructor'
                 ? `You're about to mark the ${skill?.name} course as complete. Please provide your overall assessment of the teaching experience.`
                 : `You're about to complete your learning journey for ${skill?.name}${instructorInfo ? ` with ${instructorInfo.name}` : ''}. Please rate your overall experience with this course.`
               }
             </p>
-            
+
             <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-300 mb-2">
                 Overall {userRole === 'instructor' ? 'Teaching Experience' : 'Course'} Rating
               </label>
               <div className="flex space-x-1">
@@ -667,9 +662,8 @@ const SkillSessions = () => {
                   <button
                     key={star}
                     onClick={() => setCourseRating(star)}
-                    className={`text-2xl ${
-                      star <= courseRating ? 'text-yellow-500' : 'text-gray-300'
-                    }`}
+                    className={`text-2xl ${star <= courseRating ? 'text-yellow-500' : 'text-gray-600'
+                      }`}
                   >
                     ★
                   </button>
@@ -678,16 +672,16 @@ const SkillSessions = () => {
             </div>
 
             <div className="mb-6">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-300 mb-2">
                 {userRole === 'instructor' ? 'Teaching Experience Review' : 'Course Review'} (Optional)
               </label>
               <textarea
                 value={courseReview}
                 onChange={(e) => setCourseReview(e.target.value)}
-                className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                className="w-full p-3 bg-black border border-gray-700 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
                 rows="4"
                 placeholder={
-                  userRole === 'instructor' 
+                  userRole === 'instructor'
                     ? "Share your experience teaching this course..."
                     : "Share your overall experience with this course..."
                 }
@@ -697,7 +691,7 @@ const SkillSessions = () => {
             <div className="flex space-x-3">
               <button
                 onClick={() => setShowFinishCourseModal(false)}
-                className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                className="flex-1 px-4 py-2 border border-gray-700 text-gray-300 rounded-lg hover:bg-gray-800 transition-colors"
               >
                 Cancel
               </button>
@@ -729,11 +723,11 @@ const SkillSessions = () => {
                 <X className="w-6 h-6" />
               </button>
             </div>
-            
+
             <p className="text-gray-600 mb-4">
               Upload a resource for the entire {skill?.name} course. This will be accessible to all participants.
             </p>
-            
+
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -744,18 +738,18 @@ const SkillSessions = () => {
                   value={documentTitle}
                   onChange={(e) => setDocumentTitle(e.target.value)}
                   placeholder="Enter resource title..."
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full p-3 bg-black border border-gray-700 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-300 mb-2">
                   Select File
                 </label>
                 <input
                   type="file"
                   onChange={handleFileSelect}
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full p-3 bg-black border border-gray-700 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
                 />
               </div>
             </div>
@@ -767,14 +761,14 @@ const SkillSessions = () => {
                   setSelectedFile(null);
                   setDocumentTitle('');
                 }}
-                className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                className="flex-1 px-4 py-2 border border-gray-700 text-gray-300 rounded-lg hover:bg-gray-800 transition-colors"
               >
                 Cancel
               </button>
               <button
                 onClick={uploadSkillDocument}
                 disabled={!selectedFile || !documentTitle.trim() || uploadingFile}
-                className="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
+                className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:bg-red-900 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {uploadingFile ? 'Uploading...' : 'Upload Resource'}
               </button>

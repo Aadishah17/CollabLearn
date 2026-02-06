@@ -36,7 +36,7 @@ import AiLearningPage from './components/user/AiLearningPage';
 
 function App() {
   return (
-    <GoogleOAuthProvider clientId="YOUR_GOOGLE_CLIENT_ID">
+    <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID || "YOUR_GOOGLE_CLIENT_ID"}>
       <ThemeProvider>
         <div>
           <Toaster />

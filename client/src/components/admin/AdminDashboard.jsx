@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Users, FileText, BarChart2, MessageSquare, Clock, LayoutDashboard, TrendingUp, TrendingDown, CheckCircle, X } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import AdminNavbar from '../../navbar/adminNavbar'; 
+import AdminNavbar from '../../navbar/adminNavbar';
+import { API_URL } from '../../config';
+
 
 // --- DUMMY DATA ---
 const initialSummaryData = {
@@ -34,7 +36,7 @@ const primaryText = 'text-indigo-600';
 // --- Utility Functions ---
 const calculateChange = (data) => {
     if (data.length < 2) return { change: 0, icon: <TrendingUp size={20} className="text-gray-500" />, color: 'text-gray-500' };
-    
+
     const latest = data[data.length - 1].registered;
     const previous = data[data.length - 2].registered;
     const percentage = ((latest - previous) / previous) * 100;
@@ -50,7 +52,7 @@ const calculateChange = (data) => {
 // --- Sub-Component: Simple Bar Chart for Monthly Activity ---
 const MonthlyUserChart = ({ data }) => {
     const maxVal = Math.max(...data.map(d => d.registered));
-    
+
     return (
         <div className="h-64 pt-6">
             <h4 className="text-xl font-bold mb-4 border-b pb-2 text-gray-800">Monthly User Registration & Activity</h4>
@@ -59,13 +61,13 @@ const MonthlyUserChart = ({ data }) => {
                     <div key={index} className="flex-1 flex flex-col items-center h-full justify-end">
                         <div className="text-xs text-gray-500 mb-1">{d.registered}</div>
                         {/* Registered Bar (indigo light) */}
-                        <div 
-                            className="w-full bg-indigo-200 rounded-t-lg transition-all duration-700 hover:bg-indigo-300 relative" 
+                        <div
+                            className="w-full bg-indigo-200 rounded-t-lg transition-all duration-700 hover:bg-indigo-300 relative"
                             style={{ height: `${(d.registered / maxVal) * 80 + 10}%` }}
                         >
                             {/* Active Bar (indigo dark) */}
-                            <div 
-                                className="absolute bottom-0 w-full bg-gradient-to-t from-indigo-600 to-purple-700 rounded-t-lg" 
+                            <div
+                                className="absolute bottom-0 w-full bg-gradient-to-t from-indigo-600 to-purple-700 rounded-t-lg"
                                 style={{ height: `${(d.active / d.registered) * 100}%` }}
                                 title={`Active: ${d.active}`}
                             />
@@ -91,7 +93,7 @@ export default function AdminDashboard() {
         const fetchStats = async () => {
             try {
                 const token = localStorage.getItem('token');
-                const response = await fetch('http://localhost:5001/api/admin/stats', {
+                const response = await fetch(`${API_URL}/api/admin/stats`, {
                     headers: {
                         'Authorization': `Bearer ${token}`,
                     },
@@ -119,88 +121,88 @@ export default function AdminDashboard() {
     const defaultFooterColor = 'text-gray-500';
 
     const allMetrics = [
-        { 
-            title: "Total Registered Users", 
-            value: summaryData.totalUsers, 
-            detail: "All accounts, active and inactive.", 
-            icon: <Users size={24} />, 
+        {
+            title: "Total Registered Users",
+            value: summaryData.totalUsers,
+            detail: "All accounts, active and inactive.",
+            icon: <Users size={24} />,
             iconColor: defaultIconColor,
             borderColor: defaultBorder,
             footer: `${(summaryData.totalUsers > 0 ? (summaryData.activeUsers / summaryData.totalUsers * 100).toFixed(0) : 0)}% are active`,
             footerColor: defaultFooterColor,
             footerIcon: <span className="w-4"></span>
         },
-        { 
-            title: "Pending Bookings", 
-            value: summaryData.pendingBookings, 
-            detail: "Sessions awaiting instructor confirmation.", 
-            icon: <Clock size={24} />, 
+        {
+            title: "Pending Bookings",
+            value: summaryData.pendingBookings,
+            detail: "Sessions awaiting instructor confirmation.",
+            icon: <Clock size={24} />,
             iconColor: defaultIconColor,
             borderColor: defaultBorder,
             footer: "Immediate action required.",
             footerColor: defaultFooterColor,
             footerIcon: <span className="w-4"></span>
         },
-        { 
-            title: "New Reports/Requests", 
+        {
+            title: "New Reports/Requests",
             value: summaryData.newRequests + summaryData.reportedPostsCount, // Combining requests and reported posts
-            detail: "Items requiring moderation/response.", 
-            icon: <MessageSquare size={24} />, 
+            detail: "Items requiring moderation/response.",
+            icon: <MessageSquare size={24} />,
             iconColor: defaultIconColor,
             borderColor: defaultBorder,
             footer: `${summaryData.reportedPostsCount} reported posts`,
             footerColor: defaultFooterColor,
             footerIcon: <X size={20} />
         },
-        { 
-            title: "Active Skills/Posts", 
-            value: summaryData.activePosts, 
-            detail: "Total number of live offerings.", 
-            icon: <FileText size={24} />, 
+        {
+            title: "Active Skills/Posts",
+            value: summaryData.activePosts,
+            detail: "Total number of live offerings.",
+            icon: <FileText size={24} />,
             iconColor: defaultIconColor,
             borderColor: defaultBorder,
             footer: "Platform content health is good.",
             footerColor: defaultFooterColor,
             footerIcon: <CheckCircle size={20} />
         },
-        { 
-            title: "Active Users (Current)", 
-            value: summaryData.activeUsers, 
-            detail: "Users logged in the last 7 days.", 
-            icon: <CheckCircle size={24} />, 
+        {
+            title: "Active Users (Current)",
+            value: summaryData.activeUsers,
+            detail: "Users logged in the last 7 days.",
+            icon: <CheckCircle size={24} />,
             iconColor: defaultIconColor,
             borderColor: defaultBorder,
             footer: `${(summaryData.activeUsers / summaryData.totalUsers * 100).toFixed(0)}% engagement rate`,
             footerColor: defaultFooterColor,
             footerIcon: <span className="w-4"></span>
         },
-        { 
-            title: "Total Instructors", 
-            value: summaryData.instructors, 
-            detail: "Users registered as skill providers.", 
-            icon: <BarChart2 size={24} />, 
+        {
+            title: "Total Instructors",
+            value: summaryData.instructors,
+            detail: "Users registered as skill providers.",
+            icon: <BarChart2 size={24} />,
             iconColor: defaultIconColor,
             borderColor: defaultBorder,
             footer: `${(summaryData.instructors / summaryData.totalUsers * 100).toFixed(0)}% of total users`,
             footerColor: defaultFooterColor,
             footerIcon: <span className="w-4"></span>
         },
-        { 
-            title: "User Growth (MoM)", 
-            value: `${userGrowthChange.change}%`, 
-            detail: "New user registrations vs. last month.", 
-            icon: userGrowthChange.icon, 
+        {
+            title: "User Growth (MoM)",
+            value: `${userGrowthChange.change}%`,
+            detail: "New user registrations vs. last month.",
+            icon: userGrowthChange.icon,
             iconColor: defaultIconColor,
             borderColor: defaultBorder,
             footer: `vs. last month (${summaryData.monthlyData.slice(-2)[0]?.registered || 0} users)`,
             footerColor: defaultFooterColor,
             footerIcon: userGrowthChange.icon
         },
-        { 
-            title: "Learners", 
-            value: summaryData.learners, 
-            detail: "Users primarily seeking sessions.", 
-            icon: <Users size={24} />, 
+        {
+            title: "Learners",
+            value: summaryData.learners,
+            detail: "Users primarily seeking sessions.",
+            icon: <Users size={24} />,
             iconColor: defaultIconColor,
             borderColor: defaultBorder,
             footer: `${(summaryData.learners / summaryData.totalUsers * 100).toFixed(0)}% of total users`,
@@ -215,8 +217,8 @@ export default function AdminDashboard() {
 
     return (
         <div className={`min-h-screen ${themeBg} font-sans`}>
-            <AdminNavbar /> 
-            
+            <AdminNavbar />
+
             <main className="pt-24 max-w-7xl mx-auto px-6 py-12">
                 <header className="mb-12">
                     <h1 className="text-4xl font-bold text-gray-900 flex items-center">
@@ -232,8 +234,8 @@ export default function AdminDashboard() {
                 <h2 className="text-2xl font-bold text-gray-800 mb-6 border-b pb-2">Platform Metrics</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
                     {allMetrics.map((card, index) => (
-                        <div 
-                            key={`metric-${index}`} 
+                        <div
+                            key={`metric-${index}`}
                             // New Unified Card Styling: Clean BG, Shadow, Border-Left Color
                             className={`p-5 rounded-xl shadow-lg bg-white border border-gray-200 border-l-4 ${card.borderColor || 'border-l-indigo-500'} flex flex-col justify-between transition-shadow duration-300 hover:shadow-xl`}
                         >
@@ -250,7 +252,7 @@ export default function AdminDashboard() {
                                     {card.icon}
                                 </div>
                             </div>
-                            
+
                             {/* Card Footer/Detail */}
                             <div className={`flex items-center text-xs font-semibold pt-3 border-t border-gray-100 ${card.footerColor}`}>
                                 {card.footerIcon}
@@ -271,9 +273,9 @@ export default function AdminDashboard() {
                     {/* User Role Breakdown Section */}
                     <div className={`p-8 rounded-xl shadow-lg bg-white border border-gray-200 flex flex-col justify-between`}>
                         <h3 className="text-xl font-bold mb-4 border-b pb-3 text-gray-800">User Role Distribution</h3>
-                        
+
                         <div className="flex flex-col flex-grow items-center justify-around space-y-4">
-                            
+
                             {/* Instructor Card */}
                             <div className="text-center p-4 border border-indigo-200 rounded-lg w-full hover:shadow-md transition-shadow">
                                 <p className="text-sm uppercase font-semibold text-indigo-600">Instructors</p>

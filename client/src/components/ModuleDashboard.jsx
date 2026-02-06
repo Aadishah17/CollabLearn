@@ -2,6 +2,8 @@ import React, { useState, useEffect, useContext } from 'react';
 import axios from 'axios';
 import { Link } from 'react-router-dom';
 import { PlusCircle, Book, Users, Globe, Lock } from 'lucide-react';
+import { API_URL } from '../config';
+
 // import { AuthContext } from '../auth/AuthContext'; // Removed
 
 const ModuleDashboard = () => {
@@ -25,7 +27,7 @@ const ModuleDashboard = () => {
                     Authorization: `Bearer ${token}`
                 }
             };
-            const response = await axios.get('http://localhost:5001/api/modules', config);
+            const response = await axios.get(`${API_URL}/api/modules`, config);
             setModules(response.data.data);
             setLoading(false);
         } catch (error) {

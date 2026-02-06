@@ -2,13 +2,13 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { Sun, Moon } from 'lucide-react';
 import { useTheme } from '../components/user/ThemeContext';
-import logo from '../assets/Collablearn Logo.png'; // Ensure you have a logo image in the specified path
+import logo from '../assets/react.svg'; // Ensure you have a logo image in the specified path
 
 export default function LandingNavbar() {
   const { isDarkMode, toggleDarkMode } = useTheme();
 
   return (
-    <nav className="bg-white dark:bg-black border-b border-gray-200 dark:border-zinc-800 h-20 transition-colors duration-200">
+    <nav className="bg-black border-b border-white h-20 transition-colors duration-200">
       <div className="flex justify-between items-center h-full px-6">
         {/* Logo */}
         <div className="flex items-center gap-3">
@@ -18,7 +18,7 @@ export default function LandingNavbar() {
             alt="CollabLearn Logo"
             className="w-12 h-12 rounded-xl object-cover"
           />
-          <span className="text-2xl font-bold text-indigo-600 dark:text-indigo-400">CollabLearn</span>
+          <span className="text-2xl font-bold text-red-600 dark:text-red-500">CollabLearn</span>
         </div>
 
 
@@ -32,10 +32,10 @@ export default function LandingNavbar() {
           >
             {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
           </button>
-          <Link to="/login" className="text-gray-600 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400 transition font-medium">
+          <Link to="/login" className="text-gray-600 dark:text-gray-300 hover:text-red-600 dark:hover:text-red-500 transition font-medium">
             Sign In
           </Link>
-          <Link to="/signup" className="px-6 py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg font-semibold hover:from-indigo-700 hover:to-purple-700 transition shadow-md hover:shadow-lg">
+          <Link to="/signup" className="px-6 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-lg font-semibold transition shadow-md hover:shadow-lg">
             Get Started
           </Link>
         </div>

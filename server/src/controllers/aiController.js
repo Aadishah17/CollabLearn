@@ -1,22 +1,28 @@
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 
-// Initialize Gemini API
-// Ensure GEMINI_API_KEY is in your .env file
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "YOUR_API_KEY");
-const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+// Helper to get initialized client
+const getGenAI = () => {
+    const key = process.env.GEMINI_API_KEY ? process.env.GEMINI_API_KEY.trim() : "";
+    if (!key || key === 'YOUR_GEMINI_API_KEY_HERE') {
+        return null;
+    }
+    return new GoogleGenerativeAI(key);
+};
 
 const chat = async (req, res) => {
     try {
         const { message } = req.body;
+        const genAI = getGenAI();
 
-        // Validation for missing key
-        if (!process.env.GEMINI_API_KEY || process.env.GEMINI_API_KEY === 'YOUR_GEMINI_API_KEY_HERE') {
+        if (!genAI) {
+            console.log("DEBUG: API Key missing in chat handler");
             return res.json({
                 success: true,
                 response: "⚠️ API Key Missing: Please add your GEMINI_API_KEY to the server/.env file to enable real AI features."
             });
         }
 
+        const model = genAI.getGenerativeModel({ model: "gemini-pro" });
         const prompt = `You are an expert educational assistant for a skill-learning platform called CollabLearn. 
         User asks: "${message}". 
         Provide a helpful, encouraging, and concise answer about learning this skill. Keep it under 100 words.`;
@@ -39,11 +45,10 @@ const chat = async (req, res) => {
 const generateRoadmap = async (req, res) => {
     try {
         const { skill } = req.body;
+        const genAI = getGenAI();
 
-        // Validation for missing key
-        if (!process.env.GEMINI_API_KEY || process.env.GEMINI_API_KEY === 'YOUR_GEMINI_API_KEY_HERE') {
-            // Return a high-quality mock roadmap as fallback/demo if key is missing
-            // ensuring the user can still see the UI potential
+        if (!genAI) {
+            console.log("DEBUG: API Key missing in generateRoadmap handler");
             return res.json({
                 success: true,
                 roadmap: {
@@ -60,21 +65,22 @@ const generateRoadmap = async (req, res) => {
             });
         }
 
+        const model = genAI.getGenerativeModel({ model: "gemini-pro" });
         const prompt = `Generate a detailed learning roadmap for "${skill}" in JSON format.
-      The structure MUST be:
-      {
-        "steps": [
-          {"title": "Step Title", "description": "Brief description", "duration": "Estimated time"},
-          ...
-        ],
-        "resources": [
-          {"type": "Video", "title": "Resource Title", "url": "URL or Search Term"},
-          {"type": "Article", "title": "Resource Title", "url": "URL"},
-          {"type": "Course", "title": "Resource Title", "url": "URL"}
-        ]
-      }
-      Provide at least 5 steps and 3 high-quality study resources (official docs, popular courses, or tutorials).
-      Return ONLY valid JSON.`;
+        The structure MUST be:
+        {
+          "steps": [
+            {"title": "Step Title", "description": "Brief description", "duration": "Estimated time"},
+            ...
+          ],
+          "resources": [
+            {"type": "Video", "title": "Resource Title", "url": "URL or Search Term"},
+            {"type": "Article", "title": "Resource Title", "url": "URL"},
+            {"type": "Course", "title": "Resource Title", "url": "URL"}
+          ]
+        }
+        Provide at least 5 steps and 3 high-quality study resources (official docs, popular courses, or tutorials).
+        Return ONLY valid JSON.`;
 
         const result = await model.generateContent(prompt);
         const response = await result.response;

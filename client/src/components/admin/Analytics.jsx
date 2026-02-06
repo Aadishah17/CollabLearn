@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Users, BarChart2, CheckCircle, X, MessageSquare, TrendingUp, TrendingDown, Loader } from 'lucide-react';
 import AdminNavbar from '../../navbar/adminNavbar';
+import { API_URL } from '../../config';
 import { Bar } from 'react-chartjs-2';
+
 import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend } from 'chart.js';
 
 // Register Chart.js components
@@ -15,7 +17,7 @@ const primaryText = 'text-indigo-600';
 // --- Utility Functions ---
 const calculateChange = (data) => {
     if (!data || data.length < 2) return { change: 0, icon: <TrendingUp size={20} className="text-gray-500" />, color: 'text-gray-500' };
-    
+
     const latest = data[data.length - 1].registered;
     const previous = data[data.length - 2].registered;
 
@@ -94,7 +96,7 @@ export default function AnalyticsDashboard() {
             setLoading(true);
             try {
                 const token = localStorage.getItem('token');
-                const response = await fetch('http://localhost:5001/api/admin/stats', {
+                const response = await fetch(`${API_URL}/api/admin/stats`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 const result = await response.json();
@@ -120,10 +122,10 @@ export default function AnalyticsDashboard() {
             </div>
         );
     }
-    
+
     if (!analytics) {
         return (
-             <div className={`min-h-screen ${themeBg} flex items-center justify-center`}>
+            <div className={`min-h-screen ${themeBg} flex items-center justify-center`}>
                 <div className="text-center">
                     <X size={48} className="mx-auto text-red-500" />
                     <h2 className="mt-4 text-xl font-semibold">Could not load analytics data.</h2>
@@ -145,11 +147,11 @@ export default function AnalyticsDashboard() {
         { title: "Reported Posts", value: reportedPostsCount, icon: <MessageSquare size={24} />, color: 'text-red-600', footer: `Requires moderation`, footerColor: 'text-red-600', footerIcon: <X size={20} /> },
         { title: "Total Instructors", value: instructors, icon: <BarChart2 size={24} />, color: 'text-yellow-600', footer: `${instructorPercent}% of users`, footerColor: 'text-gray-500', footerIcon: <span className="w-4"></span> },
     ];
-    
+
     return (
         <div className={`min-h-screen ${themeBg} font-sans`}>
-            <AdminNavbar /> 
-            
+            <AdminNavbar />
+
             <div className="pt-24 max-w-7xl mx-auto px-6 py-12">
                 <header className="mb-10">
                     <h1 className="text-4xl font-bold flex items-center">
@@ -177,7 +179,7 @@ export default function AnalyticsDashboard() {
                         </div>
                     ))}
                 </div>
-                
+
                 <div className="p-8 rounded-xl shadow-lg bg-white border border-gray-200 mb-12">
                     <MonthlyUserChart data={monthlyData} />
                 </div>

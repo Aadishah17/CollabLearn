@@ -4,6 +4,8 @@ import 'react-quill-new/dist/quill.snow.css'; // Import styles
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { Save, Share2, ArrowLeft, Users } from 'lucide-react';
+import { API_URL } from '../config';
+
 
 const ModuleEditor = () => {
     const { id } = useParams();
@@ -27,7 +29,7 @@ const ModuleEditor = () => {
 
     const fetchModule = async () => {
         try {
-            const response = await axios.get(`http://localhost:5001/api/modules/${id}`, {
+            const response = await axios.get(`${API_URL}/api/modules/${id}`, {
                 headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
             });
             const { title, content, description } = response.data.data;
@@ -50,10 +52,10 @@ const ModuleEditor = () => {
 
         try {
             if (isCreating) {
-                const response = await axios.post('http://localhost:5001/api/modules', payload, config);
+                const response = await axios.post(`${API_URL}/api/modules`, payload, config);
                 navigate(`/modules/${response.data.data._id}`);
             } else {
-                await axios.put(`http://localhost:5001/api/modules/${id}`, payload, config);
+                await axios.put(`${API_URL}/api/modules/${id}`, payload, config);
             }
             setSaving(false);
         } catch (error) {

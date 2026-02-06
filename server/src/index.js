@@ -1,8 +1,21 @@
 const express = require('express');
 const mongoose = require('mongoose');
+
+
 const compression = require('compression');
 const cors = require('cors');
 require('dotenv').config();
+
+console.log("-----------------------------------------");
+console.log("DEBUG: SERVER STARTUP");
+console.log("DEBUG: Loaded .env via dotenv");
+console.log("DEBUG: GEMINI_API_KEY Present?", !!process.env.GEMINI_API_KEY);
+if (process.env.GEMINI_API_KEY) {
+  console.log("DEBUG: GEMINI_API_KEY Start:", process.env.GEMINI_API_KEY.substring(0, 5) + "...");
+} else {
+  console.log("DEBUG: GEMINI_API_KEY IS MISSING OR EMPTY");
+}
+console.log("-----------------------------------------");
 
 const app = express();
 const http = require('http');
@@ -107,26 +120,15 @@ app.use('/uploads', express.static('uploads'));
 
 // --- MongoDB Connection ---
 // --- MongoDB Connection ---
-const { MongoMemoryServer } = require('mongodb-memory-server');
-
 const connectDB = async () => {
   try {
     const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/collablearn';
-    // Attempt local connection first
+    console.log('Attempting to connect to MongoDB:', MONGODB_URI);
     await mongoose.connect(MONGODB_URI, { useNewUrlParser: true, useUnifiedTopology: true });
-    console.log('✅ MongoDB connected (Local)');
+    console.log('✅ MongoDB connected');
   } catch (err) {
-    console.log('⚠️ Local MongoDB failed, attempting to use In-Memory Database...');
-    try {
-      // Fallback to In-Memory Database
-      const mongod = await MongoMemoryServer.create();
-      const uri = mongod.getUri();
-      await mongoose.connect(uri, { useNewUrlParser: true, useUnifiedTopology: true });
-      console.log(`✅ MongoDB connected (In-Memory Fallback at ${uri})`);
-      console.log('ℹ️  NOTE: Data will reset when server restarts in this mode.');
-    } catch (memErr) {
-      console.error('❌ All MongoDB connection attempts failed:', memErr);
-    }
+    console.error('❌ MongoDB connection failed:', err.message);
+    process.exit(1);
   }
 };
 
@@ -176,7 +178,9 @@ app.get('/', (req, res) => {
 });
 
 // --- Start Server ---
-server.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`);
+server.listen(PORT, '0.0.0.0', () => {
+  const msg = `🚀 Server running on port ${PORT}`;
+  console.log(msg);
+  console.log(`   Local: http://localhost:${PORT}`);
 });
 

@@ -3,8 +3,11 @@ import { io } from 'socket.io-client';
 import MainNavbar from "../../navbar/mainNavbar.jsx";
 import Avatar from './Avatar.jsx';
 
-const SOCKET_SERVER_URL = 'http://localhost:5001';
-const API_URL = 'http://localhost:5001/api';
+import { API_URL as CONFIG_API_URL } from '../../config';
+
+const SOCKET_SERVER_URL = CONFIG_API_URL;
+const API_URL = `${CONFIG_API_URL}/api`;
+
 
 const getLoggedInUserId = () => {
   return localStorage.getItem('userId');
@@ -30,7 +33,7 @@ const MessagesPage = () => {
     const isOnline = onlineUsers.has(userId);
     return isOnline;
   };
-  
+
   // Save contact interaction order to localStorage for consistent ordering
   const saveContactOrder = (contacts) => {
     try {
@@ -47,11 +50,11 @@ const MessagesPage = () => {
   // Helper function to format timestamp for recent messages
   const formatMessageTime = (timestamp) => {
     if (!timestamp) return '';
-    
+
     const messageDate = new Date(timestamp);
     const now = new Date();
     const diffInHours = (now - messageDate) / (1000 * 60 * 60);
-    
+
     if (diffInHours < 1) {
       return 'now';
     } else if (diffInHours < 24) {
@@ -87,7 +90,7 @@ const MessagesPage = () => {
 
   useEffect(() => {
     if (!loggedInUserId) return;
-    
+
     setLoadingContacts(true);
     fetch(`${API_URL}/users`, {
       method: 'GET',
@@ -104,7 +107,7 @@ const MessagesPage = () => {
       .then(users => {
         // Filter out the current logged-in user from the contacts list
         const filteredUsers = users.filter(user => user._id !== loggedInUserId);
-        
+
         // Try to get saved order from localStorage
         const savedOrder = localStorage.getItem('contactsOrder');
         let userOrder = {};
@@ -115,10 +118,10 @@ const MessagesPage = () => {
             console.warn('Failed to parse saved contacts order');
           }
         }
-        
-        const withMeta = filteredUsers.map((u, index) => ({ 
-          ...u, 
-          latestMessage: "", 
+
+        const withMeta = filteredUsers.map((u, index) => ({
+          ...u,
+          latestMessage: "",
           lastMessageTime: null,
           lastSeen: null,
           _originalIndex: userOrder[u._id] !== undefined ? userOrder[u._id] : index // Use saved order or fallback to current index
@@ -178,7 +181,7 @@ const MessagesPage = () => {
     // Wait for connection to be established before emitting user_online
     socketRef.current.on('connect', () => {
       socketRef.current.emit("user_online", loggedInUserId);
-      
+
       // Request online users list via Socket.IO
       setTimeout(() => {
         socketRef.current.emit("get_online_users");
@@ -239,11 +242,11 @@ const MessagesPage = () => {
 
       if (data.chatId === currentChatId && data.userId !== loggedInUserId) {
         setIsTyping(true);
-        
+
         if (typingTimeoutRef.current) {
           clearTimeout(typingTimeoutRef.current);
         }
-        
+
         typingTimeoutRef.current = setTimeout(() => {
           setIsTyping(false);
         }, 3000);
@@ -290,9 +293,9 @@ const MessagesPage = () => {
     if (!activeContactId || !socketRef.current || !loggedInUserId) return;
     const chatId = [loggedInUserId, activeContactId].sort().join('_');
     socketRef.current.emit("joinRoom", chatId);
-    
+
     setIsTyping(false);
-    
+
     return () => {
       socketRef.current.emit("leaveRoom", chatId);
     };
@@ -305,7 +308,7 @@ const MessagesPage = () => {
       const timeoutId = setTimeout(() => {
         saveContactOrder(contacts);
       }, 500);
-      
+
       return () => clearTimeout(timeoutId);
     }
   }, [contacts]);
@@ -313,7 +316,7 @@ const MessagesPage = () => {
   const handleSendMessage = (e) => {
     e.preventDefault();
     if (!messageInput.trim() || !activeContactId || !loggedInUserId) return;
-    
+
     const chatId = [loggedInUserId, activeContactId].sort().join('_');
     const newMessage = {
       chatId,
@@ -321,7 +324,7 @@ const MessagesPage = () => {
       text: messageInput.trim(),
       time: new Date().toISOString(),
     };
-    
+
     socketRef.current.emit('chat message', newMessage);
 
     socketRef.current.emit('stopped typing', { chatId, userId: loggedInUserId });
@@ -330,11 +333,11 @@ const MessagesPage = () => {
     setContacts(prev =>
       prev.map(c =>
         c._id === activeContactId
-          ? { 
-              ...c, 
-              latestMessage: newMessage.text,
-              lastMessageTime: newMessage.time
-            }
+          ? {
+            ...c,
+            latestMessage: newMessage.text,
+            lastMessageTime: newMessage.time
+          }
           : c
       )
     );
@@ -344,16 +347,16 @@ const MessagesPage = () => {
   // Handle typing indicator
   const handleInputChange = (e) => {
     setMessageInput(e.target.value);
-    
+
     if (!activeContactId || !loggedInUserId) return;
-    
+
     const chatId = [loggedInUserId, activeContactId].sort().join('_');
     socketRef.current.emit('typing', { chatId, userId: loggedInUserId });
-    
+
     if (typingTimeoutRef.current) {
       clearTimeout(typingTimeoutRef.current);
     }
-    
+
     typingTimeoutRef.current = setTimeout(() => {
       socketRef.current.emit('stopped typing', { chatId, userId: loggedInUserId });
     }, 2000);
@@ -361,20 +364,19 @@ const MessagesPage = () => {
 
   const ChatBubble = ({ message, index }) => {
     if (!loggedInUserId) return null;
-    
+
     const msgSenderId = String(message.senderId).trim();
     const loggedInId = String(loggedInUserId).trim();
     const isSent = msgSenderId === loggedInId;
-    
+
     return (
-      <div 
+      <div
         className={`flex mb-4 ${isSent ? 'justify-end' : 'justify-start'}`}
       >
-        <div className={`max-w-xs lg:max-w-md px-4 py-2 rounded-xl text-white shadow-lg transform transition-all duration-200 hover:scale-102 ${
-          isSent 
-            ? 'bg-gradient-to-br from-indigo-600 to-purple-600 rounded-br-none hover:shadow-xl' 
-            : 'bg-gradient-to-br from-gray-700 to-gray-800 rounded-tl-none hover:shadow-xl'
-        }`}>
+        <div className={`max-w-xs lg:max-w-md px-4 py-2 rounded-xl text-white shadow-lg transform transition-all duration-200 hover:scale-102 ${isSent
+          ? 'bg-red-600 rounded-br-none hover:shadow-xl border border-white'
+          : 'bg-gray-800 rounded-tl-none hover:shadow-xl border border-white'
+          }`}>
           <p className="text-sm">{message.text}</p>
           <p className="text-xs mt-1 text-right opacity-70">
             {new Date(message.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
@@ -389,27 +391,27 @@ const MessagesPage = () => {
   }
 
   // Sort contacts by recent activity and online status
-  const sortedContacts = [...contacts].sort((a, b) => {    
+  const sortedContacts = [...contacts].sort((a, b) => {
     // First priority: latest message timestamp (more recent = higher priority)
     const aTime = a.lastMessageTime ? new Date(a.lastMessageTime).getTime() : 0;
     const bTime = b.lastMessageTime ? new Date(b.lastMessageTime).getTime() : 0;
     if (aTime !== bTime) return bTime - aTime;
-    
+
     // Second priority: online status
     const aOnline = isUserOnline(a._id) ? 1 : 0;
     const bOnline = isUserOnline(b._id) ? 1 : 0;
     if (aOnline !== bOnline) return bOnline - aOnline;
-    
+
     // Third: alphabetical by name for consistent ordering
     const nameComparison = (a.name || '').localeCompare(b.name || '');
     if (nameComparison !== 0) return nameComparison;
-    
+
     // Last: use original index for stable sort (prevents order changes on refresh)
     return (a._originalIndex || 0) - (b._originalIndex || 0);
   });
 
   return (
-    <div className="flex h-screen bg-slate-50 font-sans">
+    <div className="flex h-screen bg-black font-sans">
       <style>
         {`
           @keyframes fade-in-up {
@@ -434,20 +436,20 @@ const MessagesPage = () => {
       </style>
       <div className="flex-1 flex flex-col">
         <MainNavbar />
-        
+
         {/* Messages Header */}
-        <div className="mt-20 bg-white shadow-sm border-b">
+        <div className="mt-20 bg-black shadow-sm border-b border-white">
           <div className="p-4">
-            <h1 className="text-2xl font-bold text-gray-800">Messages</h1>
+            <h1 className="text-2xl font-bold text-white">Messages</h1>
           </div>
         </div>
 
         <main className="flex-1 flex overflow-hidden">
           {/* Conversations List */}
-          <div className="w-full md:w-96 bg-white border-r overflow-y-auto">
+          <div className="w-full md:w-96 bg-black border-r border-white overflow-y-auto">
             {loadingContacts ? (
               <>
-                {[1,2,3,4,5].map((i) => (
+                {[1, 2, 3, 4, 5].map((i) => (
                   <div key={i} className="flex items-center p-4 border-b">
                     <div className="skeleton h-12 w-12 rounded-full mr-3"></div>
                     <div className="flex-1">
@@ -461,19 +463,18 @@ const MessagesPage = () => {
               sortedContacts.map((user) => {
                 const userIsOnline = isUserOnline(user._id);
                 const hasRecentMessage = user.latestMessage;
-                
+
                 return (
-                  <div 
+                  <div
                     key={user._id}
-                    className={`contact-item flex items-center p-4 cursor-pointer border-b hover:bg-gray-50 transition-all duration-200 ${
-                      user._id === activeContactId 
-                        ? 'bg-indigo-50 border-l-4 border-indigo-600' 
-                        : ''
-                    }`}
+                    className={`contact-item flex items-center p-4 cursor-pointer border-b hover:bg-gray-50 transition-all duration-200 ${user._id === activeContactId
+                      ? 'bg-red-600 border-l-4 border-white'
+                      : ''
+                      }`}
                     onClick={() => setActiveContactId(user._id)}
                   >
                     <div className="relative mr-3">
-                      <Avatar 
+                      <Avatar
                         src={user.avatar}
                         name={user.name}
                         size="md"
@@ -485,10 +486,10 @@ const MessagesPage = () => {
                         <div className="absolute bottom-0 right-0 w-4 h-4 bg-gray-400 rounded-full border-2 border-white"></div>
                       )}
                     </div>
-                    
+
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between">
-                        <h3 className="font-semibold text-gray-800 truncate">
+                        <h3 className="font-semibold text-white truncate">
                           {user.name}
                         </h3>
                         {user.lastMessageTime && (
@@ -499,7 +500,7 @@ const MessagesPage = () => {
                       </div>
                       <div className="mt-1">
                         {hasRecentMessage && (
-                          <p className="text-sm text-gray-700 truncate">
+                          <p className="text-sm text-gray-400 truncate">
                             {user.latestMessage}
                           </p>
                         )}
@@ -512,17 +513,17 @@ const MessagesPage = () => {
           </div>
 
           {/* Chat Window */}
-          <div className="flex-1 flex flex-col bg-white">
+          <div className="flex-1 flex flex-col bg-black border-l border-white">
             {activeContactId ? (
               <>
                 {/* Chat Header */}
-                <div className="p-4 border-b flex items-center bg-gradient-to-r from-indigo-50 to-white shadow-sm">
+                <div className="p-4 border-b border-white flex items-center bg-black shadow-sm">
                   <div className="relative mr-3">
-                    <Avatar 
+                    <Avatar
                       src={contacts.find(u => u._id === activeContactId)?.avatar}
                       name={contacts.find(u => u._id === activeContactId)?.name}
                       size="sm"
-                      className="ring-2 ring-indigo-200 shadow-md"
+                      className="ring-2 ring-red-600 shadow-md"
                     />
                     {isUserOnline(activeContactId) ? (
                       <div className="online-dot absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white"></div>
@@ -531,7 +532,7 @@ const MessagesPage = () => {
                     )}
                   </div>
                   <div>
-                    <p className="font-bold text-gray-800">{contacts.find(u => u._id === activeContactId)?.name}</p>
+                    <p className="font-bold text-white">{contacts.find(u => u._id === activeContactId)?.name}</p>
                     <p className="text-sm text-gray-500 flex items-center">
                       {isUserOnline(activeContactId) ? (
                         <>
@@ -547,11 +548,11 @@ const MessagesPage = () => {
                     </p>
                   </div>
                 </div>
-                
+
                 {/* Messages Area */}
-                <div className="flex-1 p-6 overflow-y-auto bg-gradient-to-b from-slate-50 to-white">
+                <div className="flex-1 p-6 overflow-y-auto bg-black">
                   {messages.map((msg, idx) => (
-                    <ChatBubble key={msg._id || idx} message={msg} index={idx}/>
+                    <ChatBubble key={msg._id || idx} message={msg} index={idx} />
                   ))}
 
                   {/* Typing indicator */}
@@ -569,18 +570,18 @@ const MessagesPage = () => {
                 </div>
 
                 {/* Message Input */}
-                <form onSubmit={handleSendMessage} className="p-4 border-t bg-white shadow-lg">
+                <form onSubmit={handleSendMessage} className="p-4 border-t border-white bg-black shadow-lg">
                   <div className="flex items-center space-x-3">
-                    <input 
-                      type="text" 
+                    <input
+                      type="text"
                       placeholder="Type a message..."
                       value={messageInput}
                       onChange={handleInputChange}
-                      className="flex-1 p-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-200 focus:border-indigo-400 transition-all duration-300"
+                      className="flex-1 p-3 bg-black border-2 border-white text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-red-600 focus:border-red-600 transition-all duration-300 placeholder-gray-400"
                     />
-                    <button 
+                    <button
                       type="submit"
-                      className="send-button p-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed font-bold text-lg shadow-md"
+                      className="send-button p-3 bg-red-600 hover:bg-red-700 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed font-bold text-lg shadow-md border border-white"
                       disabled={!messageInput.trim()}
                     >
                       ➤

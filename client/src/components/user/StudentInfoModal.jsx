@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { API_URL } from '../../config';
+
 
 const StudentInfoModal = ({ student, skill, onClose, onMessage }) => {
   const [studentDetails, setStudentDetails] = useState(null);
@@ -15,13 +17,13 @@ const StudentInfoModal = ({ student, skill, onClose, onMessage }) => {
     try {
       setLoading(true);
       const token = localStorage.getItem('token');
-      
+
       if (!token || !student?.id) {
         return;
       }
 
       // Fetch student details from API
-      const response = await fetch(`http://localhost:5001/api/dashboard/student/${student.id}`, {
+      const response = await fetch(`${API_URL}/api/dashboard/student/${student.id}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -56,29 +58,29 @@ const StudentInfoModal = ({ student, skill, onClose, onMessage }) => {
         });
 
         setSessions([
-          { 
-            id: 1, 
-            date: new Date(2024, 9, 5), 
-            skill: skill?.name, 
-            duration: 60, 
+          {
+            id: 1,
+            date: new Date(2024, 9, 5),
+            skill: skill?.name,
+            duration: 60,
             status: 'completed',
             rating: 5,
             notes: 'Great progress on advanced concepts'
           },
-          { 
-            id: 2, 
-            date: new Date(2024, 9, 12), 
-            skill: skill?.name, 
-            duration: 90, 
+          {
+            id: 2,
+            date: new Date(2024, 9, 12),
+            skill: skill?.name,
+            duration: 90,
             status: 'completed',
             rating: 4,
             notes: 'Worked on practical exercises'
           },
-          { 
-            id: 3, 
-            date: new Date(2024, 9, 19), 
-            skill: skill?.name, 
-            duration: 60, 
+          {
+            id: 3,
+            date: new Date(2024, 9, 19),
+            skill: skill?.name,
+            duration: 60,
             status: 'scheduled',
             notes: 'Next: Advanced project work'
           }
@@ -114,10 +116,10 @@ const StudentInfoModal = ({ student, skill, onClose, onMessage }) => {
   };
 
   const formatDate = (date) => {
-    return date.toLocaleDateString('en-US', { 
-      year: 'numeric', 
-      month: 'short', 
-      day: 'numeric' 
+    return date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
     });
   };
 
@@ -127,7 +129,7 @@ const StudentInfoModal = ({ student, skill, onClose, onMessage }) => {
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
         {/* Header */}
-  <div className="bg-gradient-to-r from-sky-600 to-purple-600 text-white p-6 rounded-t-xl">
+        <div className="bg-gradient-to-r from-sky-600 to-purple-600 text-white p-6 rounded-t-xl">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
               <div className="bg-white bg-opacity-20 rounded-full h-16 w-16 flex items-center justify-center text-2xl font-bold">
@@ -141,7 +143,7 @@ const StudentInfoModal = ({ student, skill, onClose, onMessage }) => {
                 </p>
               </div>
             </div>
-            <button 
+            <button
               onClick={onClose}
               className="text-white hover:bg-white hover:bg-opacity-20 rounded-full p-2 transition-colors"
             >
@@ -184,7 +186,7 @@ const StudentInfoModal = ({ student, skill, onClose, onMessage }) => {
                   <span className="material-icons-outlined text-xl mr-2">📊</span>
                   Learning Progress
                 </h3>
-                
+
                 {studentDetails?.learningGoals?.map((goal, index) => (
                   <div key={index} className="mb-4">
                     <div className="flex justify-between items-center mb-2">
@@ -192,7 +194,7 @@ const StudentInfoModal = ({ student, skill, onClose, onMessage }) => {
                       <span className="text-sm text-gray-500">Target: {goal.target}</span>
                     </div>
                     <div className="w-full bg-gray-200 rounded-full h-3">
-                      <div 
+                      <div
                         className={`h-3 rounded-full ${getProgressColor(goal.progress)}`}
                         style={{ width: `${goal.progress}%` }}
                       ></div>
@@ -208,7 +210,7 @@ const StudentInfoModal = ({ student, skill, onClose, onMessage }) => {
                   <span className="material-icons-outlined text-xl mr-2">🏆</span>
                   Achievements
                 </h3>
-                
+
                 <div className="space-y-2">
                   {studentDetails?.achievements?.map((achievement, index) => (
                     <div key={index} className="flex items-center space-x-3 p-3 bg-white rounded-lg">
@@ -228,16 +230,15 @@ const StudentInfoModal = ({ student, skill, onClose, onMessage }) => {
                 <span className="material-icons-outlined text-xl mr-2">📅</span>
                 Session History
               </h3>
-              
+
               <div className="space-y-3">
                 {sessions.map((session) => (
                   <div key={session.id} className="bg-white border border-gray-200 rounded-lg p-4">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-4">
-                        <div className={`w-3 h-3 rounded-full ${
-                          session.status === 'completed' ? 'bg-green-500' : 
-                          session.status === 'scheduled' ? 'bg-blue-500' : 'bg-gray-400'
-                        }`}></div>
+                        <div className={`w-3 h-3 rounded-full ${session.status === 'completed' ? 'bg-green-500' :
+                            session.status === 'scheduled' ? 'bg-blue-500' : 'bg-gray-400'
+                          }`}></div>
                         <div>
                           <p className="font-medium text-gray-800">{session.skill}</p>
                           <p className="text-sm text-gray-600">{formatDate(session.date)}</p>
@@ -263,13 +264,13 @@ const StudentInfoModal = ({ student, skill, onClose, onMessage }) => {
 
             {/* Action Buttons */}
             <div className="mt-6 flex justify-end space-x-4">
-              <button 
+              <button
                 onClick={onClose}
                 className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
               >
                 Close
               </button>
-              <button 
+              <button
                 onClick={() => onMessage && onMessage(student)}
                 className="px-4 py-2 bg-sky-600 text-white rounded-lg hover:bg-sky-700 transition-colors"
               >

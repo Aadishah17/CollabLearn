@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import GooglePayButton from '@google-pay/button-react';
 import { CheckCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { API_URL } from '../../config';
+
 
 export default function GooglePayExample() {
   const [paymentData, setPaymentData] = useState(null);
@@ -23,7 +25,7 @@ export default function GooglePayExample() {
     // Update backend to mark user as premium
     const tokenAuth = localStorage.getItem('token');
     if (tokenAuth) {
-      fetch('http://localhost:5001/api/auth/profile', {
+      fetch(`${API_URL}/api/auth/profile`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

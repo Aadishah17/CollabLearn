@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Settings, Lock, Database, Globe, RefreshCw, AlertTriangle, Save, Loader, CheckCircle, XCircle } from 'lucide-react';
 import AdminNavbar from '../../navbar/adminNavbar.jsx';
+import { API_URL } from '../../config';
+
 
 // --- Static Theme Classes ---
 const themeBg = 'bg-gray-100 text-gray-900';
@@ -23,7 +25,7 @@ export default function AdminSettings() {
             setLoading(true);
             try {
                 const token = localStorage.getItem('token');
-                const response = await fetch('http://localhost:5001/api/admin/settings', {
+                const response = await fetch(`${API_URL}/api/admin/settings`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 const result = await response.json();
@@ -54,7 +56,7 @@ export default function AdminSettings() {
         setSaveStatus('saving');
         try {
             const token = localStorage.getItem('token');
-            const response = await fetch('http://localhost:5001/api/admin/settings', {
+            const response = await fetch(`${API_URL}/api/admin/settings`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
@@ -76,7 +78,7 @@ export default function AdminSettings() {
             setTimeout(() => setSaveStatus(null), 3000);
         }
     };
-    
+
     // NOTE: These data actions are simulated. Real implementation requires complex backend logic.
     const handleDataAction = (actionName) => {
         alert(`Simulating '${actionName}'. In a real app, this would trigger a secure backend process.`);
@@ -103,8 +105,8 @@ export default function AdminSettings() {
 
     return (
         <div className={`min-h-screen ${themeBg} font-sans`}>
-            <AdminNavbar /> 
-            
+            <AdminNavbar />
+
             <div className="pt-24 max-w-7xl mx-auto px-6 py-12">
                 <header className="mb-10">
                     <h1 className="text-4xl font-bold flex items-center">
@@ -114,9 +116,9 @@ export default function AdminSettings() {
                 </header>
 
                 <form onSubmit={handleSave}>
-                    <SettingsSection 
-                        icon={Globe} 
-                        title="General Platform Settings" 
+                    <SettingsSection
+                        icon={Globe}
+                        title="General Platform Settings"
                         description="Control basic platform identity and operational status."
                     >
                         <div className="mb-4">
@@ -147,9 +149,9 @@ export default function AdminSettings() {
                         </div>
                     </SettingsSection>
 
-                    <SettingsSection 
-                        icon={Lock} 
-                        title="Security and Access" 
+                    <SettingsSection
+                        icon={Lock}
+                        title="Security and Access"
                         description="Configure parameters affecting user and admin account security."
                     >
                         <div className="mb-4">
@@ -168,9 +170,9 @@ export default function AdminSettings() {
                         </div>
                     </SettingsSection>
 
-                    <SettingsSection 
-                        icon={Database} 
-                        title="Data Management Tools" 
+                    <SettingsSection
+                        icon={Database}
+                        title="Data Management Tools"
                         description="Perform administrative actions related to system data and caching. These actions are simulated."
                     >
                         <div className="flex space-x-4">
@@ -192,7 +194,7 @@ export default function AdminSettings() {
                             </button>
                         </div>
                     </SettingsSection>
-                    
+
                     <div className="flex items-center justify-end mt-8">
                         {saveStatus && (
                             <div className={`flex items-center font-medium mr-4 ${saveStatus === 'success' ? 'text-green-600' : saveStatus === 'error' ? 'text-red-600' : 'text-indigo-600'}`}>

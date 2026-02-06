@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Users, Loader, Crown, X, CheckCircle, AlertCircle } from 'lucide-react';
 import AdminNavbar from '../../navbar/adminNavbar'; // Corrected import path
+import { API_URL } from '../../config';
+
 
 // --- Static Theme Classes (Light Mode) ---
 const themeBg = 'bg-gray-100 text-gray-900';
@@ -23,7 +25,7 @@ export default function ManageUsers() {
             setLoading(true);
             try {
                 const token = localStorage.getItem('token');
-                const response = await fetch('http://localhost:5001/api/admin/users', {
+                const response = await fetch(`${API_URL}/api/admin/users`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 const result = await response.json();
@@ -47,7 +49,7 @@ export default function ManageUsers() {
         setActionLoading(userId);
         try {
             const token = localStorage.getItem('token');
-            const response = await fetch(`http://localhost:5001/api/admin/users/${userId}/block`, {
+            const response = await fetch(`${API_URL}/api/admin/users/${userId}/block`, {
                 method: 'PUT',
                 headers: { 'Authorization': `Bearer ${token}` }
             });
@@ -71,7 +73,7 @@ export default function ManageUsers() {
         setActionLoading(userId);
         try {
             const token = localStorage.getItem('token');
-            const response = await fetch(`http://localhost:5001/api/admin/users/${userId}/unblock`, {
+            const response = await fetch(`${API_URL}/api/admin/users/${userId}/unblock`, {
                 method: 'PUT',
                 headers: { 'Authorization': `Bearer ${token}` }
             });
@@ -106,40 +108,40 @@ export default function ManageUsers() {
 
     const updateSubscription = async () => {
         if (!selectedUser) return;
-        
+
         setActionLoading(selectedUser.id);
         try {
             const token = localStorage.getItem('token');
             console.log('Updating subscription for user:', selectedUser.id);
             console.log('New subscription:', newSubscription);
             console.log('Sending isPremium:', newSubscription === 'premium');
-            
-            const response = await fetch(`http://localhost:5001/api/admin/users/${selectedUser.id}/subscription`, {
+
+            const response = await fetch(`${API_URL}/api/admin/users/${selectedUser.id}/subscription`, {
                 method: 'PUT',
-                headers: { 
+                headers: {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({ isPremium: newSubscription === 'premium' })
             });
-            
+
             const result = await response.json();
             console.log('Update response:', result);
-            
+
             if (result.success) {
                 // Update state locally for instant UI feedback
                 setUsers(users.map(user =>
                     user.id === selectedUser.id ? { ...user, isPremium: newSubscription === 'premium' } : user
                 ));
-                
+
                 // Show success notification
                 setNotification({
                     type: 'success',
                     message: `Successfully updated ${selectedUser.name}'s subscription to ${newSubscription === 'premium' ? 'Premium' : 'Free'}`
                 });
-                
+
                 closeSubscriptionModal();
-                
+
                 // Auto-hide notification after 3 seconds
                 setTimeout(() => setNotification(null), 3000);
             } else {
@@ -166,15 +168,14 @@ export default function ManageUsers() {
     return (
         <div className={`min-h-screen ${themeBg} font-sans transition-colors duration-500`}>
             <AdminNavbar />
-            
+
             {/* Notification Toast */}
             {notification && (
                 <div className="fixed top-20 right-6 z-50 animate-slide-in-right">
-                    <div className={`flex items-center gap-3 px-6 py-4 rounded-lg shadow-lg ${
-                        notification.type === 'success' 
-                            ? 'bg-green-500 text-white' 
+                    <div className={`flex items-center gap-3 px-6 py-4 rounded-lg shadow-lg ${notification.type === 'success'
+                            ? 'bg-green-500 text-white'
                             : 'bg-red-500 text-white'
-                    }`}>
+                        }`}>
                         {notification.type === 'success' ? (
                             <CheckCircle size={24} />
                         ) : (
@@ -184,7 +185,7 @@ export default function ManageUsers() {
                     </div>
                 </div>
             )}
-            
+
             <div className="pt-24 max-w-7xl mx-auto px-6 py-12">
                 <header className="mb-10">
                     <h1 className="text-4xl font-bold flex items-center">
@@ -195,12 +196,12 @@ export default function ManageUsers() {
 
                 <div className={`shadow-xl rounded-xl p-6 bg-white border border-gray-200 overflow-x-auto`}>
                     <h3 className="text-xl font-bold mb-6">Registered Users ({users.length})</h3>
-                    
+
                     {loading ? (
-                         <div className="text-center py-10">
+                        <div className="text-center py-10">
                             <Loader size={32} className="animate-spin inline text-indigo-600" />
                             <p className="mt-2">Loading users...</p>
-                         </div>
+                        </div>
                     ) : (
                         <table className="min-w-full divide-y divide-gray-200">
                             <thead>
@@ -227,11 +228,10 @@ export default function ManageUsers() {
                                                 onClick={() => openSubscriptionModal(user)}
                                                 className="flex items-center gap-1 group"
                                             >
-                                                <span className={`inline-flex items-center px-3 py-1 text-xs font-semibold leading-5 rounded-full transition-all ${
-                                                    user.isPremium
-                                                        ? 'bg-gradient-to-r from-yellow-400 to-amber-500 text-white' 
+                                                <span className={`inline-flex items-center px-3 py-1 text-xs font-semibold leading-5 rounded-full transition-all ${user.isPremium
+                                                        ? 'bg-gradient-to-r from-yellow-400 to-amber-500 text-white'
                                                         : 'bg-gray-100 text-gray-700 group-hover:bg-gray-200'
-                                                }`}>
+                                                    }`}>
                                                     {user.isPremium && <Crown size={12} className="mr-1" />}
                                                     {user.isPremium ? 'PREMIUM' : 'FREE'}
                                                 </span>
@@ -283,11 +283,11 @@ export default function ManageUsers() {
                         >
                             <X size={24} />
                         </button>
-                        
+
                         <h2 className="text-2xl font-bold mb-6 text-gray-900">
                             Change Subscription
                         </h2>
-                        
+
                         <div className="mb-6">
                             <p className="text-sm text-gray-600 mb-2">User</p>
                             <p className="text-lg font-semibold text-gray-900">{selectedUser.name}</p>
@@ -298,27 +298,25 @@ export default function ManageUsers() {
                             <label className="block text-sm font-medium text-gray-700 mb-3">
                                 Select Subscription Plan
                             </label>
-                            
+
                             <div className="space-y-3">
                                 {/* Free Plan Option */}
                                 <div
                                     onClick={() => setNewSubscription('free')}
-                                    className={`cursor-pointer p-4 rounded-lg border-2 transition-all ${
-                                        newSubscription === 'free'
+                                    className={`cursor-pointer p-4 rounded-lg border-2 transition-all ${newSubscription === 'free'
                                             ? 'border-indigo-500 bg-indigo-50'
                                             : 'border-gray-200 hover:border-gray-300 bg-white'
-                                    }`}
+                                        }`}
                                 >
                                     <div className="flex items-center justify-between">
                                         <div>
                                             <h3 className="font-semibold text-gray-900">Free Plan</h3>
                                             <p className="text-sm text-gray-600">Basic features access</p>
                                         </div>
-                                        <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
-                                            newSubscription === 'free'
+                                        <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${newSubscription === 'free'
                                                 ? 'border-indigo-500 bg-indigo-500'
                                                 : 'border-gray-300'
-                                        }`}>
+                                            }`}>
                                             {newSubscription === 'free' && (
                                                 <div className="w-2 h-2 bg-white rounded-full"></div>
                                             )}
@@ -329,11 +327,10 @@ export default function ManageUsers() {
                                 {/* Premium Plan Option */}
                                 <div
                                     onClick={() => setNewSubscription('premium')}
-                                    className={`cursor-pointer p-4 rounded-lg border-2 transition-all ${
-                                        newSubscription === 'premium'
+                                    className={`cursor-pointer p-4 rounded-lg border-2 transition-all ${newSubscription === 'premium'
                                             ? 'border-amber-500 bg-gradient-to-br from-yellow-50 to-amber-50'
                                             : 'border-gray-200 hover:border-gray-300 bg-white'
-                                    }`}
+                                        }`}
                                 >
                                     <div className="flex items-center justify-between">
                                         <div className="flex items-center gap-2">
@@ -343,11 +340,10 @@ export default function ManageUsers() {
                                                 <p className="text-sm text-gray-600">Full features & priority support</p>
                                             </div>
                                         </div>
-                                        <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
-                                            newSubscription === 'premium'
+                                        <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${newSubscription === 'premium'
                                                 ? 'border-amber-500 bg-amber-500'
                                                 : 'border-gray-300'
-                                        }`}>
+                                            }`}>
                                             {newSubscription === 'premium' && (
                                                 <div className="w-2 h-2 bg-white rounded-full"></div>
                                             )}
@@ -375,7 +371,7 @@ export default function ManageUsers() {
                     </div>
                 </div>
             )}
-            
+
             <style>{`
                 @keyframes slide-in-right {
                     from {

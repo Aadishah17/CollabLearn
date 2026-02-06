@@ -2,6 +2,8 @@ import React, { useState, useEffect, useMemo, useCallback, lazy, Suspense } from
 import { Link, useNavigate } from 'react-router-dom';
 import { Calendar, Star, Users, Trophy, BookOpen, Clock, MessageSquare, Settings, Lock } from 'lucide-react';
 import MainNavbar from '../../navbar/mainNavbar';
+import { API_URL } from '../../config';
+
 
 // Lazy load the StudentInfoModal for better initial load performance
 const StudentInfoModal = lazy(() => import('./StudentInfoModal'));
@@ -85,7 +87,7 @@ const Dashboard = React.memo(() => {
       }
 
       // Fetch fresh data with optimized single API call
-      const dashboardResponse = await fetch('http://localhost:5001/api/dashboard/stats', {
+      const dashboardResponse = await fetch(`${API_URL}/api/dashboard/stats`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -161,7 +163,7 @@ const Dashboard = React.memo(() => {
 
   const fetchFallbackData = async (token) => {
     // Fetch user profile
-    const userResponse = await fetch('http://localhost:5001/api/auth/me', {
+    const userResponse = await fetch(`${API_URL}/api/auth/me`, {
       headers: {
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json'
@@ -177,7 +179,7 @@ const Dashboard = React.memo(() => {
 
     // Fetch user's skills
     try {
-      const skillsResponse = await fetch('http://localhost:5001/api/skills/my-skills', {
+      const skillsResponse = await fetch(`${API_URL}/api/skills/my-skills`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -335,7 +337,7 @@ const Dashboard = React.memo(() => {
 
   if (loading) {
     return (
-      <div className="flex h-screen bg-gray-100 dark:bg-slate-900 items-center justify-center">
+      <div className="flex h-screen bg-black items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-indigo-600 mx-auto mb-4"></div>
           <p className="text-gray-600 dark:text-gray-300">Loading your dashboard...</p>
@@ -346,7 +348,7 @@ const Dashboard = React.memo(() => {
 
   if (error) {
     return (
-      <div className="flex h-screen bg-gray-100 items-center justify-center">
+      <div className="flex h-screen bg-black items-center justify-center">
         <div className="text-center">
           <h2 className="text-2xl font-bold text-red-600 mb-4">Dashboard Error</h2>
           <p className="text-gray-600 mb-4">{error}</p>
@@ -363,7 +365,7 @@ const Dashboard = React.memo(() => {
 
   if (!derivedData) {
     return (
-      <div className="flex h-screen bg-gray-100 items-center justify-center">
+      <div className="flex h-screen bg-black items-center justify-center">
         <div className="text-center">
           <div className="animate-pulse bg-gray-200 h-8 w-48 rounded mx-auto mb-4"></div>
           <p className="text-gray-600">Preparing your dashboard...</p>
@@ -373,7 +375,7 @@ const Dashboard = React.memo(() => {
   }
 
   return (
-    <div className="flex h-screen bg-gray-100 dark:bg-slate-900 font-sans transition-colors duration-300">
+    <div className="flex h-screen bg-black font-sans transition-colors duration-300">
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col overflow-auto">
 
@@ -381,7 +383,7 @@ const Dashboard = React.memo(() => {
         <MainNavbar />
 
         {/* Main Dashboard Content */}
-        <main className="flex-1 p-6 bg-gray-100 dark:bg-slate-900 pt-24 transition-colors duration-300">
+        <main className="flex-1 p-6 bg-black pt-24 transition-colors duration-300">
           {/* Welcome Section */}
           <div className="mb-8">
             <div className="flex items-center justify-between">
@@ -390,21 +392,21 @@ const Dashboard = React.memo(() => {
               </h1>
 
             </div>
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between bg-gray-50 dark:bg-slate-800 p-4 rounded-lg mt-4 transition-colors">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between bg-black p-4 rounded-lg mt-4 transition-colors border border-white">
               <div className="flex items-center space-x-6">
                 <div className="text-center">
                   <div className="flex items-center space-x-2 mb-1">
-                    <Users className="w-5 h-5 text-indigo-600" />
-                    <span className="text-2xl font-bold text-indigo-600">{derivedData?.teachingSkills.length || 0}</span>
+                    <Users className="w-5 h-5 text-red-500" />
+                    <span className="text-2xl font-bold text-white">{derivedData?.teachingSkills.length || 0}</span>
                   </div>
                   <p className="text-sm text-gray-600 dark:text-gray-400">Teaching</p>
                 </div>
                 <div className="text-center">
                   <div className="flex items-center space-x-2 mb-1">
-                    <BookOpen className="w-5 h-5 text-indigo-600" />
-                    <span className="text-2xl font-bold text-indigo-600">{derivedData?.learningSkills.length || 0}</span>
+                    <BookOpen className="w-5 h-5 text-red-500" />
+                    <span className="text-2xl font-bold text-white">{derivedData?.learningSkills.length || 0}</span>
                   </div>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">Learning</p>
+                  <p className="text-sm text-gray-400">Learning</p>
                 </div>
               </div>
               <div className="mt-2 sm:mt-0">
@@ -420,22 +422,22 @@ const Dashboard = React.memo(() => {
 
           {/* New Feature Cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-            <div className="bg-gradient-to-r from-indigo-600 to-purple-600 rounded-xl p-6 text-white shadow-lg relative overflow-hidden group">
+            <div className="bg-gradient-to-r from-red-600 to-black rounded-xl p-6 text-white shadow-lg relative overflow-hidden group border border-white">
               <div className="relative z-10">
                 <h3 className="text-2xl font-bold mb-2">Become a Founding Instructor</h3>
-                <p className="text-indigo-100 mb-6 max-w-sm">
+                <p className="text-red-100 mb-6 max-w-sm">
                   Share your knowledge and earn revenue. We're looking for 10 founding partners.
                 </p>
                 <div className="flex gap-3">
                   <button
                     onClick={() => navigate('/teach')}
-                    className="px-5 py-2 bg-white text-indigo-600 font-bold rounded-lg hover:bg-indigo-50 transition-colors shadow-md"
+                    className="px-5 py-2 bg-white text-red-600 font-bold rounded-lg hover:bg-red-50 transition-colors shadow-md"
                   >
                     Start Teaching
                   </button>
                   <button
                     onClick={() => navigate('/teach')}
-                    className="px-5 py-2 bg-indigo-500/30 text-white font-semibold rounded-lg hover:bg-indigo-500/50 transition-colors backdrop-blur-sm"
+                    className="px-5 py-2 bg-red-500/30 text-white font-semibold rounded-lg hover:bg-red-500/50 transition-colors backdrop-blur-sm"
                   >
                     Learn More
                   </button>
@@ -446,10 +448,10 @@ const Dashboard = React.memo(() => {
               </div>
             </div>
 
-            <div className="bg-white dark:bg-slate-800 rounded-xl p-6 shadow-md border border-gray-100 dark:border-slate-700 flex flex-col justify-center relative overflow-hidden group hover:shadow-lg transition-all">
+            <div className="bg-black rounded-xl p-6 shadow-md border border-white flex flex-col justify-center relative overflow-hidden group hover:shadow-lg transition-all">
               <div className="relative z-10">
                 <div className="flex items-center gap-3 mb-3">
-                  <div className="p-2 bg-sky-100 dark:bg-sky-900/30 text-sky-600 dark:text-sky-400 rounded-lg">
+                  <div className="p-2 bg-red-900/30 text-red-500 rounded-lg">
                     <BookOpen size={24} />
                   </div>
                   <h3 className="text-xl font-bold text-gray-800 dark:text-white">Explore Curriculum</h3>
@@ -459,7 +461,7 @@ const Dashboard = React.memo(() => {
                 </p>
                 <button
                   onClick={() => navigate('/courses')}
-                  className="w-full py-3 bg-gray-50 dark:bg-slate-700 text-gray-700 dark:text-gray-200 font-bold rounded-lg border border-gray-200 dark:border-slate-600 hover:bg-gray-100 dark:hover:bg-slate-600 hover:text-indigo-600 dark:hover:text-indigo-400 transition-all flex items-center justify-center gap-2"
+                  className="w-full py-3 bg-gray-50 dark:bg-slate-700 text-gray-700 dark:text-gray-200 font-bold rounded-lg border border-gray-200 dark:border-slate-600 hover:bg-gray-100 dark:hover:bg-slate-600 hover:text-red-500 dark:hover:text-red-500 transition-all flex items-center justify-center gap-2"
                 >
                   Browse Courses <Clock size={16} />
                 </button>
@@ -474,14 +476,14 @@ const Dashboard = React.memo(() => {
             <div className="lg:col-span-2 space-y-6">
 
               {/* Upcoming Sessions Card */}
-              <div className="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-md transition-colors">
+              <div className="bg-black p-6 rounded-xl shadow-md transition-colors border border-white">
                 <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-xl font-semibold text-gray-800 dark:text-white flex items-center">
-                    <Calendar className="w-5 h-5 text-gray-500 mr-2" /> Upcoming Sessions
+                  <h3 className="text-xl font-semibold text-white flex items-center">
+                    <Calendar className="w-5 h-5 text-white mr-2" /> Upcoming Sessions
                   </h3>
                   <button
                     onClick={handleCalendar}
-                    className="text-indigo-600 text-sm font-semibold hover:underline"
+                    className="text-red-500 text-sm font-semibold hover:underline"
                   >
                     View All
                   </button>
@@ -495,28 +497,28 @@ const Dashboard = React.memo(() => {
 
                     return (
                       <div key={booking._id || index} className={`flex items-center justify-between py-4 px-4 rounded-lg mb-3 border-l-4 ${isTeaching
-                        ? 'bg-indigo-50 dark:bg-indigo-900/20 border-indigo-600'
-                        : 'bg-purple-50 dark:bg-purple-900/20 border-purple-500'
+                        ? 'bg-gray-900 border-red-600'
+                        : 'bg-gray-900 border-red-500'
                         }`}>
                         <div className="flex items-center space-x-4">
-                          <div className={`rounded-full h-12 w-12 flex items-center justify-center text-white font-bold text-lg ${isTeaching ? 'bg-indigo-600' : 'bg-purple-600'
+                          <div className={`rounded-full h-12 w-12 flex items-center justify-center text-white font-bold text-lg ${isTeaching ? 'bg-red-600' : 'bg-red-600'
                             }`}>
                             {getSkillInitials(booking.skill?.name || 'SK')}
                           </div>
                           <div>
                             <div className="flex items-center space-x-2">
-                              <p className="font-semibold text-gray-800 dark:text-white text-lg">{booking.skill?.name || 'Unknown Skill'}</p>
+                              <p className="font-semibold text-white text-lg">{booking.skill?.name || 'Unknown Skill'}</p>
                               <span className={`text-xs px-2 py-1 rounded-full font-medium ${isTeaching
-                                ? 'bg-indigo-100 dark:bg-indigo-900/40 text-indigo-800 dark:text-indigo-300'
-                                : 'bg-purple-100 dark:bg-purple-900/40 text-purple-800 dark:text-purple-300'
+                                ? 'bg-red-900/40 text-red-300'
+                                : 'bg-red-900/40 text-red-300'
                                 }`}>
                                 {isTeaching ? 'Teaching' : 'Learning'}
                               </span>
                             </div>
-                            <p className="text-sm text-gray-600 dark:text-gray-300 font-medium">
+                            <p className="text-sm text-gray-300 font-medium">
                               {isTeaching ? `Teaching ${otherUser?.name || 'Unknown Student'}` : `Learning with ${otherUser?.name || 'Unknown Instructor'}`}
                             </p>
-                            <p className="text-xs text-gray-500 dark:text-gray-400">{formatDate(booking.date)}</p>
+                            <p className="text-xs text-gray-400">{formatDate(booking.date)}</p>
                           </div>
                         </div>
                         <div className="flex items-center space-x-2">
@@ -525,8 +527,8 @@ const Dashboard = React.memo(() => {
                               onClick={() => { if (!allowJoin) return; navigate('/video-call', { state: { userName: derivedData?.user?.name } }); }}
                               disabled={!allowJoin}
                               className={`px-3 py-1 text-sm rounded-md font-medium transition-colors ${isTeaching
-                                ? 'bg-indigo-600 text-white hover:bg-indigo-700'
-                                : 'bg-purple-600 text-white hover:bg-purple-700'
+                                ? 'bg-red-600 text-white hover:bg-red-700'
+                                : 'bg-red-600 text-white hover:bg-red-700'
                                 } ${!allowJoin ? 'opacity-60 cursor-not-allowed' : ''}`}
                             >
                               Join
@@ -551,7 +553,7 @@ const Dashboard = React.memo(() => {
                 }
 
                 {derivedData.upcomingBookings.length === 0 && derivedData.studentBookings.length === 0 && (
-                  <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                  <div className="text-center py-8 text-gray-400">
                     <p>No upcoming sessions scheduled</p>
                     <p className="text-sm mt-2">Book a session to get started!</p>
                   </div>
@@ -559,18 +561,18 @@ const Dashboard = React.memo(() => {
               </div>
 
               {/* Skills I'm Teaching Card */}
-              <div className="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-md border-l-4 border-indigo-600 transition-colors">
+              <div className="bg-black p-6 rounded-xl shadow-md border border-white border-l-4 border-l-red-600 transition-colors">
                 <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-xl font-semibold text-gray-800 flex items-center">
-                    <div className="bg-indigo-100 text-indigo-600 rounded-full p-2 mr-3">
+                  <h3 className="text-xl font-semibold text-white flex items-center">
+                    <div className="bg-red-900/40 text-red-500 rounded-full p-2 mr-3">
                       <Users className="w-5 h-5" />
                     </div>
                     Skills I'm Teaching
-                    <span className="ml-2 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-800 dark:text-indigo-300 text-sm px-2 py-1 rounded-full">
+                    <span className="ml-2 bg-red-900/40 text-red-300 text-sm px-2 py-1 rounded-full">
                       {derivedData.teachingSkills.length} active
                     </span>
                   </h3>
-                  <button className="text-indigo-600 text-sm font-semibold hover:underline">
+                  <button className="text-red-500 text-sm font-semibold hover:underline">
                     Manage All
                   </button>
                 </div>
@@ -585,15 +587,15 @@ const Dashboard = React.memo(() => {
                         .filter((v, i, a) => a.indexOf(v) === i); // dedupe
 
                       return (
-                        <div key={skill._id || index} className="flex items-center justify-between p-4 bg-blue-50 dark:bg-slate-700/50 rounded-lg border border-blue-200 dark:border-slate-600 hover:bg-blue-100 dark:hover:bg-slate-700 transition duration-150">
+                        <div key={skill._id || index} className="flex items-center justify-between p-4 bg-gray-900 rounded-lg border border-gray-700 hover:bg-gray-800 transition duration-150">
                           <div className="flex items-center space-x-4">
-                            <div className="bg-indigo-600 text-white rounded-full h-12 w-12 flex items-center justify-center font-bold text-lg">
+                            <div className="bg-red-600 text-white rounded-full h-12 w-12 flex items-center justify-center font-bold text-lg">
                               {getSkillInitials(skill.name)}
                             </div>
                             <div>
-                              <p className="font-semibold text-gray-800 dark:text-white text-lg">{skill.name}</p>
-                              <p className="text-sm text-gray-600 dark:text-gray-300">Level: {skill.offering?.level || 'Not specified'}</p>
-                              <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
+                              <p className="font-semibold text-white text-lg">{skill.name}</p>
+                              <p className="text-sm text-gray-300">Level: {skill.offering?.level || 'Not specified'}</p>
+                              <p className="text-sm text-gray-300 mt-1">
                                 Teaching: {students.length > 0 ? students.join(', ') : 'No active students'}
                               </p>
                             </div>
@@ -601,7 +603,7 @@ const Dashboard = React.memo(() => {
                           <div className="flex flex-col space-y-2">
                             <button
                               onClick={() => handleViewMoreInfo(skill)}
-                              className="px-4 py-2 text-sm bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-md hover:from-indigo-700 hover:to-purple-700 transition-colors duration-200"
+                              className="px-4 py-2 text-sm bg-gradient-to-r from-red-600 to-red-800 text-white rounded-md hover:from-red-700 hover:to-red-900 transition-colors duration-200"
                             >
                               View Info
                             </button>
@@ -611,15 +613,15 @@ const Dashboard = React.memo(() => {
                     })}
                   </div>
                 ) : (
-                  <div className="text-center py-12 bg-gray-50 dark:bg-slate-700/30 rounded-lg border-2 border-dashed border-gray-200 dark:border-slate-600">
-                    <div className="bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-full h-16 w-16 flex items-center justify-center mx-auto mb-4">
+                  <div className="text-center py-12 bg-black rounded-lg border-2 border-dashed border-white">
+                    <div className="bg-red-900/30 text-red-500 rounded-full h-16 w-16 flex items-center justify-center mx-auto mb-4">
                       <Users className="w-8 h-8" />
                     </div>
-                    <p className="text-gray-600 dark:text-gray-300 text-lg font-medium mb-2">You're not teaching any skills yet</p>
-                    <p className="text-gray-500 dark:text-gray-400 text-sm mb-4">Share your expertise and start earning by teaching others!</p>
+                    <p className="text-gray-300 text-lg font-medium mb-2">You're not teaching any skills yet</p>
+                    <p className="text-gray-400 text-sm mb-4">Share your expertise and start earning by teaching others!</p>
                     <button
                       onClick={handleAddTeachingSkill}
-                      className="px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg font-semibold hover:from-indigo-700 hover:to-purple-700 transition-colors"
+                      className="px-6 py-3 bg-gradient-to-r from-red-600 to-red-800 text-white rounded-lg font-semibold hover:from-red-700 hover:to-red-900 transition-colors"
                     >
                       Add Your First Teaching Skill
                     </button>
@@ -628,9 +630,9 @@ const Dashboard = React.memo(() => {
               </div>
 
               {/* Students I'm Teaching */}
-              <div className="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-md transition-colors">
-                <h3 className="text-xl font-semibold text-gray-800 dark:text-white flex items-center mb-4">
-                  <Users className="w-5 h-5 text-gray-500 mr-2" /> My Students
+              <div className="bg-black p-6 rounded-xl shadow-md transition-colors border border-white">
+                <h3 className="text-xl font-semibold text-white flex items-center mb-4">
+                  <Users className="w-5 h-5 text-white mr-2" /> My Students
                 </h3>
 
                 {derivedData.upcomingBookings.length > 0 ? (
@@ -639,20 +641,20 @@ const Dashboard = React.memo(() => {
                       const progressPercentage = Math.floor(Math.random() * 80) + 20; // Mock progress for now
 
                       return (
-                        <div key={booking._id || index} className="flex items-center justify-between p-4 bg-gray-50 dark:bg-slate-700/50 rounded-lg border border-gray-100 dark:border-slate-600">
+                        <div key={booking._id || index} className="flex items-center justify-between p-4 bg-gray-900 rounded-lg border border-gray-700">
                           <div className="flex items-center space-x-4">
-                            <div className="bg-gradient-to-r from-indigo-400 to-purple-400 text-white rounded-full h-12 w-12 flex items-center justify-center font-semibold text-lg">
+                            <div className="bg-gradient-to-r from-red-600 to-red-800 text-white rounded-full h-12 w-12 flex items-center justify-center font-semibold text-lg">
                               {booking.student?.name?.charAt(0).toUpperCase() || 'S'}
                             </div>
                             <div className="flex-1">
-                              <p className="font-semibold text-gray-800 dark:text-white">{booking.student?.name || 'Unknown Student'}</p>
-                              <p className="text-sm text-gray-600 dark:text-gray-300">{booking.skill?.name || 'Unknown Skill'}</p>
+                              <p className="font-semibold text-white">{booking.student?.name || 'Unknown Student'}</p>
+                              <p className="text-sm text-gray-300">{booking.skill?.name || 'Unknown Skill'}</p>
                               <button
                                 onClick={() => handleViewStudentProgress(booking.student, booking.skill)}
                                 className="flex items-center space-x-2 mt-2 w-full text-left"
                                 title="View student progress"
                               >
-                                <div className="w-24 bg-gray-200 dark:bg-slate-600 rounded-full h-2">
+                                <div className="w-24 bg-gray-700 rounded-full h-2">
                                   <div
                                     className={`h-2 rounded-full ${getProgressColor(progressPercentage)}`}
                                     style={{ width: `${progressPercentage}%` }}
@@ -665,13 +667,13 @@ const Dashboard = React.memo(() => {
                           <div className="flex items-center space-x-2">
                             <button
                               onClick={() => handleViewStudentProgress(booking.student, booking.skill)}
-                              className="text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 text-sm font-medium"
+                              className="text-red-500 hover:text-red-700 text-sm font-medium"
                             >
                               View Progress
                             </button>
                             <button
                               onClick={() => handleMessageStudent(booking.student)}
-                              className="text-green-600 dark:text-green-400 hover:text-green-800 dark:hover:text-green-300 text-sm font-medium"
+                              className="text-green-500 hover:text-green-700 text-sm font-medium"
                             >
                               Message
                             </button>
@@ -681,7 +683,7 @@ const Dashboard = React.memo(() => {
                     })}
                   </div>
                 ) : (
-                  <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                  <div className="text-center py-8 text-gray-400">
                     <p>No students yet</p>
                     <p className="text-sm mt-2">Start teaching to connect with students!</p>
                   </div>
@@ -693,14 +695,14 @@ const Dashboard = React.memo(() => {
             <div className="lg:col-span-1 space-y-6">
 
               {/* Skills I'm Learning Card */}
-              <div className="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-md border-l-4 border-indigo-600 transition-colors">
+              <div className="bg-black p-6 rounded-xl shadow-md border border-white border-l-4 border-l-red-600 transition-colors">
                 <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-xl font-semibold text-gray-800 flex items-center">
-                    <div className="bg-indigo-100 text-indigo-600 rounded-full p-2 mr-3">
+                  <h3 className="text-xl font-semibold text-white flex items-center">
+                    <div className="bg-red-900/40 text-red-500 rounded-full p-2 mr-3">
                       <BookOpen className="w-5 h-5" />
                     </div>
                     Skills I'm Learning
-                    <span className="ml-2 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-800 dark:text-indigo-300 text-sm px-2 py-1 rounded-full">
+                    <span className="ml-2 bg-red-900/40 text-red-300 text-sm px-2 py-1 rounded-full">
                       {derivedData.learningSkills.length} in progress
                     </span>
                   </h3>
@@ -709,15 +711,15 @@ const Dashboard = React.memo(() => {
                 {derivedData.learningSkills.length > 0 ? (
                   <div className="space-y-4">
                     {derivedData.learningSkills.map((skill, index) => (
-                      <div key={skill._id || index} className="p-4 bg-blue-50 dark:bg-slate-700/50 rounded-lg border border-blue-200 dark:border-slate-600">
+                      <div key={skill._id || index} className="p-4 bg-gray-900 rounded-lg border border-gray-700">
                         <div className="flex items-center mb-3">
                           <div className="flex items-center space-x-3">
-                            <div className="bg-blue-500 text-white rounded-full h-10 w-10 flex items-center justify-center font-bold">
+                            <div className="bg-red-600 text-white rounded-full h-10 w-10 flex items-center justify-center font-bold">
                               {getSkillInitials(skill.name)}
                             </div>
                             <div>
-                              <p className="text-gray-800 dark:text-white font-semibold text-lg">{skill.name}</p>
-                              <p className="text-sm text-gray-600 dark:text-gray-300">
+                              <p className="text-white font-semibold text-lg">{skill.name}</p>
+                              <p className="text-sm text-gray-300">
                                 {skill.seeking?.currentInstructor
                                   ? `Learning with ${skill.seeking.currentInstructor.name}`
                                   : 'Looking for an instructor'
@@ -728,9 +730,9 @@ const Dashboard = React.memo(() => {
                         </div>
 
                         <div className="mt-3">
-                          <div className="text-xs text-gray-500 dark:text-gray-400">
+                          <div className="text-xs text-gray-400">
                             <span className="flex items-center">
-                              <span className="w-2 h-2 bg-blue-500 rounded-full mr-1"></span>
+                              <span className="w-2 h-2 bg-red-500 rounded-full mr-1"></span>
                               Currently learning this skill
                             </span>
                           </div>
@@ -739,34 +741,34 @@ const Dashboard = React.memo(() => {
                     ))}
                   </div>
                 ) : (
-                  <div className="text-center py-12 bg-gray-50 dark:bg-slate-700/30 rounded-lg border-2 border-dashed border-gray-200 dark:border-slate-600">
-                    <div className="bg-sky-100 dark:bg-sky-900/30 text-sky-600 dark:text-sky-400 rounded-full h-16 w-16 flex items-center justify-center mx-auto mb-4">
+                  <div className="text-center py-12 bg-black rounded-lg border-2 border-dashed border-white">
+                    <div className="bg-red-900/30 text-red-500 rounded-full h-16 w-16 flex items-center justify-center mx-auto mb-4">
                       <BookOpen className="w-8 h-8" />
                     </div>
-                    <p className="text-gray-600 dark:text-gray-300 text-lg font-medium mb-2">No learning goals set</p>
-                    <p className="text-gray-500 dark:text-gray-400 text-sm">Discover new skills and connect with expert instructors!</p>
+                    <p className="text-gray-300 text-lg font-medium mb-2">No learning goals set</p>
+                    <p className="text-gray-400 text-sm">Discover new skills and connect with expert instructors!</p>
                   </div>
                 )}
               </div>
 
               {/* Recent Activity Card */}
-              <div className="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-md transition-colors">
-                <h3 className="text-xl font-semibold text-gray-800 dark:text-white flex items-center mb-4">
-                  <Clock className="w-5 h-5 text-gray-500 mr-2" /> Recent Activity
+              <div className="bg-black p-6 rounded-xl shadow-md transition-colors border border-white">
+                <h3 className="text-xl font-semibold text-white flex items-center mb-4">
+                  <Clock className="w-5 h-5 text-white mr-2" /> Recent Activity
                 </h3>
 
                 {/* Mock Recent Activities - In real implementation, fetch from database */}
                 <div className="space-y-3">
                   {derivedData.upcomingBookings.slice(0, 3).map((booking, index) => (
                     <div key={booking._id || index} className="flex items-start">
-                      <div className="w-6 h-6 bg-sky-100 dark:bg-sky-900/50 text-sky-600 dark:text-sky-400 rounded-full flex items-center justify-center mr-3 mt-1 flex-shrink-0">
+                      <div className="w-6 h-6 bg-red-900/50 text-red-500 rounded-full flex items-center justify-center mr-3 mt-1 flex-shrink-0">
                         <Users className="w-3 h-3" />
                       </div>
                       <div>
-                        <p className="text-gray-700 dark:text-gray-300">
+                        <p className="text-gray-300">
                           Teaching session: <span className="font-semibold">{booking.skill?.name || 'Unknown Skill'}</span>
                         </p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                        <p className="text-xs text-gray-400">
                           {new Date(booking.date).toLocaleDateString()}
                         </p>
                       </div>
@@ -775,14 +777,14 @@ const Dashboard = React.memo(() => {
 
                   {derivedData.studentBookings.slice(0, 2).map((booking, index) => (
                     <div key={`student-${booking._id || index}`} className="flex items-start">
-                      <div className="w-6 h-6 bg-sky-100 dark:bg-sky-900/50 text-sky-600 dark:text-sky-400 rounded-full flex items-center justify-center mr-3 mt-1 flex-shrink-0">
+                      <div className="w-6 h-6 bg-red-900/50 text-red-500 rounded-full flex items-center justify-center mr-3 mt-1 flex-shrink-0">
                         <BookOpen className="w-3 h-3" />
                       </div>
                       <div>
-                        <p className="text-gray-700 dark:text-gray-300">
+                        <p className="text-gray-300">
                           Learning session: <span className="font-semibold">{booking.skill?.name || 'Unknown Skill'}</span>
                         </p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                        <p className="text-xs text-gray-400">
                           {new Date(booking.date).toLocaleDateString()}
                         </p>
                       </div>
@@ -790,7 +792,7 @@ const Dashboard = React.memo(() => {
                   ))}
 
                   {derivedData.upcomingBookings.length === 0 && derivedData.studentBookings.length === 0 && (
-                    <div className="text-center py-4 text-gray-500">
+                    <div className="text-center py-4 text-gray-400">
                       <p>No recent activity</p>
                     </div>
                   )}

@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { X } from "lucide-react";
 import toast from 'react-hot-toast';
+import { API_URL } from '../../config';
+
 
 const BookingModal = ({
   skillTitle,
@@ -44,56 +46,56 @@ const BookingModal = ({
   };
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center bg-black/50 z-50">
-      <div className="bg-white rounded-xl p-8 w-full max-w-lg shadow-2xl">
-        <div className="flex justify-between items-center mb-6 border-b pb-3">
-          <h2 className="text-2xl font-bold text-gray-900">
+    <div className="fixed inset-0 flex items-center justify-center bg-black/80 z-50">
+      <div className="bg-black border border-white rounded-xl p-8 w-full max-w-lg shadow-2xl">
+        <div className="flex justify-between items-center mb-6 border-b border-gray-700 pb-3">
+          <h2 className="text-2xl font-bold text-white">
             Book Session: {skillTitle}
           </h2>
           <button onClick={onClose}>
-            <X className="text-gray-500" />
+            <X className="text-gray-400 hover:text-white" />
           </button>
         </div>
 
-        <p className="text-gray-700 mb-4">
+        <p className="text-gray-300 mb-4">
           Instructor:{" "}
-          <span className="font-semibold text-indigo-600">
+          <span className="font-semibold text-red-500">
             {instructorName || "Unknown Instructor"}
           </span>
         </p>
 
         {error && (
-          <p className="bg-red-100 text-red-700 p-2 rounded mb-4">{error}</p>
+          <p className="bg-red-900/30 border border-red-500 text-red-200 p-2 rounded mb-4">{error}</p>
         )}
 
         <form onSubmit={handleSubmit} className="space-y-5">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm mb-1">Date</label>
+              <label className="block text-sm mb-1 text-gray-300">Date</label>
               <input
                 type="date"
                 value={date}
                 onChange={(e) => setDate(e.target.value)}
-                className="border rounded p-2 w-full focus:outline-none focus:ring-2 focus:ring-indigo-200 focus:border-indigo-400"
+                className="border border-gray-700 bg-black text-white rounded p-2 w-full focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500"
               />
             </div>
             <div>
-              <label className="block text-sm mb-1">Time</label>
+              <label className="block text-sm mb-1 text-gray-300">Time</label>
               <input
                 type="time"
                 value={time}
                 onChange={(e) => setTime(e.target.value)}
-                className="border rounded p-2 w-full focus:outline-none focus:ring-2 focus:ring-indigo-200 focus:border-indigo-400"
+                className="border border-gray-700 bg-black text-white rounded p-2 w-full focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500"
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-sm mb-1">Duration (minutes)</label>
+            <label className="block text-sm mb-1 text-gray-300">Duration (minutes)</label>
             <select
               value={duration}
               onChange={(e) => setDuration(e.target.value)}
-              className="border rounded p-2 w-full focus:outline-none focus:ring-2 focus:ring-indigo-200 focus:border-indigo-400"
+              className="border border-gray-700 bg-black text-white rounded p-2 w-full focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500"
             >
               <option value="30">30</option>
               <option value="45">45</option>
@@ -104,18 +106,18 @@ const BookingModal = ({
           </div>
 
           <div>
-            <label className="block text-sm mb-1">Notes (optional)</label>
+            <label className="block text-sm mb-1 text-gray-300">Notes (optional)</label>
             <textarea
               rows="3"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              className="border rounded p-2 w-full focus:outline-none focus:ring-2 focus:ring-indigo-200 focus:border-indigo-400"
+              className="border border-gray-700 bg-black text-white rounded p-2 w-full focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500"
             />
           </div>
 
           <button
             type="submit"
-            className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-2 rounded hover:from-indigo-700 hover:to-purple-700 shadow-md hover:shadow-lg"
+            className="w-full bg-gradient-to-r from-red-600 to-red-800 text-white py-2 rounded hover:from-red-700 hover:to-red-900 shadow-md hover:shadow-lg"
           >
             Confirm Booking
           </button>
@@ -154,7 +156,7 @@ export default function BookingSessionPage() {
       return;
     }
 
-    fetch("http://localhost:5001/api/auth/me", {
+    fetch(`${API_URL}/api/auth/me`, {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then((res) => res.json())
@@ -176,7 +178,7 @@ export default function BookingSessionPage() {
         setIsModalVisible(false);
         try {
           toast.error("You can't book a session for your own skill.");
-        } catch {}
+        } catch { }
       }
     }
   }, [studentId, skillDetails]);
@@ -195,7 +197,7 @@ export default function BookingSessionPage() {
         return;
       }
 
-      const res = await fetch("http://localhost:5001/api/booking", {
+      const res = await fetch(`${API_URL}/api/booking`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -219,7 +221,7 @@ export default function BookingSessionPage() {
   if (loading) return <p className="text-center p-10">Loading...</p>;
 
   return (
-    <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+    <div className="min-h-screen bg-black flex items-center justify-center">
       {isModalVisible && !blockedOwnBooking && (
         <BookingModal
           skillTitle={skillDetails.title}
@@ -232,15 +234,15 @@ export default function BookingSessionPage() {
         />
       )}
       {!isModalVisible && !blockedOwnBooking && (
-        <div className="bg-white p-10 rounded-lg shadow-md text-center">
-          <h2 className="text-2xl font-bold text-indigo-600">
+        <div className="bg-black border border-white p-10 rounded-lg shadow-md text-center">
+          <h2 className="text-2xl font-bold text-white">
             Request Sent
           </h2>
-          <p className="text-gray-600 mt-2">
+          <p className="text-gray-400 mt-2">
             The instructor has been notified of your request.
           </p>
           <button
-            className="mt-4 bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-2 px-4 rounded hover:from-indigo-700 hover:to-purple-700 shadow-md hover:shadow-lg"
+            className="mt-4 bg-gradient-to-r from-red-600 to-red-800 text-white py-2 px-4 rounded hover:from-red-700 hover:to-red-900 shadow-md hover:shadow-lg"
             onClick={() => window.history.back()}
           >
             Go Back
@@ -248,9 +250,9 @@ export default function BookingSessionPage() {
         </div>
       )}
       {blockedOwnBooking && (
-        <div className="bg-white p-10 rounded-lg shadow-md text-center max-w-md">
+        <div className="bg-black border border-white p-10 rounded-lg shadow-md text-center max-w-md">
           <h2 className="text-2xl font-bold text-red-600">Action not allowed</h2>
-          <p className="text-gray-600 mt-2">You can’t book a session for a skill you posted.</p>
+          <p className="text-gray-400 mt-2">You can’t book a session for a skill you posted.</p>
           <button
             className="mt-4 bg-gray-800 text-white py-2 px-4 rounded hover:bg-gray-700 shadow"
             onClick={() => window.history.back()}
