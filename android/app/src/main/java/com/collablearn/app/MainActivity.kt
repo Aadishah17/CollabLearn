@@ -12,6 +12,7 @@ class MainActivity : AppCompatActivity() {
 
         val btnJoinFree = findViewById<Button>(R.id.btnJoinFree)
         val btnNavLogin = findViewById<Button>(R.id.btnNavLogin)
+        val btnAiLearning = findViewById<Button>(R.id.btnAiLearning)
 
         btnJoinFree.setOnClickListener {
             // Navigate to Login (using as Signup for flow demo)
@@ -20,6 +21,10 @@ class MainActivity : AppCompatActivity() {
 
         btnNavLogin.setOnClickListener {
             startActivity(Intent(this, LoginActivity::class.java))
+        }
+
+        btnAiLearning.setOnClickListener {
+            startActivity(Intent(this, AiLearningActivity::class.java))
         }
     }
 }

@@ -5,208 +5,122 @@ struct LoginView: View {
     @State private var password = ""
     @State private var role = "user"
     @State private var isLoading = false
-    @State private var showPassword = false
-    @Environment(\.presentationMode) var presentationMode
-    @Environment(\.colorScheme) var colorScheme
+    @State private var statusMessage = ""
+    @State private var isError = false
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 24) {
-                // Header
-                HStack {
-                    Image(systemName: "person.2.circle.fill") // Logo placeholder
-                        .resizable()
-                        .frame(width: 32, height: 32)
-                        .foregroundColor(.sky600)
-                    Text("CollabLearn")
-                        .font(.headline)
-                        .fontWeight(.bold)
+            VStack(alignment: .leading, spacing: 16) {
+                Text("Welcome back")
+                    .font(.largeTitle.bold())
+                Text("Sign in to continue learning.")
+                    .foregroundStyle(.secondary)
+
+                Picker("Role", selection: $role) {
+                    Text("Student").tag("user")
+                    Text("Admin").tag("admin")
                 }
-                .padding(.top, 20)
-                
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Welcome back")
-                        .font(.largeTitle)
-                        .fontWeight(.bold)
-                    
-                    Text("Please enter your details to sign in.")
-                        .font(.body)
-                        .foregroundColor(.gray)
+                .pickerStyle(.segmented)
+
+                TextField("Email", text: $email)
+                    .textInputAutocapitalization(.never)
+                    .keyboardType(.emailAddress)
+                    .textFieldStyle(.roundedBorder)
+
+                SecureField("Password", text: $password)
+                    .textFieldStyle(.roundedBorder)
+
+                Button(isLoading ? "Signing in..." : "Sign in") {
+                    Task { await performLogin() }
                 }
-                .padding(.vertical, 20)
-                
-                // Role Toggle
-                HStack(spacing: 0) {
-                    RoleButton(title: "Student", isSelected: role == "user") {
-                        role = "user"
-                    }
-                    RoleButton(title: "Admin", isSelected: role == "admin") {
-                        role = "admin"
-                    }
+                .buttonStyle(.borderedProminent)
+                .disabled(isLoading)
+
+                if !statusMessage.isEmpty {
+                    Text(statusMessage)
+                        .font(.footnote)
+                        .foregroundStyle(isError ? .red : .green)
                 }
-                .background(Color.gray.opacity(0.1))
-                .cornerRadius(12)
-                .padding(.bottom, 10)
-                
-                // Form
-                VStack(spacing: 20) {
-                    VStack(alignment: .leading) {
-                        Text("Email")
-                            .font(.subheadline)
-                            .fontWeight(.medium)
-                            .foregroundColor(.gray)
-                        
-                        TextField("Enter your email", text: $email)
-                            .padding()
-                            .background(colorScheme == .dark ? Color.zinc900 : Color.white)
-                            .cornerRadius(12)
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 12)
-                                    .stroke(Color.gray.opacity(0.2), lineWidth: 1)
-                            )
-                            .textInputAutocapitalization(.never)
-                            .keyboardType(.emailAddress)
-                    }
-                    
-                    VStack(alignment: .leading) {
-                        Text("Password")
-                            .font(.subheadline)
-                            .fontWeight(.medium)
-                            .foregroundColor(.gray)
-                        
-                        HStack {
-                            if showPassword {
-                                TextField("••••••••", text: $password)
-                            } else {
-                                SecureField("••••••••", text: $password)
-                            }
-                            
-                            Button(action: { showPassword.toggle() }) {
-                                Image(systemName: showPassword ? "eye.slash" : "eye")
-                                    .foregroundColor(.gray)
-                            }
-                        }
-                        .padding()
-                        .background(colorScheme == .dark ? Color.zinc900 : Color.white)
-                        .cornerRadius(12)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 12)
-                                    .stroke(Color.gray.opacity(0.2), lineWidth: 1)
-                        )
-                    }
-                    
-                    HStack {
-                        // Remember me (simplified)
-                        Toggle("Remember me", isOn: .constant(true))
-                            .labelsHidden()
-                            .toggleStyle(SwitchToggleStyle(tint: .sky600))
-                        Text("Remember me")
-                            .font(.subheadline)
-                            .foregroundColor(.gray)
-                        
-                        Spacer()
-                        
-                        Button("Forgot password?") {
-                            // Action
-                        }
-                        .font(.subheadline)
-                        .foregroundColor(.sky600)
-                    }
-                    
-                    Button(action: performLogin) {
-                        HStack {
-                            if isLoading {
-                                ProgressView()
-                                    .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                            } else {
-                                Text("Sign in")
-                                    .fontWeight(.bold)
-                                Image(systemName: "arrow.right")
-                            }
-                        }
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(LinearGradient(gradient: Gradient(colors: [Color.sky600, Color.purple600]), startPoint: .leading, endPoint: .trailing))
-                        .foregroundColor(.white)
-                        .cornerRadius(12)
-                        .shadow(color: .sky600.opacity(0.3), radius: 5, x: 0, y: 3)
-                    }
-                    .disabled(isLoading)
-                    
-                    HStack {
-                        VStack { Divider() }
-                        Text("Or continue with")
-                            .font(.caption)
-                            .foregroundColor(.gray)
-                        VStack { Divider() }
-                    }
-                    .padding(.vertical)
-                    
-                    Button(action: {}) {
-                        HStack {
-                            Image(systemName: "g.circle.fill") // Google placeholder
-                            Text("Sign in with Google")
-                        }
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(colorScheme == .dark ? Color.zinc800 : Color.white)
-                        .foregroundColor(.primary)
-                        .cornerRadius(12)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 12)
-                                .stroke(Color.gray.opacity(0.2), lineWidth: 1)
-                        )
-                    }
-                }
-                
-                Spacer()
-                
-                HStack {
-                    Text("Don't have an account?")
-                        .foregroundColor(.gray)
-                    Button("Create free account") {
-                        // Navigate to Signup
-                    }
-                    .foregroundColor(.sky600)
-                    .fontWeight(.semibold)
-                }
-                .frame(maxWidth: .infinity)
             }
-            .padding(24)
+            .padding(20)
         }
-        .background(colorScheme == .dark ? Color.black : Color.white)
-        .navigationBarHidden(true)
+        .navigationTitle("Login")
+        .navigationBarTitleDisplayMode(.inline)
     }
-    
-    func performLogin() {
+
+    private func performLogin() async {
+        let safeEmail = email.trimmingCharacters(in: .whitespacesAndNewlines)
+        let safePassword = password.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !safeEmail.isEmpty, !safePassword.isEmpty else {
+            isError = true
+            statusMessage = "Email and password are required."
+            return
+        }
+
         isLoading = true
-        // Simulate network request
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
-            isLoading = false
-            // Handle success/failure
-            print("Login for \(email) with role \(role)")
+        defer { isLoading = false }
+
+        do {
+            let response = try await AuthService().login(
+                email: safeEmail,
+                password: safePassword,
+                role: role
+            )
+
+            if response.success {
+                isError = false
+                let userName = response.user?.name ?? "Learner"
+                statusMessage = "Logged in as \(userName)."
+            } else {
+                isError = true
+                statusMessage = response.message ?? "Login failed."
+            }
+        } catch {
+            isError = true
+            statusMessage = error.localizedDescription
         }
     }
 }
 
-struct RoleButton: View {
-    let title: String
-    let isSelected: Bool
-    let action: () -> Void
-    @Environment(\.colorScheme) var colorScheme
-    
-    var body: some View {
-        Button(action: action) {
-            Text(title)
-                .font(.subheadline)
-                .fontWeight(.semibold)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 8)
-                .background(isSelected ? (colorScheme == .dark ? Color.zinc800 : Color.white) : Color.clear)
-                .foregroundColor(isSelected ? .sky600 : .gray)
-                .cornerRadius(10)
-                .shadow(color: isSelected ? Color.black.opacity(0.1) : Color.clear, radius: 2, x: 0, y: 1)
+private struct LoginRequestPayload: Codable {
+    let email: String
+    let password: String
+    let role: String
+}
+
+private struct LoginResponsePayload: Codable {
+    let success: Bool
+    let message: String?
+    let token: String?
+    let user: UserPayload?
+}
+
+private struct UserPayload: Codable {
+    let id: String?
+    let name: String?
+    let email: String?
+    let role: String?
+}
+
+private final class AuthService {
+    func login(email: String, password: String, role: String) async throws -> LoginResponsePayload {
+        let endpoint = APIConfig.baseURL.appendingPathComponent("api/auth/login")
+        var request = URLRequest(url: endpoint)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try JSONEncoder().encode(LoginRequestPayload(email: email, password: password, role: role))
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+        guard let http = response as? HTTPURLResponse else {
+            throw APIError.invalidResponse
         }
-        .padding(4)
+        guard (200...299).contains(http.statusCode) else {
+            if let payload = try? JSONDecoder().decode(LoginResponsePayload.self, from: data) {
+                throw APIError.serverMessage(payload.message ?? "Login failed")
+            }
+            throw APIError.requestFailed
+        }
+
+        return try JSONDecoder().decode(LoginResponsePayload.self, from: data)
     }
 }

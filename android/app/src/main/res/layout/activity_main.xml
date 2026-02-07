@@ -117,6 +117,15 @@
                 android:text="Join Free"
                 android:padding="12dp"
                 android:backgroundTint="#0284C7"/>
+
+            <Button
+                android:id="@+id/btnAiLearning"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:text="Try AI Learning"
+                android:padding="12dp"
+                android:backgroundTint="#16A34A" />
         </LinearLayout>
 
         <!-- Categories Section -->

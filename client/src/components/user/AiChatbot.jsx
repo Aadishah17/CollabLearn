@@ -1,183 +1,264 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { MessageSquare, Send, X, Sparkles, Map, ChevronRight, Loader2 } from 'lucide-react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { MessageSquare, Send, X, Sparkles, Loader2, Map } from 'lucide-react';
+import { API_URL } from '../../config';
 
-const AiChatbot = () => {
-    const [isOpen, setIsOpen] = useState(false);
-    const [messages, setMessages] = useState([
-        { role: 'assistant', content: 'Hi! I\'m your AI learning assistant. Ask me about any skill or request a roadmap!' }
-    ]);
-    const [input, setInput] = useState('');
-    const [isLoading, setIsLoading] = useState(false);
-    const [roadmap, setRoadmap] = useState(null);
-    const messagesEndRef = useRef(null);
+const buildAuthHeaders = () => {
+  const token = localStorage.getItem('token');
+  if (!token) {
+    return { 'Content-Type': 'application/json' };
+  }
+  return {
+    'Content-Type': 'application/json',
+    Authorization: `Bearer ${token}`
+  };
+};
 
-    const scrollToBottom = () => {
-        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-    };
+const sanitizeRoadmapFromResponse = (responseData) => {
+  if (!responseData || typeof responseData !== 'object') return null;
+  if (!responseData.roadmap || !Array.isArray(responseData.roadmap.steps)) return null;
+  return responseData.roadmap;
+};
 
-    useEffect(() => {
-        scrollToBottom();
-    }, [messages, roadmap]);
+const extractSkillFromPrompt = (text, fallbackSkill = '') => {
+  const cleaned = String(text || '')
+    .replace(/roadmap/gi, '')
+    .replace(/plan/gi, '')
+    .replace(/for/gi, '')
+    .replace(/please/gi, '')
+    .trim();
 
-    const handleSend = async () => {
-        if (!input.trim()) return;
+  if (cleaned.length >= 2) return cleaned;
+  if (fallbackSkill) return fallbackSkill;
+  return 'General Learning';
+};
 
-        const userMessage = input;
-        setInput('');
-        setMessages(prev => [...prev, { role: 'user', content: userMessage }]);
-        setIsLoading(true);
-        setRoadmap(null); // Reset roadmap on new query
+const AiChatbot = ({ defaultSkill = '', context = {} }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [messages, setMessages] = useState([
+    {
+      role: 'assistant',
+      content:
+        'I am your AI learning mentor. Ask for study strategy help or type "roadmap for <skill>" to generate a plan.'
+    }
+  ]);
+  const [input, setInput] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [inlineRoadmap, setInlineRoadmap] = useState(null);
+  const messagesEndRef = useRef(null);
 
-        try {
-            // Check if user is asking for a plan/roadmap explicitly
-            if (userMessage.toLowerCase().includes('roadmap') || userMessage.toLowerCase().includes('plan')) {
-                // Extract potential skill name (naive approach)
-                const skill = userMessage.replace(/(roadmap|plan|for|give|me|a)/gi, '').trim();
+  const normalizedContext = {
+    learnerLevel: context.learnerLevel || 'Beginner',
+    weeklyHours: Number(context.weeklyHours) || 6,
+    targetWeeks: Number(context.targetWeeks) || 8,
+    progressPercentage: Number(context.progressPercentage) || 0,
+    focusAreas: Array.isArray(context.focusAreas) ? context.focusAreas : [],
+    roadmapSummary: context.roadmapSummary || '',
+    currentStepTitle: context.currentStepTitle || '',
+    currentStepDescription: context.currentStepDescription || ''
+  };
 
-                const response = await fetch('/api/ai/roadmap', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ skill: skill || 'general' })
-                });
-                const data = await response.json();
+  const quickPrompts = useMemo(() => {
+    const skillLabel = defaultSkill || 'my skill';
+    return [
+      `What should I do in my next ${Math.max(1, Math.round(normalizedContext.weeklyHours / 2))}-hour study block?`,
+      `Roadmap for ${skillLabel}`,
+      `Explain "${normalizedContext.currentStepTitle || 'my current roadmap step'}" in simple terms`,
+      'How do I stay consistent every week?'
+    ];
+  }, [defaultSkill, normalizedContext.currentStepTitle, normalizedContext.weeklyHours]);
 
-                if (data.success) {
-                    setMessages(prev => [...prev, { role: 'assistant', content: `Here is a roadmap for ${skill || 'your request'}:` }]);
-                    setRoadmap(data.roadmap);
-                } else {
-                    setMessages(prev => [...prev, { role: 'assistant', content: "Sorry, I couldn't generate a roadmap at the moment." }]);
-                }
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages, inlineRoadmap]);
 
-            } else {
-                // Normal chat
-                const response = await fetch('/api/ai/chat', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ message: userMessage })
-                });
-                const data = await response.json();
+  const handleSendMessage = async (forcedMessage = null) => {
+    const rawInput = forcedMessage ?? input;
+    const messageText = String(rawInput || '').trim();
+    if (!messageText) return;
 
-                if (data.success) {
-                    setMessages(prev => [...prev, { role: 'assistant', content: data.response }]);
-                } else {
-                    setMessages(prev => [...prev, { role: 'assistant', content: "I'm having trouble connecting to my brain right now." }]);
-                }
-            }
-        } catch (error) {
-            console.error('Chat error:', error);
-            setMessages(prev => [...prev, { role: 'assistant', content: "Network error. Please try again." }]);
-        } finally {
-            setIsLoading(false);
+    if (!forcedMessage) {
+      setInput('');
+    }
+
+    setMessages((prev) => [...prev, { role: 'user', content: messageText }]);
+    setIsLoading(true);
+    setInlineRoadmap(null);
+
+    try {
+      const isRoadmapIntent = /roadmap|plan/i.test(messageText);
+
+      if (isRoadmapIntent) {
+        const requestedSkill = extractSkillFromPrompt(messageText, defaultSkill);
+        const roadmapResponse = await fetch(`${API_URL}/api/ai/roadmap`, {
+          method: 'POST',
+          headers: buildAuthHeaders(),
+          body: JSON.stringify({
+            skill: requestedSkill,
+            learnerLevel: normalizedContext.learnerLevel,
+            weeklyHours: normalizedContext.weeklyHours,
+            targetWeeks: normalizedContext.targetWeeks,
+            focusAreas: normalizedContext.focusAreas,
+            savePlan: false
+          })
+        });
+
+        const roadmapData = await roadmapResponse.json();
+        const normalizedRoadmap = sanitizeRoadmapFromResponse(roadmapData);
+
+        if (!roadmapResponse.ok || !roadmapData.success || !normalizedRoadmap) {
+          throw new Error(roadmapData.message || 'Could not generate roadmap');
         }
-    };
 
-    const handleKeyPress = (e) => {
-        if (e.key === 'Enter' && !e.shiftKey) {
-            e.preventDefault();
-            handleSend();
-        }
-    };
+        setMessages((prev) => [
+          ...prev,
+          { role: 'assistant', content: `Here is your roadmap for ${requestedSkill}.` }
+        ]);
+        setInlineRoadmap(normalizedRoadmap);
+        return;
+      }
 
-    return (
-        <>
-            {/* Floating Toggle Button */}
-            {!isOpen && (
+      const response = await fetch(`${API_URL}/api/ai/chat`, {
+        method: 'POST',
+        headers: buildAuthHeaders(),
+        body: JSON.stringify({
+          message: messageText,
+          skillContext: defaultSkill || 'General learning',
+          learnerLevel: normalizedContext.learnerLevel,
+          context: normalizedContext
+        })
+      });
+
+      const data = await response.json();
+      if (!response.ok || !data.success) {
+        throw new Error(data.message || 'AI chat failed');
+      }
+
+      setMessages((prev) => [...prev, { role: 'assistant', content: data.response }]);
+    } catch (error) {
+      console.error('AI chatbot error:', error);
+      setMessages((prev) => [
+        ...prev,
+        { role: 'assistant', content: 'I could not complete that request. Please try again in a moment.' }
+      ]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleKeyDown = (event) => {
+    if (event.key === 'Enter' && !event.shiftKey) {
+      event.preventDefault();
+      handleSendMessage();
+    }
+  };
+
+  return (
+    <>
+      {!isOpen && (
+        <button
+          onClick={() => setIsOpen(true)}
+          className="fixed bottom-6 right-6 w-14 h-14 rounded-full bg-gradient-to-br from-red-600 to-red-800 text-white flex items-center justify-center shadow-lg hover:scale-105 transition-transform z-50"
+          aria-label="Open AI mentor chat"
+        >
+          <Sparkles size={22} />
+        </button>
+      )}
+
+      {isOpen && (
+        <div className="fixed bottom-6 right-6 w-[360px] h-[620px] bg-zinc-950 border border-zinc-800 rounded-2xl shadow-2xl overflow-hidden z-50 flex flex-col">
+          <div className="px-4 py-3 bg-gradient-to-r from-red-700 to-red-900 text-white flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <MessageSquare size={18} />
+              <span className="font-semibold text-sm">AI Learning Mentor</span>
+            </div>
+            <button onClick={() => setIsOpen(false)} className="p-1 rounded hover:bg-white/15 transition-colors">
+              <X size={18} />
+            </button>
+          </div>
+
+          <div className="px-4 pt-3 pb-2 bg-zinc-900 border-b border-zinc-800">
+            <div className="flex flex-wrap gap-2">
+              {quickPrompts.map((prompt) => (
                 <button
-                    onClick={() => setIsOpen(true)}
-                    className="fixed bottom-6 right-6 w-14 h-14 bg-gradient-to-r from-red-600 to-red-800 rounded-full shadow-lg flex items-center justify-center text-white hover:scale-110 transition-transform z-50 animate-bounce-slow"
+                  key={prompt}
+                  type="button"
+                  onClick={() => handleSendMessage(prompt)}
+                  className="text-xs px-2 py-1 rounded-full border border-zinc-700 text-zinc-300 hover:border-red-600 hover:text-red-300 transition-colors"
                 >
-                    <Sparkles size={24} />
+                  {prompt}
                 </button>
-            )}
+              ))}
+            </div>
+          </div>
 
-            {/* Chat Window */}
-            {isOpen && (
-                <div className="fixed bottom-6 right-6 w-96 h-[600px] bg-black rounded-2xl shadow-2xl flex flex-col z-50 border border-white overflow-hidden animate-slideUp">
-                    {/* Header */}
-                    <div className="bg-gradient-to-r from-red-600 to-red-800 p-4 flex items-center justify-between text-white">
-                        <div className="flex items-center gap-2">
-                            <Sparkles size={20} />
-                            <span className="font-bold">AI Learning Assistant</span>
-                        </div>
-                        <button onClick={() => setIsOpen(false)} className="hover:bg-white/20 p-1 rounded-full transition-colors">
-                            <X size={20} />
-                        </button>
-                    </div>
-
-                    {/* Messages Area */}
-                    <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-900 scrollbar-thin scrollbar-thumb-gray-700">
-                        {messages.map((msg, idx) => (
-                            <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                                <div className={`max-w-[80%] p-3 rounded-2xl text-sm ${msg.role === 'user'
-                                    ? 'bg-red-600 text-white rounded-tr-none'
-                                    : 'bg-black border border-gray-700 text-gray-200 rounded-tl-none shadow-sm'
-                                    }`}>
-                                    {msg.content}
-                                </div>
-                            </div>
-                        ))}
-
-                        {/* Roadmap Display */}
-                        {roadmap && (
-                            <div className="bg-black border border-white rounded-xl p-4 shadow-sm animate-fadeIn">
-                                <div className="flex items-center gap-2 mb-3 text-red-500 font-bold border-b border-gray-700 pb-2">
-                                    <Map size={18} />
-                                    <span>Detailed Roadmap</span>
-                                </div>
-                                <div className="space-y-4 relative">
-                                    {/* Vertical Line */}
-                                    <div className="absolute left-[15px] top-2 bottom-2 w-0.5 bg-gray-700"></div>
-
-                                    {roadmap.map((step, i) => (
-                                        <div key={i} className="relative flex gap-3">
-                                            <div className="w-8 h-8 rounded-full bg-gray-800 border-2 border-red-500 flex items-center justify-center text-xs font-bold text-red-500 flex-shrink-0 z-10">
-                                                {i + 1}
-                                            </div>
-                                            <div>
-                                                <h4 className="font-bold text-white text-sm">{step.title}</h4>
-                                                <p className="text-xs text-gray-400 mt-1">{step.description}</p>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
-
-                        {isLoading && (
-                            <div className="flex justify-start">
-                                <div className="bg-black border border-gray-700 p-3 rounded-2xl rounded-tl-none shadow-sm flex items-center gap-2">
-                                    <Loader2 size={16} className="animate-spin text-red-600" />
-                                    <span className="text-xs text-gray-400">Thinking...</span>
-                                </div>
-                            </div>
-                        )}
-                        <div ref={messagesEndRef} />
-                    </div>
-
-                    {/* Input Area */}
-                    <div className="p-4 bg-black border-t border-white">
-                        <div className="flex items-center gap-2 relative">
-                            <input
-                                type="text"
-                                value={input}
-                                onChange={(e) => setInput(e.target.value)}
-                                onKeyDown={handleKeyPress}
-                                placeholder="Ask for a roadmap..."
-                                className="w-full pl-4 pr-12 py-3 bg-gray-900 border border-gray-700 text-white rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 transition-all text-sm placeholder:text-gray-500"
-                            />
-                            <button
-                                onClick={handleSend}
-                                disabled={!input.trim() || isLoading}
-                                className="absolute right-2 p-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                            >
-                                <Send size={16} />
-                            </button>
-                        </div>
-                    </div>
+          <div className="flex-1 overflow-y-auto p-4 space-y-3">
+            {messages.map((msg, index) => (
+              <div key={`${msg.role}-${index}`} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                <div
+                  className={`max-w-[85%] text-sm p-3 rounded-2xl ${
+                    msg.role === 'user'
+                      ? 'bg-red-600 text-white rounded-tr-sm'
+                      : 'bg-zinc-900 border border-zinc-800 text-zinc-200 rounded-tl-sm'
+                  }`}
+                >
+                  {msg.content}
                 </div>
+              </div>
+            ))}
+
+            {inlineRoadmap && (
+              <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-3">
+                <p className="text-sm font-semibold text-red-300 flex items-center gap-2 mb-2">
+                  <Map size={16} />
+                  Roadmap
+                </p>
+                <div className="space-y-2">
+                  {inlineRoadmap.steps.slice(0, 5).map((step, idx) => (
+                    <div key={`${step.title}-${idx}`} className="text-xs text-zinc-300 p-2 rounded-lg bg-zinc-950 border border-zinc-800">
+                      <p className="font-semibold">{idx + 1}. {step.title}</p>
+                      <p className="text-zinc-400 mt-1">{step.description}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
             )}
-        </>
-    );
+
+            {isLoading && (
+              <div className="flex justify-start">
+                <div className="text-xs px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-400 flex items-center gap-2">
+                  <Loader2 size={14} className="animate-spin" />
+                  Thinking...
+                </div>
+              </div>
+            )}
+
+            <div ref={messagesEndRef} />
+          </div>
+
+          <div className="p-3 border-t border-zinc-800 bg-zinc-950">
+            <div className="relative">
+              <input
+                type="text"
+                value={input}
+                onChange={(event) => setInput(event.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder="Ask for guidance or a roadmap..."
+                className="w-full pr-12 pl-3 py-3 rounded-xl bg-zinc-900 border border-zinc-800 focus:outline-none focus:border-red-600 text-sm"
+              />
+              <button
+                type="button"
+                onClick={() => handleSendMessage()}
+                disabled={!input.trim() || isLoading}
+                className="absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-lg bg-red-600 hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                <Send size={14} />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
 };
 
 export default AiChatbot;

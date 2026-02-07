@@ -1,0 +1,209 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#0B0C10"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="20dp">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="AI Learning Studio"
+            android:textColor="#FFFFFF"
+            android:textStyle="bold"
+            android:textSize="26sp" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="Generate roadmap, auto-pick top YouTube guidance, and build your next study session."
+            android:textColor="#A1A1AA"
+            android:textSize="13sp" />
+
+        <EditText
+            android:id="@+id/etSkill"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:hint="Skill (e.g. React, UI Design, Public Speaking)"
+            android:inputType="text"
+            android:padding="12dp"
+            android:background="@drawable/bg_ai_input"
+            android:textColor="#FFFFFF"
+            android:textColorHint="#A1A1AA" />
+
+        <Spinner
+            android:id="@+id/spinnerLevel"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:background="@drawable/bg_ai_input" />
+
+        <EditText
+            android:id="@+id/etWeeklyHours"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:hint="Weekly study hours (1-40)"
+            android:inputType="number"
+            android:text="6"
+            android:padding="12dp"
+            android:background="@drawable/bg_ai_input"
+            android:textColor="#FFFFFF"
+            android:textColorHint="#A1A1AA" />
+
+        <EditText
+            android:id="@+id/etTargetWeeks"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:hint="Target weeks (2-52)"
+            android:inputType="number"
+            android:text="8"
+            android:padding="12dp"
+            android:background="@drawable/bg_ai_input"
+            android:textColor="#FFFFFF"
+            android:textColorHint="#A1A1AA" />
+
+        <EditText
+            android:id="@+id/etFocusAreas"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:hint="Focus areas (comma separated)"
+            android:inputType="text"
+            android:padding="12dp"
+            android:background="@drawable/bg_ai_input"
+            android:textColor="#FFFFFF"
+            android:textColorHint="#A1A1AA" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="14dp"
+            android:orientation="horizontal">
+
+            <Button
+                android:id="@+id/btnGenerateRoadmap"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Generate Roadmap"
+                android:backgroundTint="#E11D48"
+                android:textColor="#FFFFFF" />
+
+            <Space
+                android:layout_width="10dp"
+                android:layout_height="1dp" />
+
+            <Button
+                android:id="@+id/btnGenerateSession"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Study Session"
+                android:backgroundTint="#0284C7"
+                android:textColor="#FFFFFF" />
+        </LinearLayout>
+
+        <Button
+            android:id="@+id/btnOpenVideo"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:text="Open Top Video Guidance"
+            android:backgroundTint="#16A34A"
+            android:textColor="#FFFFFF" />
+
+        <ProgressBar
+            android:id="@+id/progressAi"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:visibility="gone" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="18dp"
+            android:text="Roadmap Summary"
+            android:textColor="#FFFFFF"
+            android:textStyle="bold"
+            android:textSize="16sp" />
+
+        <TextView
+            android:id="@+id/tvRoadmapSummary"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:background="@drawable/bg_ai_card"
+            android:padding="12dp"
+            android:textColor="#D4D4D8"
+            android:textSize="13sp" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="14dp"
+            android:text="Roadmap Steps"
+            android:textColor="#FFFFFF"
+            android:textStyle="bold"
+            android:textSize="16sp" />
+
+        <TextView
+            android:id="@+id/tvRoadmapSteps"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:background="@drawable/bg_ai_card"
+            android:padding="12dp"
+            android:textColor="#D4D4D8"
+            android:textSize="13sp" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="14dp"
+            android:text="Video Guidance"
+            android:textColor="#FFFFFF"
+            android:textStyle="bold"
+            android:textSize="16sp" />
+
+        <TextView
+            android:id="@+id/tvVideoGuidance"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:background="@drawable/bg_ai_card"
+            android:padding="12dp"
+            android:textColor="#D4D4D8"
+            android:textSize="13sp" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="14dp"
+            android:text="Study Session"
+            android:textColor="#FFFFFF"
+            android:textStyle="bold"
+            android:textSize="16sp" />
+
+        <TextView
+            android:id="@+id/tvStudySession"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:layout_marginBottom="16dp"
+            android:background="@drawable/bg_ai_card"
+            android:padding="12dp"
+            android:textColor="#D4D4D8"
+            android:textSize="13sp" />
+    </LinearLayout>
+</ScrollView>

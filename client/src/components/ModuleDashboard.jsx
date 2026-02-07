@@ -37,7 +37,7 @@ const ModuleDashboard = () => {
     };
 
     return (
-        <div className="min-h-screen bg-slate-900 text-white p-8">
+        <div className="min-h-screen glass-page text-white p-8">
             <div className="max-w-7xl mx-auto">
                 {/* Header */}
                 <div className="flex justify-between items-center mb-10">
@@ -49,7 +49,7 @@ const ModuleDashboard = () => {
                     </div>
                     <Link
                         to="/modules/create"
-                        className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-full font-medium transition-all"
+                        className="flex items-center gap-2 glass-cta px-5 py-2.5 rounded-full font-medium transition-all"
                     >
                         <PlusCircle size={20} />
                         Create Module
@@ -58,13 +58,13 @@ const ModuleDashboard = () => {
 
                 {/* Filters (Mock) */}
                 <div className="flex gap-4 mb-8">
-                    <button className="px-4 py-1.5 bg-slate-800 border border-blue-500 text-blue-400 rounded-full text-sm font-medium">
+                    <button className="px-4 py-1.5 glass-panel text-red-300 rounded-full text-sm font-medium">
                         All Modules
                     </button>
-                    <button className="px-4 py-1.5 bg-slate-800 border border-slate-700 text-slate-400 hover:border-slate-500 rounded-full text-sm transition-all">
+                    <button className="px-4 py-1.5 glass-panel text-zinc-300 hover:border-red-500/45 rounded-full text-sm transition-all">
                         My Modules
                     </button>
-                    <button className="px-4 py-1.5 bg-slate-800 border border-slate-700 text-slate-400 hover:border-slate-500 rounded-full text-sm transition-all">
+                    <button className="px-4 py-1.5 glass-panel text-zinc-300 hover:border-red-500/45 rounded-full text-sm transition-all">
                         Shared with Me
                     </button>
                 </div>
@@ -75,7 +75,7 @@ const ModuleDashboard = () => {
                 ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         {modules.map((module) => (
-                            <div key={module._id} className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-xl p-6 hover:border-blue-500/50 hover:shadow-lg hover:shadow-blue-500/10 transition-all group">
+                            <div key={module._id} className="glass-panel p-6 hover:border-red-500/45 transition-all group">
                                 <div className="flex justify-between items-start mb-4">
                                     <div className={`p-3 rounded-lg ${module.visibility === 'public' ? 'bg-green-500/10 text-green-400' : 'bg-amber-500/10 text-amber-400'}`}>
                                         {module.visibility === 'public' ? <Globe size={20} /> : <Lock size={20} />}
@@ -97,11 +97,11 @@ const ModuleDashboard = () => {
                                 <div className="flex items-center justify-between mt-auto pt-4 border-t border-slate-700/50">
                                     <div className="flex -space-x-2">
                                         {/* Mock avatars for collaborators */}
-                                        <div className="w-8 h-8 rounded-full bg-slate-700 border-2 border-slate-800 flex items-center justify-center text-xs">
+                                        <div className="w-8 h-8 rounded-full bg-black/35 border-2 border-white/15 flex items-center justify-center text-xs">
                                             {module.owner?.name?.[0] || "U"}
                                         </div>
                                         {module.collaborators?.length > 1 && (
-                                            <div className="w-8 h-8 rounded-full bg-slate-700 border-2 border-slate-800 flex items-center justify-center text-xs">
+                                            <div className="w-8 h-8 rounded-full bg-black/35 border-2 border-white/15 flex items-center justify-center text-xs">
                                                 +{module.collaborators.length - 1}
                                             </div>
                                         )}
@@ -109,7 +109,7 @@ const ModuleDashboard = () => {
 
                                     <Link
                                         to={`/modules/${module._id}`}
-                                        className="flex items-center gap-1.5 text-sm font-medium text-slate-300 hover:text-white transition-colors"
+                                        className="flex items-center gap-1.5 text-sm font-medium text-zinc-300 hover:text-red-200 transition-colors"
                                     >
                                         Open
                                         <Book size={16} />
@@ -121,13 +121,13 @@ const ModuleDashboard = () => {
                 )}
 
                 {!loading && modules.length === 0 && (
-                    <div className="text-center py-20 bg-slate-800/30 rounded-2xl border border-dashed border-slate-700">
+                    <div className="text-center py-20 glass-panel rounded-2xl border border-dashed border-white/20">
                         <Book size={48} className="mx-auto text-slate-600 mb-4" />
                         <h3 className="text-xl font-semibold text-slate-300">No modules found</h3>
                         <p className="text-slate-500 mt-2">Get started by creating your first study module.</p>
                         <Link
                             to="/modules/create"
-                            className="inline-block mt-6 bg-slate-700 hover:bg-slate-600 text-white px-6 py-2 rounded-lg transition-all"
+                            className="inline-block mt-6 glass-cta px-6 py-2 rounded-lg transition-all"
                         >
                             Create Now
                         </Link>

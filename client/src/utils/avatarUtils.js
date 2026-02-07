@@ -1,6 +1,7 @@
 /**
  * Avatar utilities for consistent avatar handling across the application
  */
+import { API_URL } from '../config';
 
 // Avatar type constants
 export const AVATAR_TYPES = {
@@ -8,6 +9,25 @@ export const AVATAR_TYPES = {
   UPLOAD: 'upload',
   URL: 'url',
   BASE64: 'base64'
+};
+
+const toAbsoluteAssetUrl = (value) => {
+  const raw = String(value || '').trim();
+  if (!raw) return null;
+
+  if (raw.startsWith('data:image/')) return raw;
+  if (raw.startsWith('http://') || raw.startsWith('https://')) return raw;
+
+  if (raw.startsWith('/')) {
+    return API_URL ? `${API_URL}${raw}` : raw;
+  }
+
+  if (raw.startsWith('uploads/')) {
+    const normalized = `/${raw}`;
+    return API_URL ? `${API_URL}${normalized}` : normalized;
+  }
+
+  return API_URL ? `${API_URL}/uploads/avatars/${raw}` : `/uploads/avatars/${raw}`;
 };
 
 /**
@@ -28,18 +48,20 @@ export const getAvatarUrl = (user) => {
     if (user.avatar === 'default' || user.avatar === '') {
       return null;
     }
-    return user.avatar;
+    return toAbsoluteAssetUrl(user.avatar);
   }
   
   // If user has new avatar object structure
   if (typeof user.avatar === 'object' && user.avatar) {
     switch (user.avatar.type) {
       case AVATAR_TYPES.UPLOAD:
-        return user.avatar.filename ? `/uploads/avatars/${user.avatar.filename}` : null;
+        return user.avatar.filename
+          ? toAbsoluteAssetUrl(`/uploads/avatars/${user.avatar.filename}`)
+          : toAbsoluteAssetUrl(user.avatar.url);
       case AVATAR_TYPES.URL:
-        return user.avatar.url || null;
+        return toAbsoluteAssetUrl(user.avatar.url);
       case AVATAR_TYPES.BASE64:
-        return user.avatar.url || null;
+        return toAbsoluteAssetUrl(user.avatar.url);
       case AVATAR_TYPES.DEFAULT:
       default:
         return null;

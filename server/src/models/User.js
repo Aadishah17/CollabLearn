@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const path = require('path');
 
 // ============= USER SCHEMA =============
 const userSchema = new mongoose.Schema({
@@ -89,7 +90,6 @@ const userSchema = new mongoose.Schema({
 });
 
 // ============= INDEXES FOR PERFORMANCE =============
-userSchema.index({ email: 1 });
 userSchema.index({ 'rating.average': -1 });
 
 // ============= VIRTUAL POPULATE FOR SKILLS =============
@@ -119,6 +119,25 @@ userSchema.set('toJSON', { virtuals: true });
 userSchema.set('toObject', { virtuals: true });
 
 // ============= AVATAR UTILITIES =============
+const normalizeUploadFilename = (value) => {
+  const raw = String(value || '').trim();
+  if (!raw) return '';
+
+  const withoutQuery = raw.split('?')[0].split('#')[0];
+  const normalized = withoutQuery.replace(/\\/g, '/');
+
+  if (normalized.startsWith('http://') || normalized.startsWith('https://')) {
+    try {
+      const parsed = new URL(normalized);
+      return path.basename(parsed.pathname || '');
+    } catch (_error) {
+      return path.basename(normalized);
+    }
+  }
+
+  return path.basename(normalized);
+};
+
 // Helper method to get avatar URL
 userSchema.methods.getAvatarUrl = function() {
   if (!this.avatar) {
@@ -126,8 +145,17 @@ userSchema.methods.getAvatarUrl = function() {
   }
   
   switch (this.avatar.type) {
-    case 'upload':
-      return this.avatar.url ? `/uploads/avatars/${this.avatar.filename}` : null;
+    case 'upload': {
+      const normalizedFilename = normalizeUploadFilename(this.avatar.filename);
+      if (normalizedFilename) {
+        return `/uploads/avatars/${normalizedFilename}`;
+      }
+
+      if (this.avatar.url && String(this.avatar.url).startsWith('/uploads/')) {
+        return this.avatar.url;
+      }
+      return null;
+    }
     case 'url':
       return this.avatar.url;
     case 'base64':
@@ -165,20 +193,31 @@ userSchema.methods.setAvatar = function(avatarData) {
   }
 
   if (typeof avatarData === 'string') {
-    if (avatarData.startsWith('http://') || avatarData.startsWith('https://')) {
+    const trimmedAvatarData = avatarData.trim();
+
+    if (trimmedAvatarData.startsWith('/uploads/') || trimmedAvatarData.startsWith('uploads/')) {
+      const filename = normalizeUploadFilename(trimmedAvatarData);
+      this.avatar = {
+        type: 'upload',
+        url: filename ? `/uploads/avatars/${filename}` : '',
+        filename,
+        uploadDate: new Date()
+      };
+    } else if (trimmedAvatarData.startsWith('http://') || trimmedAvatarData.startsWith('https://')) {
       // External URL
       this.avatar = {
         type: 'url',
-        url: avatarData,
+        url: trimmedAvatarData,
         filename: '',
         uploadDate: new Date()
       };
     } else {
       // Local file path/filename
+      const filename = normalizeUploadFilename(trimmedAvatarData);
       this.avatar = {
         type: 'upload',
-        url: '',
-        filename: avatarData,
+        url: filename ? `/uploads/avatars/${filename}` : '',
+        filename,
         uploadDate: new Date()
       };
     }
@@ -194,10 +233,21 @@ userSchema.methods.setAvatar = function(avatarData) {
         uploadDate: null
       };
     } else {
+      const normalizedType = type === 'upload' ? 'upload' : type;
+      const normalizedFilename =
+        normalizedType === 'upload'
+          ? normalizeUploadFilename(avatarData.filename || avatarData.url || '')
+          : '';
+
       this.avatar = {
-        type: type,
-        url: avatarData.url || '',
-        filename: avatarData.filename || '',
+        type: normalizedType,
+        url:
+          normalizedType === 'upload'
+            ? normalizedFilename
+              ? `/uploads/avatars/${normalizedFilename}`
+              : ''
+            : avatarData.url || '',
+        filename: normalizedFilename,
         uploadDate: avatarData.uploadDate || new Date()
       };
     }

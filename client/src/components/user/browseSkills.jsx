@@ -1,16 +1,86 @@
-import React, { useState, useEffect } from 'react';
-import { Search, Home, Calendar, MessageSquare, Users, Trophy, Bell, Filter, Clock, MapPin, Star, UserPlus, X, ChevronDown, Sparkles } from 'lucide-react';
-import MainNavbar from '../../navbar/mainNavbar.jsx';
+import React, { useEffect, useMemo, useState } from 'react';
+import {
+  Search,
+  Sparkles,
+  RefreshCcw,
+  Clock3,
+  Star,
+  UserPlus,
+  Plus,
+  X,
+  ChevronDown,
+  Check,
+  SlidersHorizontal,
+  CircleDollarSign,
+  BookOpen
+} from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { getAvatarDisplayProps, hasCustomAvatar } from '../../utils/avatarUtils';
-import { formatINR } from '../../utils/currencyUtils';
-// Placeholder MainNavbar component
+import MainNavbar from '../../navbar/mainNavbar.jsx';
+import { API_URL } from '../../config';
+import { getAvatarDisplayProps } from '../../utils/avatarUtils';
 
+const SUB_CATEGORIES = {
+  Programming: ['Web Development', 'Mobile Dev', 'Data Science', 'Game Dev', 'DevOps'],
+  Design: ['UI/UX', 'Graphic Design', 'Motion Graphics', 'Logo Design'],
+  Music: ['Guitar', 'Piano', 'Violin', 'Drums', 'Singing', 'Music Theory'],
+  Drawing: ['Sketching', 'Watercolors', 'Oil Painting', 'Digital Art'],
+  'Art & Craft': ['Origami', 'Pottery', 'Knitting', 'Calligraphy'],
+  Cybersecurity: ['Ethical Hacking', 'Network Security', 'SOC Analyst'],
+  'Quality Assurance': ['Manual Testing', 'Automation', 'API Testing'],
+  Academics: ['Mathematics', 'Physics', 'Chemistry', 'Biology'],
+  Business: ['Finance', 'Entrepreneurship', 'Leadership', 'Sales'],
+  Lifestyle: ['Yoga', 'Meditation', 'Nutrition'],
+  Gaming: ['Valorant', 'League of Legends', 'Minecraft'],
+  Writing: ['Creative Writing', 'Copywriting', 'Technical Writing'],
+  Photography: ['Portrait', 'Landscape', 'Editing'],
+  Marketing: ['SEO', 'Content', 'Social Media', 'Email Marketing'],
+  Language: ['English', 'Spanish', 'French', 'German', 'Japanese'],
+  Cooking: ['Baking', 'Meal Prep', 'Regional Cuisine']
+};
+
+const DURATION_OPTIONS = ['30 minutes', '1 hour', '1.5 hours', '2 hours', '2.5 hours', '3 hours'];
+
+const getLevelBadgeClass = (level) => {
+  if (level === 'Advanced' || level === 'Expert') return 'bg-rose-500/20 text-rose-200 border-rose-400/30';
+  if (level === 'Intermediate') return 'bg-amber-500/20 text-amber-200 border-amber-400/30';
+  return 'bg-emerald-500/20 text-emerald-200 border-emerald-400/30';
+};
+
+const formatPriceLabel = (price) => {
+  const amount = Number(price || 0);
+  if (!Number.isFinite(amount) || amount <= 0) return 'Free';
+  return `INR ${amount.toLocaleString('en-IN')}/hr`;
+};
+
+const SkillSkeleton = () => (
+  <div className="glass-panel p-5 animate-pulse">
+    <div className="flex items-center gap-3 mb-4">
+      <div className="w-10 h-10 rounded-full bg-white/10" />
+      <div className="flex-1">
+        <div className="h-4 w-28 bg-white/10 rounded mb-2" />
+        <div className="h-3 w-20 bg-white/10 rounded" />
+      </div>
+    </div>
+    <div className="h-6 w-2/3 bg-white/10 rounded mb-3" />
+    <div className="h-4 w-full bg-white/10 rounded mb-2" />
+    <div className="h-4 w-4/5 bg-white/10 rounded mb-4" />
+    <div className="h-10 w-full bg-white/10 rounded" />
+  </div>
+);
 
 export default function SkillSwapBrowse() {
-  // Current logged-in user id (if logged in)
   const currentUserId = typeof window !== 'undefined' ? localStorage.getItem('userId') : null;
-  const [visibleSkills, setVisibleSkills] = useState(6);
+
+  const [skills, setSkills] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState('');
+
+  const [visibleSkills, setVisibleSkills] = useState(8);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('All Categories');
+  const [selectedLevel, setSelectedLevel] = useState('All Levels');
+
   const [showPostSkillModal, setShowPostSkillModal] = useState(false);
   const [postSkillForm, setPostSkillForm] = useState({
     title: '',
@@ -18,434 +88,39 @@ export default function SkillSwapBrowse() {
     skills: '',
     category: 'Other',
     subCategory: '',
-    timePerHour: '',
+    timePerHour: '1 hour',
     price: ''
   });
   const [availableSkills, setAvailableSkills] = useState([]);
-  const [showSkillsDropdown, setShowSkillsDropdown] = useState(false);
   const [skillsLoading, setSkillsLoading] = useState(false);
+  const [showSkillsDropdown, setShowSkillsDropdown] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
-  const [skillCounts, setSkillCounts] = useState({});
-  const [selectedCategory, setSelectedCategory] = useState('All Categories');
-  const [selectedSubCategory, setSelectedSubCategory] = useState(''); // New state for sub-category filter
-  const isPremiumUser = typeof window !== 'undefined' ? localStorage.getItem('isPremium') === 'true' : false;
 
-  // Sub-categories mapping
-  const subCategories = {
-    'Music': ['Guitar', 'Piano', 'Violin', 'Drums', 'Singing', 'Music Theory', 'Production'],
-    'Drawing': ['Sketching', 'Watercolors', 'Oil Painting', 'Digital Art', 'Charcoal', 'Doodling'],
-    'Art & Craft': ['Origami', 'Pottery', 'Knitting', 'Embroidery', 'Calligraphy', 'Sculpting'],
-    'Programming': ['Web Development', 'Mobile Dev', 'Data Science', 'Game Dev', 'DevOps'],
-    'Design': ['UI/UX', 'Graphic Design', 'Motion Graphics', 'Logo Design'],
-    'Marketing': ['SEO', 'Content Marketing', 'Social Media', 'Email Maarketing'],
-    'Language': ['English', 'Spanish', 'French', 'German', 'Mandarin', 'Japanese'],
-    'Cybersecurity': ['Ethical Hacking', 'Penetration Testing', 'Network Security', 'SOC Analyst', 'Cryptography'],
-    'Quality Assurance': ['Manual Testing', 'Selenium', 'Automation', 'Performance Testing', 'API Testing'],
-    'Data Science': ['Machine Learning', 'Deep Learning', 'Data Analysis', 'Big Data', 'NLP'],
-    'Business': ['Finance', 'Entrepreneurship', 'Leadership', 'Sales', 'Marketing Strategy', 'Accounting'],
-    'Academics': ['Mathematics', 'Physics', 'Chemistry', 'Biology', 'History', 'Literature'],
-    'Lifestyle': ['Yoga', 'Meditation', 'Nutrition', 'Personal Styling', 'Interior Design'],
-    'Gaming': ['Valorant', 'League of Legends', 'Minecraft', 'Game Strategy', 'Streaming'],
-    'Writing': ['Creative Writing', 'Copywriting', 'Blogging', 'Technical Writing', 'Screenwriting'],
-    'Photography': ['Portrait', 'Landscape', 'Photo Editing', 'Street Photography']
-  };
-
-  // Predefined skills mapping to categories
-  const skillCategoryMapping = {
-    'Java': 'Java',
-    'Python': 'Python',
-    'C/C++': 'C/C++',
-    'C++': 'C/C++',
-    'C': 'C/C++',
-    'MongoDB': 'MongoDB',
-    'Mongo': 'MongoDB',
-    'Express': 'Express',
-    'Express.js': 'Express',
-    'React': 'React',
-    'React.js': 'React',
-    'Node.js': 'Node.js',
-    'Node': 'Node.js',
-    'JavaScript': 'Programming',
-    'TypeScript': 'Programming',
-    'HTML/CSS': 'Programming',
-    'PHP': 'Programming',
-    'Ruby': 'Programming',
-    'Go': 'Programming',
-    'Rust': 'Programming',
-    'Kotlin': 'Programming',
-    'Swift': 'Programming',
-    'Angular': 'Programming',
-    'Vue.js': 'Programming',
-    'Spring Boot': 'Java',
-    'Django': 'Python',
-    'Flask': 'Python',
-    'Laravel': 'Programming',
-    'Ruby on Rails': 'Programming',
-    'ASP.NET': 'Programming',
-    'PostgreSQL': 'MongoDB',
-    'MySQL': 'MongoDB',
-    'SQLite': 'MongoDB',
-    'Redis': 'MongoDB',
-    'Docker': 'Programming',
-    'Kubernetes': 'Programming',
-    'AWS': 'Programming',
-    'Azure': 'Programming',
-    'Google Cloud': 'Programming',
-    'Git': 'Programming',
-    'Linux': 'Programming',
-    'DevOps': 'Programming',
-    'Machine Learning': 'Programming',
-    'Data Science': 'Programming',
-    'Artificial Intelligence': 'Programming',
-    'Cybersecurity': 'Programming',
-    'UI/UX Design': 'Programming',
-    'Graphic Design': 'Programming',
-    'Digital Marketing': 'Programming',
-    'Project Management': 'Programming',
-    'Ethical Hacking': 'Cybersecurity',
-    'Penetration Testing': 'Cybersecurity',
-    'Cybersecurity': 'Cybersecurity',
-    'Network Security': 'Cybersecurity',
-    'Selenium': 'Quality Assurance',
-    'Automation Testing': 'Quality Assurance',
-    'Manual Testing': 'Quality Assurance',
-    'Jest': 'Quality Assurance',
-    'Cypress': 'Quality Assurance',
-    'Go': 'Programming',
-    'Rust': 'Programming',
-    'Swift': 'Programming',
-    'Kotlin': 'Programming',
-    'TypeScript': 'Programming',
-    'HTML/CSS': 'Programming',
-    'Go': 'Programming',
-    'Rust': 'Programming',
-    'Swift': 'Programming',
-    'Kotlin': 'Programming',
-    'Dart': 'Programming',
-    'Flutter': 'Programming',
-    'AWS': 'Programming',
-    'Azure': 'Programming',
-    'Docker': 'Programming',
-    'Kubernetes': 'Programming',
-    // Business
-    'Finance': 'Business',
-    'Marketing': 'Business',
-    'Entrepreneurship': 'Business',
-    // Academics
-    'Math': 'Academics',
-    'Physics': 'Academics',
-    'Chemistry': 'Academics',
-    'Biology': 'Academics',
-    // Lifestyle
-    'Yoga': 'Lifestyle',
-    'Meditation': 'Lifestyle',
-    'Cooking': 'Cooking',
-    'Baking': 'Cooking',
-    // Gaming
-    'Valorant': 'Gaming',
-    'League of Legends': 'Gaming',
-    'Minecraft': 'Gaming',
-    // Writing
-    'Copywriting': 'Writing',
-    'Blogging': 'Writing',
-    // Photography
-    'Photography': 'Photography',
-    'Photo Editing': 'Photography'
-  };
-
-  const categories = [
-    {
-      icon: (
-        <svg className="w-10 h-10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          <rect x="3" y="3" width="18" height="18" rx="2" />
-          <path d="M9 3v18" />
-          <path d="M15 3v18" />
-        </svg>
-      ),
-      name: 'All Categories',
-      count: skillCounts['All Categories'] || 0,
-      active: selectedCategory === 'All Categories'
-    },
-
-    {
-      icon: (
-        <svg className="w-10 h-10" viewBox="0 0 50 50" fill="none" stroke="currentColor" strokeWidth="2.5">
-          {/* Steam */}
-          <path d="M18 8c1 2 0 4 1 6M25 6c1 2.5 0 4.5 1 7" strokeLinecap="round" />
-
-          {/* Coffee cup */}
-          <path d="M12 20h26M12 20c0 0 2 18 13 18s13-18 13-18" strokeLinecap="round" strokeLinejoin="round" />
-          <ellipse cx="25" cy="20" rx="13" ry="3" fill="currentColor" opacity="0.2" />
-
-          {/* Cup handle */}
-          <path d="M38 24c2 0 4 1.5 4 4s-2 4-4 4" strokeLinecap="round" />
-        </svg>
-      ),
-      name: 'Java',
-      count: skillCounts['Java'] || 0,
-      active: selectedCategory === 'Java'
-    },
-    {
-      icon: (
-        <svg className="w-10 h-10" viewBox="0 0 50 50" fill="currentColor">
-          <path d="M25,2L6,11v17c0,11.7,8.1,22.6,19,25c10.9-2.4,19-13.3,19-25V11L25,2z M25,7l15,7v14c0,9.3-6.4,17.9-15,20 c-8.6-2.1-15-10.7-15-20V14L25,7z" />
-          <text x="25" y="32" textAnchor="middle" fontSize="16" fontWeight="bold" fill="currentColor">C++</text>
-        </svg>
-      ),
-      name: 'C/C++',
-      count: skillCounts['C/C++'] || 0,
-      active: selectedCategory === 'C/C++'
-    },
-    {
-      icon: (
-        <svg className="w-10 h-10" viewBox="0 0 50 50" fill="currentColor">
-          {/* Python snake logo - two intertwined snakes */}
-          <path d="M20 8c-3 0-5 2-5 5v6h10v1H13c-3 0-5 2-5 5v6c0 3 2 5 5 5h4v-5c0-3 2-5 5-5h10c2.5 0 4.5-2 4.5-4.5v-8.5c0-3-2-5-5-5h-11.5z" opacity="0.6" />
-          <path d="M30 42c3 0 5-2 5-5v-6H25v-1h12c3 0 5-2 5-5v-6c0-3-2-5-5-5h-4v5c0 3-2 5-5 5H18c-2.5 0-4.5 2-4.5 4.5v8.5c0 3 2 5 5 5h11.5z" />
-          <circle cx="18" cy="13" r="1.5" fill="white" />
-          <circle cx="32" cy="37" r="1.5" fill="white" />
-        </svg>
-      ),
-      name: 'Python',
-      count: skillCounts['Python'] || 0,
-      active: selectedCategory === 'Python'
-    },
-    {
-      icon: (
-        <svg className="w-10 h-10" viewBox="0 0 50 50" fill="currentColor">
-          {/* MongoDB leaf */}
-          <path d="M25 5c-1 0-1.8 3-2.5 7-.8 4-1.5 9-1.5 13 0 6 2 10 4 10s4-4 4-10c0-4-.7-9-1.5-13-.7-4-1.5-7-2.5-7z" />
-          <path d="M24 35v10h2V35" opacity="0.6" />
-          <ellipse cx="25" cy="15" rx="8" ry="12" opacity="0.3" />
-        </svg>
-      ),
-      name: 'MongoDB',
-      count: skillCounts['MongoDB'] || 0,
-      active: selectedCategory === 'MongoDB'
-    },
-    {
-      icon: (
-        <svg className="w-10 h-10" viewBox="0 0 50 50" fill="none" stroke="currentColor" strokeWidth="2.5">
-          <line x1="8" y1="25" x2="42" y2="25" />
-          <line x1="8" y1="15" x2="25" y2="15" />
-          <line x1="8" y1="35" x2="25" y2="35" />
-          <path d="M25 5L42 15v20L25 45" />
-        </svg>
-      ),
-      name: 'Express',
-      count: skillCounts['Express'] || 0,
-      active: selectedCategory === 'Express'
-    },
-    {
-      icon: (
-        <svg className="w-10 h-10" viewBox="0 0 50 50" fill="none" stroke="currentColor" strokeWidth="2">
-          <ellipse cx="25" cy="25" rx="18" ry="7" />
-          <ellipse cx="25" cy="25" rx="18" ry="7" transform="rotate(60 25 25)" />
-          <ellipse cx="25" cy="25" rx="18" ry="7" transform="rotate(120 25 25)" />
-          <circle cx="25" cy="25" r="4" fill="currentColor" />
-        </svg>
-      ),
-      name: 'React',
-      count: skillCounts['React'] || 0,
-      active: selectedCategory === 'React'
-    },
-    {
-      icon: (
-        <svg className="w-10 h-10" viewBox="0 0 50 50" fill="currentColor">
-          {/* Node.js hexagon with JS */}
-          <path d="M25 5L8 14v18l17 10 17-10V14L25 5z" />
-          <path d="M25 10l12 7v14l-12 7-12-7V17l12-7z" fill="white" opacity="0.9" />
-          <text x="25" y="30" textAnchor="middle" fontSize="12" fontWeight="bold" fill="currentColor">JS</text>
-        </svg>
-      ),
-      name: 'Node.js',
-      count: skillCounts['Node.js'] || 0,
-      active: selectedCategory === 'Node.js'
-    },
-    {
-      icon: (
-        <svg className="w-10 h-10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          <path d="M9 18V5l12-2v13" />
-          <circle cx="6" cy="18" r="3" />
-          <circle cx="18" cy="16" r="3" />
-        </svg>
-      ),
-      name: 'Music',
-      count: skillCounts['Music'] || 0,
-      active: selectedCategory === 'Music'
-    },
-    {
-      icon: (
-        <svg className="w-10 h-10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          <path d="M12 19l7-7 3 3-7 7-3-3z" />
-          <path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z" />
-          <path d="M2 2l7.586 7.586" />
-          <circle cx="11" cy="11" r="2" />
-        </svg>
-      ),
-      name: 'Drawing',
-      count: skillCounts['Drawing'] || 0,
-      active: selectedCategory === 'Drawing'
-    },
-    {
-      icon: (
-        <svg className="w-10 h-10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
-        </svg>
-      ),
-      name: 'Art & Craft',
-      count: skillCounts['Art & Craft'] || 0,
-      active: selectedCategory === 'Art & Craft'
-    },
-    {
-      icon: (
-        <svg className="w-10 h-10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-        </svg>
-      ),
-      name: 'Cybersecurity',
-      count: skillCounts['Cybersecurity'] || 0,
-      active: selectedCategory === 'Cybersecurity'
-    },
-    {
-      icon: (
-        <svg className="w-10 h-10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
-          <polyline points="22 4 12 14.01 9 11.01" />
-        </svg>
-      ),
-      name: 'Quality Assurance',
-      count: skillCounts['Quality Assurance'] || 0,
-      active: selectedCategory === 'Quality Assurance'
-    },
-    {
-      icon: (
-        <svg className="w-10 h-10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
-        </svg>
-      ),
-      name: 'Academics',
-      count: skillCounts['Academics'] || 0,
-      active: selectedCategory === 'Academics'
-    },
-    {
-      icon: (
-        <svg className="w-10 h-10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
-        </svg>
-      ),
-      name: 'Business',
-      count: skillCounts['Business'] || 0,
-      active: selectedCategory === 'Business'
-    }
-  ];
-
-  const [postedSkills, setPostedSkills] = useState([]);
-  const [pageLoading, setPageLoading] = useState(true);
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const [newSkillAdded, setNewSkillAdded] = useState(false);
-  const [filteredSkills, setFilteredSkills] = useState([]);
-
-  // Function to calculate skill counts by category
-  const calculateSkillCounts = (skills) => {
-    const counts = {
-      'All Categories': skills.length,
-      'Java': 0,
-      'Python': 0,
-      'C/C++': 0,
-      'MongoDB': 0,
-      'Express': 0,
-      'React': 0,
-      'Node.js': 0,
-      'Cybersecurity': 0,
-      'Quality Assurance': 0,
-      'Academics': 0,
-      'Business': 0,
-      'Lifestyle': 0,
-      'Gaming': 0,
-      'Writing': 0,
-      'Photography': 0
-    };
-
-    skills.forEach(skill => {
-      // Use existing category or map from name (fallback)
-      let category = skill.category;
-
-      // If category is 'Other' or missing, try to map from name
-      if (!category || category === 'Other') {
-        category = skillCategoryMapping[skill.name] || 'Other';
-      }
-
-      if (counts.hasOwnProperty(category)) {
-        counts[category]++;
-      } else {
-        // Initialize if new category
-        counts[category] = 1;
-      }
-    });
-
-    return counts;
-  };
-
-  // Function to filter skills by category
-  const filterSkillsByCategory = (skills, category) => {
-    if (category === 'All Categories') {
-      return skills;
-    }
-
-    if (!category) {
-      return skills;
-    }
-
-    return skills.filter(skill => {
-      const skillCategory = skillCategoryMapping[skill.name];
-      return skillCategory === category;
-    });
-  };
-
-  // Enhanced fetch function with smooth loading
   const fetchPostedSkills = async (showLoader = true) => {
     try {
+      setError('');
       if (showLoader) {
-        setPageLoading(true);
+        setLoading(true);
       } else {
-        setIsRefreshing(true);
+        setRefreshing(true);
       }
 
-      const response = await fetch('/api/skills/search');
+      const response = await fetch(`${API_URL}/api/skills/search`);
       const data = await response.json();
 
-      if (data.success) {
-        console.log('=== SKILLS FETCHED SUCCESSFULLY ===');
-        console.log('Skills count:', data.data.length);
-
-        // Add smooth transition for new skills
-        if (!showLoader && data.data.length > postedSkills.length) {
-          setNewSkillAdded(true);
-          setTimeout(() => setNewSkillAdded(false), 2000);
-        }
-
-        setPostedSkills(data.data);
-
-        // Calculate skill counts by category
-        const counts = calculateSkillCounts(data.data);
-        setSkillCounts(counts);
-
-        // Filter skills based on selected category
-        const filtered = filterSkillsByCategory(data.data, selectedCategory);
-        setFilteredSkills(filtered);
-
-      } else {
-        console.error('Failed to fetch posted skills:', data.message);
+      if (!response.ok || !data.success) {
+        throw new Error(data.message || 'Failed to fetch skills');
       }
-    } catch (error) {
-      console.error('Error fetching posted skills:', error);
+
+      setSkills(Array.isArray(data.data) ? data.data : []);
+    } catch (err) {
+      console.error('Fetch skills error:', err);
+      setError(err.message || 'Could not load skills right now.');
     } finally {
       if (showLoader) {
-        // Add minimum loading time for smooth UX
-        setTimeout(() => setPageLoading(false), 500);
+        setLoading(false);
       } else {
-        setTimeout(() => setIsRefreshing(false), 300);
+        setRefreshing(false);
       }
     }
   };
@@ -453,831 +128,601 @@ export default function SkillSwapBrowse() {
   useEffect(() => {
     fetchPostedSkills(true);
 
-    // Optional: Set up auto-refresh every 5 minutes for real-time updates
     const autoRefreshInterval = setInterval(() => {
       fetchPostedSkills(false);
-    }, 5 * 60 * 1000); // 5 minutes
+    }, 5 * 60 * 1000);
 
     return () => clearInterval(autoRefreshInterval);
   }, []);
 
-  // Update filtered skills when posted skills or selected category changes
-  useEffect(() => {
-    if (postedSkills.length > 0) {
-      const filtered = filterSkillsByCategory(postedSkills, selectedCategory, selectedSubCategory);
-      setFilteredSkills(filtered);
-    }
-  }, [postedSkills, selectedCategory]);
+  const categoryCounts = useMemo(() => {
+    const counts = { 'All Categories': skills.length };
 
-  // Fetch user's available skills from database
+    skills.forEach((skill) => {
+      const category = skill.category || 'Other';
+      counts[category] = (counts[category] || 0) + 1;
+    });
+
+    return counts;
+  }, [skills]);
+
+  const categories = useMemo(() => {
+    const names = Object.keys(categoryCounts).filter((name) => name !== 'All Categories').sort();
+    return ['All Categories', ...names];
+  }, [categoryCounts]);
+
+  const filteredSkills = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
+
+    return skills.filter((skill) => {
+      const categoryMatch =
+        selectedCategory === 'All Categories' || (skill.category || 'Other') === selectedCategory;
+      if (!categoryMatch) return false;
+
+      const level = skill.offering?.level || 'Beginner';
+      const levelMatch = selectedLevel === 'All Levels' || level === selectedLevel;
+      if (!levelMatch) return false;
+
+      if (!query) return true;
+
+      const searchableText = [
+        skill.name,
+        skill.offering?.description,
+        skill.user?.name,
+        skill.category,
+        skill.subCategory,
+        ...(Array.isArray(skill.tags) ? skill.tags : [])
+      ]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase();
+
+      return searchableText.includes(query);
+    });
+  }, [skills, searchQuery, selectedCategory, selectedLevel]);
+
+  const displayedSkills = useMemo(() => filteredSkills.slice(0, visibleSkills), [filteredSkills, visibleSkills]);
+
+  useEffect(() => {
+    setVisibleSkills(8);
+  }, [selectedCategory, selectedLevel, searchQuery]);
+
   const fetchAvailableSkills = async () => {
     try {
       setSkillsLoading(true);
       const token = localStorage.getItem('token');
 
       if (!token) {
-        console.error('No authentication token found');
+        setAvailableSkills([]);
         return;
       }
 
-      const response = await fetch('/api/skills/my-skills', {
+      const response = await fetch(`${API_URL}/api/skills/my-skills`, {
         method: 'GET',
         headers: {
-          'Authorization': `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json'
         }
       });
 
       const data = await response.json();
-
-      if (data.success) {
-        // Filter for skills that are being offered but are not yet posted
-        const skillsToPost = data.data.skillsOffering.filter(skill => !skill.isPosted);
-        const uniqueSkillNames = [...new Set(skillsToPost.map(skill => skill.name))];
-        setAvailableSkills(uniqueSkillNames);
-      } else {
-        console.error('Failed to fetch skills:', data.message);
+      if (!response.ok || !data.success) {
+        throw new Error(data.message || 'Failed to fetch your skills');
       }
-    } catch (error) {
-      console.error('Error fetching skills:', error);
+
+      const skillsOffering = Array.isArray(data.data?.skillsOffering) ? data.data.skillsOffering : [];
+      const postable = skillsOffering.filter((item) => !item.isPosted).map((item) => item.name).filter(Boolean);
+      setAvailableSkills(Array.from(new Set(postable)).sort());
+    } catch (err) {
+      console.error('Fetch available skills error:', err);
+      setAvailableSkills([]);
     } finally {
       setSkillsLoading(false);
     }
   };
 
-  // Fetch skills when modal opens
   useEffect(() => {
     if (showPostSkillModal) {
       fetchAvailableSkills();
     }
   }, [showPostSkillModal]);
 
-  const handlePostSkillSubmit = async (e) => {
-    e.preventDefault();
+  const handleInputChange = (event) => {
+    const { name, value } = event.target;
+    setPostSkillForm((prev) => {
+      const next = { ...prev, [name]: value };
+      if (name === 'category') {
+        next.subCategory = '';
+      }
+      return next;
+    });
+  };
+
+  const handleSkillSelect = (skillName) => {
+    setPostSkillForm((prev) => ({ ...prev, skills: skillName }));
+    setShowSkillsDropdown(false);
+  };
+
+  const handlePostSkillSubmit = async (event) => {
+    event.preventDefault();
+
+    const token = localStorage.getItem('token');
+    if (!token) {
+      setError('Please log in to post a skill.');
+      return;
+    }
 
     try {
-      const token = localStorage.getItem('token');
-
-      if (!token) {
-        alert('Please log in to post a skill');
-        return;
-      }
-
-      const response = await fetch('/api/skills/post', {
+      const response = await fetch(`${API_URL}/api/skills/post`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          title: postSkillForm.title,
-          description: postSkillForm.description,
+          title: postSkillForm.title.trim(),
+          description: postSkillForm.description.trim(),
           skills: postSkillForm.skills,
-          category: postSkillForm.category, // Send category
-          subCategory: postSkillForm.subCategory, // Send subCategory
+          category: postSkillForm.category,
+          subCategory: postSkillForm.subCategory.trim(),
           timePerHour: postSkillForm.timePerHour,
           price: postSkillForm.price
         })
       });
 
       const data = await response.json();
-
-      if (data.success) {
-        // Show success message with smooth animation
-        setSuccessMessage('Skill posted successfully! 🎉');
-        setTimeout(() => setSuccessMessage(''), 4000);
-
-        // Reset form and close modal
-        setPostSkillForm({
-          title: '',
-          description: '',
-          skills: '',
-          category: 'Other',
-          subCategory: '',
-          timePerHour: '',
-          price: ''
-        });
-
-        setShowPostSkillModal(false);
-        setShowSkillsDropdown(false);
-
-        // Dynamically refresh skills without full page reload
-        setTimeout(() => {
-          fetchPostedSkills(false); // Use refresh mode
-        }, 500);
-
-      } else {
-        alert(data.message || 'Failed to post skill');
+      if (!response.ok || !data.success) {
+        throw new Error(data.message || 'Failed to post skill');
       }
-    } catch (error) {
-      console.error('Error posting skill:', error);
-      alert('An error occurred while posting the skill. Please try again.');
+
+      setSuccessMessage('Skill posted successfully.');
+      setTimeout(() => setSuccessMessage(''), 3500);
+
+      setPostSkillForm({
+        title: '',
+        description: '',
+        skills: '',
+        category: 'Other',
+        subCategory: '',
+        timePerHour: '1 hour',
+        price: ''
+      });
+      setShowSkillsDropdown(false);
+      setShowPostSkillModal(false);
+      fetchPostedSkills(false);
+    } catch (err) {
+      console.error('Post skill error:', err);
+      setError(err.message || 'Could not post skill.');
     }
   };
 
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setPostSkillForm(prev => ({
-      ...prev,
-      [name]: value
-    }));
-  };
-
-  // Handle skill selection
-  const handleSkillSelect = (skillName) => {
-    setPostSkillForm(prev => ({
-      ...prev,
-      skills: skillName
-    }));
-    setShowSkillsDropdown(false); // Close dropdown after selection
-  };
-
-  // Handle category selection
-  const handleCategorySelect = (categoryName) => {
-    setSelectedCategory(categoryName);
-    setSelectedSubCategory(''); // Reset sub-category when category changes
-    const filtered = filterSkillsByCategory(postedSkills, categoryName, '');
-    setFilteredSkills(filtered);
-    setVisibleSkills(6); // Reset visible skills count
+  const clearModal = () => {
+    setShowPostSkillModal(false);
+    setShowSkillsDropdown(false);
   };
 
   return (
-    <div className="min-h-screen bg-black">
-      <style>{`
-        @keyframes fadeInUp {
-          from {
-            opacity: 0;
-            transform: translateY(20px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-        
-        @keyframes pulse {
-          0%, 100% {
-            transform: scale(1);
-          }
-          50% {
-            transform: scale(1.05);
-          }
-        }
-
-        @keyframes slideIn {
-          from {
-            opacity: 0;
-            transform: translateX(-20px);
-          }
-          to {
-            opacity: 1;
-            transform: translateX(0);
-          }
-        }
-
-        .animate-fadeInUp {
-          animation: fadeInUp 0.6s ease-out forwards;
-        }
-
-        .animate-slideIn {
-          animation: slideIn 0.5s ease-out forwards;
-        }
-
-        .category-card {
-          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
-        .category-card:hover {
-          transform: translateY(-4px);
-        }
-
-        .skill-card {
-          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
-        .skill-card:hover {
-          transform: translateY(-6px);
-          box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-        }
-
-        .nav-item {
-          transition: all 0.2s ease;
-        }
-
-        .nav-item:hover {
-          transform: scale(1.05);
-        }
-
-        .tag-item {
-          transition: all 0.2s ease;
-        }
-
-        .tag-item:hover {
-          transform: scale(1.1);
-        }
-
-        .bell-notification {
-          animation: pulse 2s infinite;
-        }
-
-        .cursor-pointer {
-          cursor: pointer;
-        }
-
-        .modal-overlay {
-          backdrop-filter: blur(4px);
-          background: rgba(0, 0, 0, 0.4);
-        }
-
-        .cursor-pointer {
-          cursor: pointer;
-        }
-
-        .modal-overlay {
-          backdrop-filter: blur(4px);
-          background: rgba(0, 0, 0, 0.4);
-        }
-      `}</style>
-
+    <div className="min-h-screen glass-page text-zinc-100">
       <MainNavbar />
 
-      {/* Main Content */}
-      <div className="pt-24">
-        <div className="max-w-[1400px] mx-auto px-6 py-12">
-          {/* Header Section */}
-          <div className="mb-8 animate-fadeInUp">
-            <h1 className="text-4xl font-bold text-white mb-3">Discover Amazing Skills</h1>
+      <main className="max-w-7xl mx-auto px-4 md:px-6 pt-28 pb-12 space-y-6">
+        <section className="glass-panel p-6 md:p-8 relative overflow-hidden">
+          <div className="absolute -top-14 left-8 h-36 w-36 rounded-full bg-red-500/20 blur-3xl" />
+          <div className="absolute -bottom-20 right-6 h-44 w-44 rounded-full bg-sky-500/18 blur-3xl" />
+
+          <div className="relative flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <p className="inline-flex items-center gap-2 text-xs uppercase tracking-wide text-red-300 font-semibold">
+                <Sparkles size={14} />
+                Skill Marketplace
+              </p>
+              <h1 className="text-3xl md:text-4xl font-bold mt-2">Discover and Book Expert Skills</h1>
+              <p className="text-zinc-300 mt-2 max-w-3xl">
+                Search focused mentors, compare session styles, and book learning time that fits your schedule.
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2 flex-wrap">
+              <Link to="/skill-recommendations" className="glass-chip border-sky-400/40 bg-sky-500/15 text-sky-100">
+                <BookOpen size={14} />
+                Recommendations
+              </Link>
+              <button
+                type="button"
+                onClick={() => setShowPostSkillModal(true)}
+                className="glass-cta px-4 py-2.5"
+              >
+                <Plus size={16} />
+                Post Skill
+              </button>
+            </div>
           </div>
 
-          {/* Success Message */}
-          {successMessage && (
-            <div className="mb-6 animate-slideDown">
-              <div className="bg-green-50 border border-green-200 rounded-xl p-4 flex items-center gap-3 max-w-md mx-auto">
-                <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
-                  <span className="text-white text-sm font-bold">✓</span>
-                </div>
-                <span className="text-green-700 font-medium">{successMessage}</span>
-              </div>
+          <div className="relative mt-5 grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div className="glass-panel-strong p-3">
+              <p className="text-xs uppercase text-zinc-400">Total Listings</p>
+              <p className="text-xl font-bold mt-1">{skills.length}</p>
             </div>
-          )}
+            <div className="glass-panel-strong p-3">
+              <p className="text-xs uppercase text-zinc-400">Visible</p>
+              <p className="text-xl font-bold mt-1">{filteredSkills.length}</p>
+            </div>
+            <div className="glass-panel-strong p-3">
+              <p className="text-xs uppercase text-zinc-400">Categories</p>
+              <p className="text-xl font-bold mt-1">{categories.length - 1}</p>
+            </div>
+            <div className="glass-panel-strong p-3">
+              <p className="text-xs uppercase text-zinc-400">Avg Price</p>
+              <p className="text-xl font-bold mt-1">
+                {skills.length === 0
+                  ? 'INR 0'
+                  : `INR ${Math.round(
+                      skills.reduce((sum, item) => sum + Number(item.offering?.price || 0), 0) / skills.length
+                    ).toLocaleString('en-IN')}`}
+              </p>
+            </div>
+          </div>
+        </section>
 
-          {/* Search and Filters */}
-          <div className="flex items-center gap-4 mb-12 animate-fadeInUp" style={{ animationDelay: '0.1s' }}>
-            <div className="flex-1 relative group">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-red-600 transition-colors" size={20} />
+        <section className="glass-panel p-4 md:p-5 space-y-4">
+          <div className="grid grid-cols-1 lg:grid-cols-[1fr,220px,auto] gap-3 items-center">
+            <div className="relative">
+              <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
               <input
                 type="text"
-                placeholder="Search skills, instructors, or topics..."
-                className="w-full pl-12 pr-4 py-3 bg-black border border-white text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-red-600 focus:border-red-600 transition-all placeholder-gray-400"
+                value={searchQuery}
+                onChange={(event) => setSearchQuery(event.target.value)}
+                placeholder="Search skill, instructor, tags"
+                className="glass-input pl-9"
               />
             </div>
-            {/* category select removed to simplify UI */}
-            {isPremiumUser ? (
-              <Link to="/skill-recommendations" className="flex items-center gap-2 px-4 py-3 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-all hover:shadow-lg font-medium cursor-pointer border border-white">
-                <Sparkles size={18} className="text-white" />
-                <span className="font-medium">Recommendations</span>
-              </Link>
-            ) : (
-              <button onClick={() => window.location.assign('/get-premium')} className="flex items-center gap-2 px-4 py-3 border border-white text-white rounded-lg hover:bg-red-600 transition-all font-medium cursor-pointer">
-                <Sparkles size={18} className="text-red-500" />
-                <span className="font-medium">Recommendations (Premium)</span>
-              </button>
-            )}
+
+            <label className="relative">
+              <SlidersHorizontal size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
+              <select
+                value={selectedLevel}
+                onChange={(event) => setSelectedLevel(event.target.value)}
+                className="glass-input pl-9 appearance-none"
+              >
+                <option>All Levels</option>
+                <option>Beginner</option>
+                <option>Intermediate</option>
+                <option>Advanced</option>
+                <option>Expert</option>
+              </select>
+            </label>
+
             <button
-              className="flex items-center gap-2 px-6 py-3 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-all hover:shadow-lg font-semibold cursor-pointer border border-white"
-              onClick={() => setShowPostSkillModal(true)}
+              type="button"
+              onClick={() => fetchPostedSkills(false)}
+              className="glass-chip border-white/20 bg-white/8 hover:border-red-300/55"
+              disabled={refreshing}
+              title="Refresh skills"
             >
-              <UserPlus size={20} />
-              <span>Post Skill</span>
+              <RefreshCcw size={14} className={refreshing ? 'animate-spin' : ''} />
+              {refreshing ? 'Refreshing' : 'Refresh'}
             </button>
           </div>
 
-          {/* Browse by Category */}
-          <div className="mb-12 animate-fadeInUp" style={{ animationDelay: '0.2s' }}>
-            <h2 className="text-2xl font-bold text-white mb-6">Browse by Category</h2>
-            <div className="grid grid-cols-4 lg:grid-cols-8 gap-4">
-              {categories.map((cat, idx) => (
+          <div className="flex flex-wrap gap-2">
+            {categories.map((category) => {
+              const active = selectedCategory === category;
+              return (
                 <button
-                  key={idx}
-                  onClick={() => handleCategorySelect(cat.name)}
-                  className={`category-card group p-6 rounded-xl border-2 flex flex-col items-center text-center cursor-pointer ${cat.active
-                    ? 'border-red-600 bg-black'
-                    : 'border-white bg-black hover:border-red-600'
-                    }`}
-                  style={{ animationDelay: `${0.3 + idx * 0.05}s` }}
-                >
-                  <div className="bg-red-600 rounded-2xl p-4 mb-4 text-white transition-transform duration-300 group-hover:scale-110 group-hover:rotate-6 shadow-sm">
-                    {cat.icon}
-                  </div>
-                  <div className="font-semibold text-white text-sm mb-1">{cat.name}</div>
-                  <div className="text-xs text-gray-400">{cat.count} skills</div>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Skills Available with Refresh Button */}
-          <div className="mb-8 flex items-center justify-between animate-fadeInUp" style={{ animationDelay: '0.5s' }}>
-            <h2 className="text-2xl font-bold text-white">
-              {filteredSkills.length} Skills Available
-              {selectedCategory && selectedCategory !== 'All Categories' && (
-                <span className="text-lg font-normal text-gray-400 ml-2">
-                  in {selectedCategory}
-                </span>
-              )}
-            </h2>
-            <div className="flex items-center gap-4">
-              <button
-                onClick={() => fetchPostedSkills(false)}
-                disabled={isRefreshing}
-                className={`flex items-center gap-2 px-4 py-2 bg-black border border-white text-white rounded-lg font-medium transition-all ${isRefreshing
-                  ? 'opacity-50 cursor-not-allowed'
-                  : 'hover:bg-red-600 hover:border-red-600 cursor-pointer'
+                  key={category}
+                  type="button"
+                  onClick={() => setSelectedCategory(category)}
+                  className={`glass-chip transition-colors ${
+                    active
+                      ? 'border-red-400/60 bg-red-500/20 text-red-100'
+                      : 'border-white/15 bg-white/5 text-zinc-300 hover:border-red-300/45 hover:text-zinc-100'
                   }`}
-                title="Refresh skills"
-              >
-                <div className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`}>
-                  <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                  </svg>
-                </div>
-                {isRefreshing ? 'Refreshing...' : 'Refresh'}
-              </button>
-              {/* relevance sort removed; keep only refresh and actions */}
-            </div>
+                >
+                  {category}
+                  <span className="text-[10px] text-zinc-400">{categoryCounts[category] || 0}</span>
+                </button>
+              );
+            })}
           </div>
+        </section>
 
-          {/* Skills Grid with Enhanced Loading */}
-          {pageLoading ? (
-            <div className="grid grid-cols-3 gap-6 mb-8">
-              {/* Skeleton Loading Cards */}
-              {Array.from({ length: 6 }).map((_, index) => (
-                <div key={index} className="bg-black rounded-xl border border-white p-6 animate-pulse">
-                  {/* Header skeleton */}
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="w-12 h-12 bg-gray-200 rounded-full"></div>
-                    <div className="flex-1 space-y-2">
-                      <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-                      <div className="h-3 bg-gray-200 rounded w-1/2"></div>
-                    </div>
-                  </div>
+        {successMessage && (
+          <section className="glass-panel p-3 border border-emerald-500/40 text-emerald-200 text-sm">
+            {successMessage}
+          </section>
+        )}
 
-                  {/* Content skeleton */}
-                  <div className="space-y-3 mb-4">
-                    <div className="h-6 bg-gray-200 rounded w-full"></div>
-                    <div className="h-4 bg-gray-200 rounded w-full"></div>
-                    <div className="h-4 bg-gray-200 rounded w-2/3"></div>
-                  </div>
+        {error && (
+          <section className="glass-panel p-3 border border-red-500/40 text-red-200 text-sm">
+            {error}
+          </section>
+        )}
 
-                  {/* Tags skeleton */}
-                  <div className="flex gap-2 mb-4">
-                    <div className="h-6 bg-gray-200 rounded-full w-16"></div>
-                    <div className="h-6 bg-gray-200 rounded-full w-20"></div>
-                  </div>
+        {loading ? (
+          <section className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+            {Array.from({ length: 6 }).map((_, index) => (
+              <SkillSkeleton key={index} />
+            ))}
+          </section>
+        ) : filteredSkills.length === 0 ? (
+          <section className="glass-panel p-10 text-center">
+            <h2 className="text-xl font-semibold">No matching skills found</h2>
+            <p className="text-zinc-400 mt-2">Try another category, level, or search term.</p>
+          </section>
+        ) : (
+          <section className="space-y-5">
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+              {displayedSkills.map((skill) => {
+                const ownerId = skill.user?._id || skill.user?.id;
+                const isOwnSkill = currentUserId && ownerId && String(ownerId) === String(currentUserId);
+                const avatar = getAvatarDisplayProps(skill.user, 44);
 
-                  {/* Footer skeleton */}
-                  <div className="flex justify-between items-center">
-                    <div className="h-4 bg-gray-200 rounded w-24"></div>
-                    <div className="h-8 bg-gray-200 rounded w-20"></div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <>
-              {/* Refresh indicator */}
-              {isRefreshing && (
-                <div className="mb-6 animate-fadeIn">
-                  <div className="bg-black border border-white rounded-xl p-4 flex items-center justify-center gap-3">
-                    <div className="w-5 h-5 border-2 border-red-600 border-t-transparent rounded-full animate-spin"></div>
-                    <span className="text-white font-medium">Refreshing skills...</span>
-                  </div>
-                </div>
-              )}
-
-              {/* New skill notification */}
-              {newSkillAdded && (
-                <div className="mb-6 animate-slideDown">
-                  <div className="bg-green-50 border border-green-200 rounded-xl p-4 flex items-center justify-center gap-3">
-                    <div className="w-5 h-5 bg-green-500 rounded-full flex items-center justify-center">
-                      <span className="text-white text-xs font-bold">✓</span>
-                    </div>
-                    <span className="text-green-700 font-medium">New skills available! Check them out below.</span>
-                  </div>
-                </div>
-              )}
-
-              <div className="grid grid-cols-3 gap-6 mb-8">
-                {filteredSkills.slice(0, visibleSkills).map((skill, idx) => (
-                  <div key={skill._id} className="skill-card bg-black rounded-xl border border-white p-6 animate-fadeInUp" style={{ animationDelay: `${0.6 + idx * 0.1}s` }}>
-                    {/* Instructor Info */}
-                    <div className="flex items-center gap-3 mb-4">
-                      {(() => {
-                        // Use avatar utility functions for consistent avatar handling
-                        const avatarProps = getAvatarDisplayProps(skill.user, 48);
-
-                        console.log('=== AVATAR RENDERING WITH UTILS ===');
-                        console.log('User:', skill.user?.name);
-                        console.log('Avatar Props:', avatarProps);
-
-                        // Try to show custom avatar first
-                        if (avatarProps.hasCustom && avatarProps.avatarUrl) {
-                          console.log('Showing custom avatar:', avatarProps.avatarUrl);
-                          return (
-                            <img
-                              src={avatarProps.avatarUrl}
-                              alt={avatarProps.userName}
-                              className="w-12 h-12 rounded-full hover:scale-110 transition-transform object-cover border-2 border-gray-200 flex-shrink-0"
-                              onLoad={() => {
-                                console.log('✅ Custom avatar loaded:', avatarProps.avatarUrl);
-                              }}
-                              onError={(e) => {
-                                console.log('❌ Custom avatar failed, trying placeholder');
-                                // Switch to placeholder on error
-                                e.target.src = avatarProps.placeholderUrl;
-                                e.target.onError = (e2) => {
-                                  console.log('❌ Placeholder also failed, using initials');
-                                  // Hide image and show initials fallback
-                                  e2.target.style.display = 'none';
-                                  const fallback = document.createElement('div');
-                                  fallback.className = avatarProps.fallbackProps.className;
-                                  fallback.style.backgroundColor = avatarProps.fallbackProps.style.backgroundColor;
-                                  fallback.textContent = avatarProps.fallbackProps.children;
-                                  fallback.title = `Avatar failed for ${avatarProps.userName}`;
-                                  e2.target.parentNode.insertBefore(fallback, e2.target);
-                                };
-                              }}
-                            />
-                          );
-                        } else {
-                          // Use placeholder avatar service for users without custom avatars
-                          console.log('Showing placeholder avatar:', avatarProps.placeholderUrl);
-                          return (
-                            <img
-                              src={avatarProps.placeholderUrl}
-                              alt={avatarProps.userName}
-                              className="w-12 h-12 rounded-full hover:scale-110 transition-transform object-cover border-2 border-gray-200 flex-shrink-0"
-                              onLoad={() => {
-                                console.log('✅ Placeholder avatar loaded for:', avatarProps.userName);
-                              }}
-                              onError={(e) => {
-                                console.log('❌ Placeholder failed, using initials for:', avatarProps.userName);
-                                // Hide image and show initials fallback
-                                e.target.style.display = 'none';
-                                const fallback = document.createElement('div');
-                                fallback.className = avatarProps.fallbackProps.className;
-                                fallback.style.backgroundColor = avatarProps.fallbackProps.style.backgroundColor;
-                                fallback.textContent = avatarProps.fallbackProps.children;
-                                fallback.title = `Generated avatar for ${avatarProps.userName}`;
-                                e.target.parentNode.insertBefore(fallback, e.target);
-                              }}
-                            />
-                          );
-                        }
-                      })()}
-                      <div className="flex-1">
-                        <div className="font-semibold text-white">{skill.user?.name || 'Unknown User'}</div>
-                        <div className="flex items-center gap-1 text-sm">
-                          <Star size={14} className="fill-yellow-400 text-yellow-400" />
-                          <span className="font-medium">{skill.user?.rating?.average?.toFixed(1) || 'N/A'}</span>
-                          <span className="text-gray-500">({skill.user?.rating?.count || 0})</span>
+                return (
+                  <article key={skill._id} className="glass-panel p-5 flex flex-col">
+                    <div className="flex items-start justify-between gap-3 mb-4">
+                      <div className="flex items-center gap-3 min-w-0">
+                        {avatar.hasCustom ? (
+                          <img
+                            src={avatar.avatarUrl}
+                            alt={avatar.userName}
+                            className="w-11 h-11 rounded-full object-cover border border-white/25"
+                          />
+                        ) : (
+                          <div className="w-11 h-11 rounded-full border border-white/20 flex items-center justify-center text-sm font-bold text-white" style={{ backgroundColor: avatar.initialsColor }}>
+                            {avatar.initials}
+                          </div>
+                        )}
+                        <div className="min-w-0">
+                          <p className="font-semibold text-zinc-100 truncate">{skill.user?.name || 'Unknown Instructor'}</p>
+                          <p className="text-xs text-zinc-400 flex items-center gap-1">
+                            <Star size={12} className="text-amber-300" />
+                            {(skill.user?.rating?.average || 0).toFixed(1)}
+                          </p>
                         </div>
                       </div>
+
+                      <span className="glass-chip text-[10px] border-white/20 bg-black/30">{skill.category || 'Other'}</span>
                     </div>
 
-                    {/* Skill Title & Description */}
-                    <h3 className="text-lg font-bold text-white mb-2 hover:text-red-500 transition-colors">{skill.name}</h3>
-                    {skill.subCategory && (
-                      <span className="inline-block px-2 py-0.5 bg-red-600 text-white text-xs rounded-md mb-2 font-medium">
-                        {skill.subCategory}
-                      </span>
-                    )}
-                    <p className="text-sm text-gray-400 mb-4">{skill.offering?.description}</p>
+                    <h3 className="text-xl font-semibold leading-tight text-zinc-100">{skill.name}</h3>
+                    <p className="text-sm text-zinc-400 mt-2 line-clamp-3 flex-1">{skill.offering?.description || 'No description yet.'}</p>
 
-                    {/* Tags */}
-                    <div className="flex flex-wrap gap-2 mb-4">
-                      {skill.tags.map((tag, i) => (
-                        <span key={i} className="tag-item px-3 py-1 bg-red-600 text-white text-xs rounded-full font-medium cursor-pointer">
+                    <div className="flex flex-wrap items-center gap-2 mt-3">
+                      {skill.subCategory && (
+                        <span className="glass-chip text-[10px] border-red-400/40 bg-red-500/15 text-red-100">
+                          {skill.subCategory}
+                        </span>
+                      )}
+                      <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] ${getLevelBadgeClass(skill.offering?.level)}`}>
+                        {skill.offering?.level || 'Beginner'}
+                      </span>
+                      {(skill.tags || []).slice(0, 2).map((tag) => (
+                        <span key={tag} className="glass-chip text-[10px] border-white/15 bg-white/5 text-zinc-300">
                           {tag}
                         </span>
                       ))}
                     </div>
 
-                    {/* Details */}
-                    <div className="flex items-center gap-4 text-sm text-gray-400 mb-4">
-                      <div className="flex items-center gap-1">
-                        <Clock size={16} />
-                        <span>{skill.offering?.duration}</span>
+                    <div className="flex items-center justify-between mt-4 pt-3 border-t border-white/10">
+                      <div className="space-y-1 text-xs text-zinc-400">
+                        <p className="inline-flex items-center gap-1">
+                          <Clock3 size={13} />
+                          {skill.offering?.duration || 'Flexible'}
+                        </p>
+                        <p className="inline-flex items-center gap-1">
+                          <CircleDollarSign size={13} />
+                          {formatPriceLabel(skill.offering?.price)}
+                        </p>
                       </div>
-                      <div className="flex items-center gap-1">
-                        <MapPin size={16} />
-                        <span>Online</span>
-                      </div>
-                      {/* <div className="flex items-center gap-1">
-                      <Trophy size={16} />
-                      <span>{skill.offering?.level}</span>
-                    </div> */}
-                    </div>
 
-                    {/* Difficulty Level Badge */}
-                    <div className="mt-3">
-                      <span
-                        className={`inline-block px-3 py-1 text-xs font-semibold rounded-full ${skill.offering?.level === 'Beginner'
-                          ? 'bg-green-100 text-green-800 border border-green-200'
-                          : skill.offering?.level === 'Intermediate'
-                            ? 'bg-yellow-100 text-yellow-800 border border-yellow-200'
-                            : skill.offering?.level === 'Advanced'
-                              ? 'bg-red-100 text-red-800 border border-red-200'
-                              : skill.offering?.level === 'Expert'
-                                ? 'bg-purple-100 text-purple-800 border border-purple-200'
-                                : 'bg-gray-100 text-gray-800 border border-gray-200'
-                          }`}
-                      >
-                        {skill.offering?.level || 'Not specified'}
-                      </span>
-                    </div>
-
-                    <div className="flex items-center justify-end mb-4">
-                      <span className={`text-lg font-bold ${skill.offering?.price === 0 ? 'text-red-500' : 'text-white'}`}>
-                        {skill.offering?.price === 0 ? 'Free' : `${formatINR(skill.offering?.price)}/hr`}
-                      </span>
-                    </div>
-
-                    {/* Book Button */}
-                    <div className="flex items-center gap-2">
-                      {(() => {
-                        const ownerId = skill.user?._id || skill.user?.id;
-                        const isOwnSkill = currentUserId && ownerId && ownerId.toString() === currentUserId.toString();
-                        if (isOwnSkill) {
-                          return (
-                            <button
-                              type="button"
-                              disabled
-                              title="You can't book a session for your own skill"
-                              className="flex-1 text-center py-3 rounded-lg font-semibold cursor-not-allowed px-28 bg-gray-200 text-gray-500 border border-gray-300"
-                            >
-                              Your Skill
-                            </button>
-                          );
-                        }
-                        return (
+                      {isOwnSkill ? (
+                        <button
+                          type="button"
+                          disabled
+                          className="px-3 py-2 rounded-lg border border-zinc-600 text-zinc-400 text-sm cursor-not-allowed"
+                        >
+                          Your Skill
+                        </button>
+                      ) : (
+                        <div className="flex items-center gap-2">
                           <Link
-                            to={`/book-session?skillId=${skill._id}&instructorId=${ownerId}&skillTitle=${encodeURIComponent(skill.name)}&instructorName=${encodeURIComponent(skill.user?.name || 'Unknown User')}`}
-                            className="flex-1 text-center bg-red-600 hover:bg-red-700 text-white py-3 rounded-lg font-semibold transition-all hover:shadow-lg cursor-pointer px-28 border border-white"
+                            to={`/book-session?skillId=${skill._id}&instructorId=${ownerId}&skillTitle=${encodeURIComponent(skill.name)}&instructorName=${encodeURIComponent(skill.user?.name || 'Unknown Instructor')}`}
+                            className="glass-cta px-4 py-2 text-sm"
                           >
                             Book Session
                           </Link>
-                        );
-                      })()}
-
-                      <button className="p-3 border border-white rounded-lg hover:bg-red-600 transition-all cursor-pointer">
-                        <UserPlus size={20} className="text-white" />
-                      </button>
+                          <button
+                            type="button"
+                            className="glass-chip border-white/20 bg-white/8 hover:border-red-300/45"
+                            title="Connect"
+                          >
+                            <UserPlus size={14} />
+                          </button>
+                        </div>
+                      )}
                     </div>
-                  </div>
-                ))}
-              </div>
-            </>
-          )}
-
-          {/* Load More Button */}
-          {visibleSkills < filteredSkills.length && (
-            <div className="text-center animate-fadeInUp">
-              <button
-                onClick={() => setVisibleSkills(prev => prev + 3)}
-                className="px-8 py-3 bg-black border-2 border-white rounded-lg font-semibold hover:bg-red-600 transition-all text-white hover:border-red-600 hover:shadow-md cursor-pointer"
-              >
-                Load More Skills
-              </button>
+                  </article>
+                );
+              })}
             </div>
-          )}
-        </div>
-      </div>
 
-      {/* Post Skill Modal */}
+            {visibleSkills < filteredSkills.length && (
+              <div className="text-center">
+                <button
+                  type="button"
+                  onClick={() => setVisibleSkills((prev) => prev + 6)}
+                  className="glass-chip border-white/25 bg-white/8 hover:border-red-300/55"
+                >
+                  Load More Skills
+                </button>
+              </div>
+            )}
+          </section>
+        )}
+      </main>
+
       {showPostSkillModal && (
-        <div className="fixed inset-0 modal-overlay flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl p-8 max-w-md w-full mx-4 animate-fadeInUp shadow-2xl">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold text-gray-900">Post a New Skill</h2>
-              <button
-                onClick={() => {
-                  setShowPostSkillModal(false);
-                  setShowSkillsDropdown(false);
-                }}
-                className="p-2 hover:bg-gray-100 rounded-lg transition-all cursor-pointer"
-              >
-                <X size={20} className="text-gray-500" />
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center px-4">
+          <div className="glass-panel w-full max-w-xl p-6 max-h-[88vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-semibold">Post a New Skill</h2>
+              <button type="button" onClick={clearModal} className="glass-chip border-white/20 bg-white/8">
+                <X size={14} />
               </button>
             </div>
 
             <form onSubmit={handlePostSkillSubmit} className="space-y-4">
-              {/* Title */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Title <span className="text-red-500">*</span>
-                </label>
+                <label className="block text-sm text-zinc-300 mb-2">Title</label>
                 <input
-                  type="text"
                   name="title"
                   value={postSkillForm.title}
                   onChange={handleInputChange}
-                  placeholder="e.g., Master JavaScript Fundamentals"
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:border-transparent"
+                  className="glass-input"
+                  placeholder="Example: Master JavaScript Fundamentals"
                   required
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Description <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
+                <label className="block text-sm text-zinc-300 mb-2">Description</label>
+                <textarea
                   name="description"
                   value={postSkillForm.description}
                   onChange={handleInputChange}
-                  placeholder="e.g., This course covers the basics of Javascript..."
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:border-transparent"
+                  className="glass-input min-h-[100px]"
+                  placeholder="Describe what learners will gain in this session."
                   required
                 />
               </div>
 
-              {/* Category & SubCategory */}
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Category</label>
+                  <label className="block text-sm text-zinc-300 mb-2">Category</label>
                   <select
                     name="category"
                     value={postSkillForm.category}
                     onChange={handleInputChange}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
+                    className="glass-input appearance-none"
                   >
                     <option value="Other">Other</option>
-                    {categories.filter(c => c.name !== 'All Categories').map((cat, idx) => (
-                      <option key={idx} value={cat.name}>{cat.name}</option>
+                    {Object.keys(SUB_CATEGORIES).sort().map((category) => (
+                      <option key={category} value={category}>
+                        {category}
+                      </option>
                     ))}
                   </select>
                 </div>
+
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Sub-Category</label>
-                  {postSkillForm.category && subCategories[postSkillForm.category] ? (
+                  <label className="block text-sm text-zinc-300 mb-2">Sub-category</label>
+                  {SUB_CATEGORIES[postSkillForm.category] ? (
                     <select
                       name="subCategory"
                       value={postSkillForm.subCategory}
                       onChange={handleInputChange}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
+                      className="glass-input appearance-none"
                     >
-                      <option value="">Select...</option>
-                      {subCategories[postSkillForm.category].map((sub, idx) => (
-                        <option key={idx} value={sub}>{sub}</option>
+                      <option value="">Select</option>
+                      {SUB_CATEGORIES[postSkillForm.category].map((sub) => (
+                        <option key={sub} value={sub}>
+                          {sub}
+                        </option>
                       ))}
                     </select>
                   ) : (
                     <input
-                      type="text"
                       name="subCategory"
                       value={postSkillForm.subCategory}
                       onChange={handleInputChange}
-                      placeholder="e.g. Jazz, Portrait..."
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
+                      className="glass-input"
+                      placeholder="Optional"
                     />
                   )}
                 </div>
               </div>
 
-              {/* Skills */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Skill to Include <span className="text-red-500">*</span>
-                </label>
-
-                {/* Selected Skill Display */}
-                {postSkillForm.skills && (
-                  <div className="flex flex-wrap gap-2 mb-2">
-                    <span className="inline-flex items-center gap-1 px-3 py-1 bg-red-900/40 text-red-300 text-sm rounded-full border border-red-500">
-                      {postSkillForm.skills}
-                      <button
-                        type="button"
-                        onClick={() => setPostSkillForm(prev => ({ ...prev, skills: '' }))}
-                        className="hover:bg-red-800 rounded-full p-0.5 cursor-pointer"
-                      >
-                        <X size={14} />
-                      </button>
-                    </span>
-                  </div>
-                )}
-
-                {/* Skills Dropdown */}
+                <label className="block text-sm text-zinc-300 mb-2">Skill to include</label>
                 <div className="relative">
                   <button
                     type="button"
-                    onClick={() => setShowSkillsDropdown(!showSkillsDropdown)}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent text-left flex items-center justify-between cursor-pointer"
+                    onClick={() => setShowSkillsDropdown((prev) => !prev)}
+                    className="glass-input flex items-center justify-between text-left"
                   >
-                    <span className={!postSkillForm.skills ? "text-gray-400" : "text-gray-900"}>
-                      {!postSkillForm.skills
-                        ? "Select a skill to include..."
-                        : postSkillForm.skills
-                      }
+                    <span className={postSkillForm.skills ? 'text-zinc-100' : 'text-zinc-400'}>
+                      {postSkillForm.skills || 'Select from your available skills'}
                     </span>
-                    <ChevronDown size={20} className={`transform transition-transform ${showSkillsDropdown ? 'rotate-180' : ''
-                      }`} />
+                    <ChevronDown size={16} className={`${showSkillsDropdown ? 'rotate-180' : ''} transition-transform`} />
                   </button>
 
-                  {/* Dropdown Options */}
                   {showSkillsDropdown && (
-                    <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                    <div className="absolute z-20 mt-1 w-full rounded-xl border border-white/20 bg-zinc-950/95 backdrop-blur max-h-56 overflow-y-auto">
                       {skillsLoading ? (
-                        <div className="px-4 py-3 text-gray-500 text-center">
-                          Loading skills...
-                        </div>
+                        <p className="px-3 py-2 text-sm text-zinc-400">Loading skills...</p>
                       ) : availableSkills.length === 0 ? (
-                        <div className="px-4 py-3 text-gray-500 text-center">
-                          No skills available
-                        </div>
+                        <p className="px-3 py-2 text-sm text-zinc-400">No unposted offering skills found.</p>
                       ) : (
-                        availableSkills.map((skill, index) => (
-                          <button
-                            key={index}
-                            type="button"
-                            onClick={() => handleSkillSelect(skill)}
-                            className={`w-full text-left px-4 py-3 hover:bg-gray-50 flex items-center justify-between cursor-pointer ${postSkillForm.skills === skill ? 'bg-red-900/30 text-red-300' : 'text-gray-900'
+                        availableSkills.map((skillName) => {
+                          const selected = postSkillForm.skills === skillName;
+                          return (
+                            <button
+                              key={skillName}
+                              type="button"
+                              onClick={() => handleSkillSelect(skillName)}
+                              className={`w-full px-3 py-2 text-left text-sm flex items-center justify-between ${
+                                selected ? 'bg-red-500/20 text-red-100' : 'text-zinc-200 hover:bg-white/8'
                               }`}
-                          >
-                            <span>{skill}</span>
-                            {postSkillForm.skills === skill && (
-                              <span className="text-red-500">✓</span>
-                            )}
-                          </button>
-                        ))
+                            >
+                              {skillName}
+                              {selected && <Check size={14} />}
+                            </button>
+                          );
+                        })
                       )}
                     </div>
                   )}
                 </div>
-
-                {/* Validation */}
-                {!postSkillForm.skills && (
-                  <p className="text-xs text-gray-500 mt-1">Please select a skill</p>
-                )}
               </div>
 
-              {/* Time per Hour */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Session Duration <span className="text-red-500">*</span>
-                </label>
-                <select
-                  name="timePerHour"
-                  value={postSkillForm.timePerHour}
-                  onChange={handleInputChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:border-transparent"
-                  required
-                >
-                  <option value="">Select duration</option>
-                  <option value="30 minutes">30 minutes</option>
-                  <option value="1 hour">1 hour</option>
-                  <option value="1.5 hours">1.5 hours</option>
-                  <option value="2 hours">2 hours</option>
-                  <option value="2.5 hours">2.5 hours</option>
-                  <option value="3 hours">3 hours</option>
-                </select>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-sm text-zinc-300 mb-2">Session duration</label>
+                  <select
+                    name="timePerHour"
+                    value={postSkillForm.timePerHour}
+                    onChange={handleInputChange}
+                    className="glass-input appearance-none"
+                    required
+                  >
+                    {DURATION_OPTIONS.map((option) => (
+                      <option key={option} value={option}>
+                        {option}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm text-zinc-300 mb-2">Price (optional)</label>
+                  <input
+                    name="price"
+                    value={postSkillForm.price}
+                    onChange={handleInputChange}
+                    className="glass-input"
+                    placeholder="Example: 1200"
+                  />
+                </div>
               </div>
 
-              {/* Price */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Price (Optional)
-                </label>
-                <input
-                  type="text"
-                  name="price"
-                  value={postSkillForm.price}
-                  onChange={handleInputChange}
-                  placeholder="e.g., ₹50/hr (leave empty for free)"
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:border-transparent"
-                />
-              </div>
-
-              {/* Action Buttons */}
-              <div className="flex gap-3 pt-4">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowPostSkillModal(false);
-                    setShowSkillsDropdown(false);
-                  }}
-                  className="flex-1 px-4 py-3 border border-gray-300 rounded-lg font-medium text-gray-700 hover:bg-gray-50 transition-all cursor-pointer"
-                >
+              <div className="flex items-center gap-2 pt-2">
+                <button type="button" onClick={clearModal} className="glass-chip border-white/20 bg-white/8 px-4 py-2">
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={!postSkillForm.skills}
-                  className={`flex-1 px-4 py-3 rounded-lg font-medium transition-all cursor-pointer ${!postSkillForm.skills
-                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                    : 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white hover:from-indigo-700 hover:to-purple-700'
-                    }`}
+                  className="glass-cta px-4 py-2 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Post Skill
                 </button>
@@ -1286,78 +731,6 @@ export default function SkillSwapBrowse() {
           </div>
         </div>
       )}
-
-      {/* Enhanced Animation Styles */}
-      <style jsx>{`
-        @keyframes fadeIn {
-          from { opacity: 0; }
-          to { opacity: 1; }
-        }
-        
-        @keyframes slideDown {
-          from { 
-            opacity: 0; 
-            transform: translateY(-20px); 
-          }
-          to { 
-            opacity: 1; 
-            transform: translateY(0); 
-          }
-        }
-        
-        @keyframes fadeInUp {
-          from { 
-            opacity: 0; 
-            transform: translateY(20px); 
-          }
-          to { 
-            opacity: 1; 
-            transform: translateY(0); 
-          }
-        }
-        
-        @keyframes pulse {
-          0%, 100% { 
-            opacity: 1; 
-          }
-          50% { 
-            opacity: 0.7; 
-          }
-        }
-        
-        .animate-fadeIn {
-          animation: fadeIn 0.5s ease-out;
-        }
-        
-        .animate-slideDown {
-          animation: slideDown 0.5s ease-out;
-        }
-        
-        .animate-fadeInUp {
-          animation: fadeInUp 0.6s ease-out;
-        }
-        
-        .animate-pulse {
-          animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-        }
-        
-        .skill-card {
-          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-        
-        .skill-card:hover {
-          transform: translateY(-4px);
-          box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-        }
-        
-        /* Stagger animation for skill cards */
-        .skill-card:nth-child(1) { animation-delay: 0.1s; }
-        .skill-card:nth-child(2) { animation-delay: 0.2s; }
-        .skill-card:nth-child(3) { animation-delay: 0.3s; }
-        .skill-card:nth-child(4) { animation-delay: 0.4s; }
-        .skill-card:nth-child(5) { animation-delay: 0.5s; }
-        .skill-card:nth-child(6) { animation-delay: 0.6s; }
-      `}</style>
     </div>
   );
 }

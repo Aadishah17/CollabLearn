@@ -1,19 +1,30 @@
-# CollabLearn iOS App
+# CollabLearn iOS (Swift)
 
-This directory contains the Swift source code for the native iOS version of CollabLearn.
+This iOS app is native Swift/SwiftUI (`.swift`) and includes AI learning integration.
 
-## How to Run
-Since you are currently on Windows, you cannot compile or run this directly. To run this app:
+## Stack
+- Language: Swift
+- UI: SwiftUI
+- Networking: URLSession
 
-1.  Transfer this `ios` folder to a Mac.
-2.  Open Xcode.
-3.  Create a new SwiftUI Project named "CollabLearnApp".
-4.  Replace the default files (`ContentView.swift`, `CollabLearnAppApp.swift`) with the files in this directory.
-5.  Copy `LoginView.swift` and `Shared/Theme.swift` into your Xcode project.
-6.  Build and Run (Cmd + R) on the iOS Simulator or a Device.
+## Included screens
+- `ContentView` (landing)
+- `LoginView` (backend login call)
+- `AiLearningView` (AI roadmap + study session + top video guidance link)
 
-## Structure
--   `CollabLearnAppApp.swift`: Main entry point.
--   `ContentView.swift`: The Landing Page implementation.
--   `LoginView.swift`: The Login Screen implementation.
--   `Shared/Theme.swift`: Custom colors and design tokens to match the web app.
+## API configuration
+- Base URL is in `Services/APIConfig.swift`.
+- Default: `http://127.0.0.1:5001` (works for iOS Simulator with backend running on the same Mac).
+- For physical iPhone, replace with your Mac LAN IP (example: `http://192.168.1.20:5001`).
+
+## Required Info.plist setting for local HTTP (dev)
+Add:
+- `App Transport Security Settings` -> `Allow Arbitrary Loads` = `YES`
+
+or configure an ATS exception for your API host.
+
+## Run
+1. Open folder on macOS in Xcode.
+2. Create/open SwiftUI app target and include all `.swift` files from `ios/CollabLearnApp/`.
+3. Apply the Info.plist ATS setting above.
+4. Build and run on Simulator or device.

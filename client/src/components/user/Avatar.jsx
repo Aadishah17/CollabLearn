@@ -1,5 +1,6 @@
 import React from 'react';
 import { getInitials, getInitialsColor, getAvatarUrl } from '../../utils/avatarUtils';
+import { API_URL } from '../../config';
 
 // Avatar component with enhanced functionality
 export default function Avatar({ 
@@ -20,20 +21,36 @@ export default function Avatar({
 
   const baseClasses = `${sizeClasses[size]} rounded-full flex items-center justify-center font-semibold text-white relative overflow-hidden transition-all duration-200 ${className}`;
 
+  const resolveStringSrc = (value) => {
+    const raw = String(value || '').trim();
+    if (!raw || raw === 'default') return null;
+    if (raw.startsWith('data:image/')) return raw;
+    if (raw.startsWith('http://') || raw.startsWith('https://')) return raw;
+
+    if (raw.startsWith('/')) {
+      return API_URL ? `${API_URL}${raw}` : raw;
+    }
+    if (raw.startsWith('uploads/')) {
+      const normalized = `/${raw}`;
+      return API_URL ? `${API_URL}${normalized}` : normalized;
+    }
+    return raw;
+  };
+
   // Resolve a safe image source. `src` can be a string, an avatar object, or a user object.
   let imageSrc = null;
 
   if (typeof src === 'string') {
     // Only treat non-empty trimmed strings that aren't the explicit 'default'
     const trimmed = src.trim ? src.trim() : src;
-    if (trimmed && trimmed !== 'default') imageSrc = trimmed;
+    if (trimmed && trimmed !== 'default') imageSrc = resolveStringSrc(trimmed);
   } else if (typeof src === 'object' && src) {
     // If callers passed a full user object, let getAvatarUrl handle it.
     // If they passed an avatar object, wrap it as `{ avatar: src }` so getAvatarUrl can process it.
     const possibleUser = src.avatar ? src : { avatar: src };
     try {
       imageSrc = getAvatarUrl(possibleUser);
-    } catch (err) {
+    } catch {
       imageSrc = null;
     }
   }

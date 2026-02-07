@@ -186,6 +186,25 @@
                     }
                 },
                 {
+                    "source": "C:\\Users\\sseja\\OneDrive\\Desktop\\Projects\\CollabLearn-1\\android\\app\\src\\main\\res\\values\\styles.xml",
+                    "from": {
+                        "startLines": "15,2",
+                        "startColumns": "4,4",
+                        "startOffsets": "802,102",
+                        "endLines": "15,14",
+                        "endColumns": "39,12",
+                        "endOffsets": "837,796"
+                    },
+                    "to": {
+                        "startLines": "958,6353",
+                        "startColumns": "4,4",
+                        "startOffsets": "56432,445017",
+                        "endLines": "958,6365",
+                        "endColumns": "39,12",
+                        "endOffsets": "56467,445576"
+                    }
+                },
+                {
                     "source": "C:\\Users\\sseja\\.gradle\\caches\\9.0-milestone-1\\transforms\\777192df469d76408dd78add00d5643a\\transformed\\activity-1.8.0\\res\\values\\values.xml",
                     "from": {
                         "startLines": "2,3",
@@ -295,25 +314,6 @@
                         "endLines": "109,9160,11118,11202",
                         "endColumns": "60,12,24,24",
                         "endOffsets": "5821,636307,707560,712076"
-                    }
-                },
-                {
-                    "source": "C:\\Users\\sseja\\OneDrive\\Desktop\\Projects\\CollabLearn-main\\android\\app\\src\\main\\res\\values\\styles.xml",
-                    "from": {
-                        "startLines": "15,2",
-                        "startColumns": "4,4",
-                        "startOffsets": "802,102",
-                        "endLines": "15,14",
-                        "endColumns": "39,12",
-                        "endOffsets": "837,796"
-                    },
-                    "to": {
-                        "startLines": "958,6353",
-                        "startColumns": "4,4",
-                        "startOffsets": "56432,445017",
-                        "endLines": "958,6365",
-                        "endColumns": "39,12",
-                        "endOffsets": "56467,445576"
                     }
                 },
                 {

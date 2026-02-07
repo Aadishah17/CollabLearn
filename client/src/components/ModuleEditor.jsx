@@ -77,15 +77,15 @@ const ModuleEditor = () => {
     };
 
     if (loading) {
-        return <div className="min-h-screen bg-slate-900 flex items-center justify-center text-white">Loading Editor...</div>;
+        return <div className="min-h-screen glass-page flex items-center justify-center text-white">Loading Editor...</div>;
     }
 
     return (
-        <div className="min-h-screen bg-slate-950 flex flex-col text-slate-100">
+        <div className="min-h-screen glass-page flex flex-col text-slate-100">
             {/* Top Bar */}
-            <div className="h-16 border-b border-slate-800 bg-slate-900 px-4 flex items-center justify-between shrink-0">
+            <div className="h-16 border-b border-white/12 liquid-glass px-4 flex items-center justify-between shrink-0">
                 <div className="flex items-center gap-4">
-                    <button onClick={() => navigate('/modules')} className="p-2 hover:bg-slate-800 rounded-full transition-colors text-slate-400 hover:text-white">
+                    <button onClick={() => navigate('/modules')} className="p-2 hover:bg-red-500/20 rounded-full transition-colors text-zinc-300 hover:text-white">
                         <ArrowLeft size={20} />
                     </button>
                     <input
@@ -93,17 +93,17 @@ const ModuleEditor = () => {
                         value={title}
                         onChange={(e) => setTitle(e.target.value)}
                         placeholder="Untitled Module"
-                        className="bg-transparent text-lg font-bold text-white placeholder-slate-500 focus:outline-none border-b border-transparent focus:border-blue-500 px-2 py-1 w-64 sm:w-96 transition-all"
+                        className="bg-transparent text-lg font-bold text-white placeholder-zinc-500 focus:outline-none border-b border-transparent focus:border-red-500 px-2 py-1 w-64 sm:w-96 transition-all"
                     />
                 </div>
 
                 <div className="flex items-center gap-3">
                     <div className="flex -space-x-2 mr-4">
                         {/* Mock Active Users */}
-                        <div className="w-8 h-8 rounded-full bg-green-600 border-2 border-slate-900 flex items-center justify-center text-xs font-bold" title="You">Me</div>
+                        <div className="w-8 h-8 rounded-full bg-green-600 border-2 border-black/50 flex items-center justify-center text-xs font-bold" title="You">Me</div>
                     </div>
 
-                    <button className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-sm font-medium transition-colors">
+                    <button className="flex items-center gap-2 px-4 py-2 glass-panel text-zinc-200 rounded-lg text-sm font-medium transition-colors">
                         <Share2 size={16} />
                         Share
                     </button>
@@ -111,8 +111,8 @@ const ModuleEditor = () => {
                         onClick={handleSave}
                         disabled={saving}
                         className={`flex items-center gap-2 px-5 py-2 rounded-lg text-sm font-bold transition-all shadow-lg ${saving
-                            ? 'bg-blue-800 text-blue-200 cursor-wait'
-                            : 'bg-blue-600 hover:bg-blue-500 text-white shadow-blue-500/20'
+                            ? 'bg-red-700/45 text-red-100 cursor-wait'
+                            : 'bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white shadow-red-900/40'
                             }`}
                     >
                         <Save size={18} />
@@ -127,7 +127,7 @@ const ModuleEditor = () => {
 
                 {/* Main Editor */}
                 <div className="flex-1 overflow-y-auto p-8 relative">
-                    <div className="max-w-4xl mx-auto bg-slate-900 min-h-[calc(100vh-8rem)] rounded-xl shadow-2xl border border-slate-800 flex flex-col">
+                    <div className="max-w-4xl mx-auto liquid-glass min-h-[calc(100vh-8rem)] rounded-xl shadow-2xl border border-white/15 flex flex-col">
                         {/* Inputs for meta overrides if needed */}
 
                         <ReactQuill

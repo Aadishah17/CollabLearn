@@ -21,6 +21,21 @@ class LoginActivity : AppCompatActivity() {
         val btnLogin = findViewById<Button>(R.id.btnLogin)
         val etEmail = findViewById<EditText>(R.id.etEmail)
         val etPassword = findViewById<EditText>(R.id.etPassword)
+        val btnRoleUser = findViewById<Button>(R.id.btnRoleUser)
+        val btnRoleAdmin = findViewById<Button>(R.id.btnRoleAdmin)
+        var selectedRole = "user"
+
+        btnRoleUser.setOnClickListener {
+            selectedRole = "user"
+            btnRoleUser.setBackgroundColor(getColor(android.R.color.white))
+            btnRoleAdmin.setBackgroundColor(getColor(android.R.color.transparent))
+        }
+
+        btnRoleAdmin.setOnClickListener {
+            selectedRole = "admin"
+            btnRoleAdmin.setBackgroundColor(getColor(android.R.color.white))
+            btnRoleUser.setBackgroundColor(getColor(android.R.color.transparent))
+        }
 
         btnLogin.setOnClickListener {
             val email = etEmail.text.toString()
@@ -30,22 +45,22 @@ class LoginActivity : AppCompatActivity() {
                 btnLogin.isEnabled = false
                 btnLogin.text = "Logging in..."
 
-                val request = LoginRequest(email, password, "user") // Default to user role for now
+                val request = LoginRequest(email, password, selectedRole)
                 
                 RetrofitClient.instance.login(request).enqueue(object : Callback<LoginResponse> {
                     override fun onResponse(call: Call<LoginResponse>, response: Response<LoginResponse>) {
                         btnLogin.isEnabled = true
                         btnLogin.text = "Sign in"
                         
-                        if (response.isSuccessful && response.body() != null) {
+                        if (response.isSuccessful && response.body()?.success == true && response.body()?.user != null) {
                             val loginResponse = response.body()!!
-                            Toast.makeText(this@LoginActivity, "Welcome ${loginResponse.user.name}!", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(this@LoginActivity, "Welcome ${loginResponse.user?.name}!", Toast.LENGTH_SHORT).show()
                             
-                            // Navigate to dashboard
-                           // startActivity(Intent(this@LoginActivity, DashboardActivity::class.java))
-                           finish()
+                            startActivity(Intent(this@LoginActivity, AiLearningActivity::class.java))
+                            finish()
                         } else {
-                            Toast.makeText(this@LoginActivity, "Login failed", Toast.LENGTH_SHORT).show()
+                            val errorMessage = response.body()?.message ?: "Login failed"
+                            Toast.makeText(this@LoginActivity, errorMessage, Toast.LENGTH_SHORT).show()
                         }
                     }
 

@@ -37,13 +37,15 @@ exports.createModule = async (req, res) => {
 // @access  Public
 exports.getModules = async (req, res) => {
     try {
-        const query = {
-            $or: [
+        const query = { visibility: 'public' };
+
+        if (req.userId) {
+            query.$or = [
                 { visibility: 'public' },
                 { owner: req.userId },
                 { 'collaborators.user': req.userId }
-            ]
-        };
+            ];
+        }
 
         // Simple search
         if (req.query.search) {

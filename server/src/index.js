@@ -1,151 +1,139 @@
 const express = require('express');
 const mongoose = require('mongoose');
-
-
+const fs = require('fs');
+const path = require('path');
 const compression = require('compression');
 const cors = require('cors');
 require('dotenv').config();
-
-console.log("-----------------------------------------");
-console.log("DEBUG: SERVER STARTUP");
-console.log("DEBUG: Loaded .env via dotenv");
-console.log("DEBUG: GEMINI_API_KEY Present?", !!process.env.GEMINI_API_KEY);
-if (process.env.GEMINI_API_KEY) {
-  console.log("DEBUG: GEMINI_API_KEY Start:", process.env.GEMINI_API_KEY.substring(0, 5) + "...");
-} else {
-  console.log("DEBUG: GEMINI_API_KEY IS MISSING OR EMPTY");
-}
-console.log("-----------------------------------------");
+const { connectDB, resolveMongoUri } = require('./db');
 
 const app = express();
 const http = require('http');
 const { Server } = require('socket.io');
-const PORT = process.env.PORT || 5001;
 
-// Create HTTP server and initialize Socket.IO
+const PORT = Number(process.env.PORT) || 5001;
+const uploadsPath = path.join(__dirname, '..', 'uploads');
+const avatarUploadsPath = path.join(uploadsPath, 'avatars');
+const sessionDocumentUploadsPath = path.join(uploadsPath, 'session-documents');
+
+const parseAllowedOrigins = () => {
+  const defaults = [
+    'http://localhost:5173',
+    'http://localhost:5174',
+    'http://localhost:5175',
+    'http://localhost:5176',
+    'http://localhost:5177',
+    'http://localhost:3000'
+  ];
+
+  const configured = String(process.env.CORS_ORIGINS || '')
+    .split(',')
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+
+  return configured.length > 0 ? configured : defaults;
+};
+
+const allowedOrigins = parseAllowedOrigins();
+
+if (!fs.existsSync(uploadsPath)) {
+  fs.mkdirSync(uploadsPath, { recursive: true });
+}
+if (!fs.existsSync(avatarUploadsPath)) {
+  fs.mkdirSync(avatarUploadsPath, { recursive: true });
+}
+if (!fs.existsSync(sessionDocumentUploadsPath)) {
+  fs.mkdirSync(sessionDocumentUploadsPath, { recursive: true });
+}
+
+console.log('-----------------------------------------');
+console.log('DEBUG: SERVER STARTUP');
+console.log('DEBUG: Loaded .env via dotenv');
+console.log('DEBUG: GEMINI_API_KEY Present?', !!process.env.GEMINI_API_KEY);
+console.log('DEBUG: CORS_ORIGINS:', allowedOrigins.join(', '));
+console.log('-----------------------------------------');
+
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: ["http://localhost:5173", "http://localhost:5174", "http://localhost:5175", "http://localhost:5176", "http://localhost:5177", "http://localhost:3000"],
-    methods: ["GET", "POST"],
-    allowedHeaders: ["my-custom-header"],
+    origin: allowedOrigins,
+    methods: ['GET', 'POST'],
     credentials: true
   }
 });
 
-// --- Models (ensure paths are correct) ---
 const User = require('./models/User');
 const Message = require('./models/Message');
 
-// --- Socket.IO Real-time Logic ---
-// Track online users
-const onlineUsers = new Map(); // userId -> socketId
+const onlineUsers = new Map();
 
-io.on("connection", (socket) => {
-  // Handle user going online
-  socket.on("user_online", (userId) => {
-    if (!userId) {
-      return;
-    }
-
-    // Remove any existing entry for this user (in case of reconnection)
-    for (const [existingUserId, existingSocketId] of onlineUsers.entries()) {
-      if (existingUserId === userId && existingSocketId !== socket.id) {
-        onlineUsers.delete(existingUserId);
-      }
-    }
+io.on('connection', (socket) => {
+  socket.on('user_online', (userId) => {
+    if (!userId) return;
 
     onlineUsers.set(userId, socket.id);
     socket.userId = userId;
 
-    // Send current online users list to the newly connected user
-    const currentOnlineUsers = Array.from(onlineUsers.keys());
-    socket.emit("online_users_list", { onlineUsers: currentOnlineUsers });
-
-    // Broadcast to all OTHER connected clients that this user is online
-    socket.broadcast.emit("user_status_change", { userId, isOnline: true });
+    socket.emit('online_users_list', { onlineUsers: Array.from(onlineUsers.keys()) });
+    socket.broadcast.emit('user_status_change', { userId, isOnline: true });
   });
 
-  socket.on("joinRoom", (chatId) => {
+  socket.on('joinRoom', (chatId) => {
     socket.join(chatId);
   });
 
-  socket.on("leaveRoom", (chatId) => {
+  socket.on('leaveRoom', (chatId) => {
     socket.leave(chatId);
   });
 
-  socket.on("chat message", async (msg) => {
+  socket.on('chat message', async (msg) => {
     try {
       const saved = await Message.create(msg);
-      // Emit to everyone in the room EXCEPT the sender to avoid duplication
-      socket.to(msg.chatId).emit("chat message", saved);
-    } catch (err) {
-      console.error("Error saving message:", err);
+      socket.to(msg.chatId).emit('chat message', saved);
+    } catch (error) {
+      console.error('Error saving message:', error);
     }
   });
 
-  socket.on("typing", (data) => {
-    socket.to(data.chatId).emit("user typing", data);
+  socket.on('typing', (data) => {
+    socket.to(data.chatId).emit('user typing', data);
   });
 
-  socket.on("stopped typing", (data) => {
-    socket.to(data.chatId).emit("user stopped typing", data);
+  socket.on('stopped typing', (data) => {
+    socket.to(data.chatId).emit('user stopped typing', data);
   });
 
-  socket.on("disconnect", () => {
-    if (socket.userId) {
-      onlineUsers.delete(socket.userId);
-      // Broadcast to all connected clients that this user is offline
-      socket.broadcast.emit("user_status_change", { userId: socket.userId, isOnline: false });
-    }
+  socket.on('disconnect', () => {
+    if (!socket.userId) return;
+    onlineUsers.delete(socket.userId);
+    socket.broadcast.emit('user_status_change', { userId: socket.userId, isOnline: false });
   });
 });
 
-// --- Middleware ---
-// Simple and robust CORS configuration
-app.use(cors({
-  origin: ["http://localhost:5173", "http://localhost:5174", "http://localhost:5175", "http://localhost:5176", "http://localhost:5177", "http://localhost:3000"],
-  methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
-  credentials: true
-}));
+app.use(
+  cors({
+    origin: allowedOrigins,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    credentials: true
+  })
+);
 
-// Enable gzip compression to reduce payload size
 app.use(compression());
-
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ limit: '10mb', extended: true }));
+app.use('/uploads', express.static(uploadsPath));
 
-// Serve static files for uploads
-app.use('/uploads', express.static('uploads'));
-
-// --- MongoDB Connection ---
-// --- MongoDB Connection ---
-const connectDB = async () => {
-  try {
-    const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/collablearn';
-    console.log('Attempting to connect to MongoDB:', MONGODB_URI);
-    await mongoose.connect(MONGODB_URI, { useNewUrlParser: true, useUnifiedTopology: true });
-    console.log('✅ MongoDB connected');
-  } catch (err) {
-    console.error('❌ MongoDB connection failed:', err.message);
-    process.exit(1);
-  }
-};
-
+console.log('Attempting to connect to MongoDB:', resolveMongoUri());
 connectDB();
 
-mongoose.connection.on('connected', () => console.log('✅ MongoDB connected'));
-mongoose.connection.on('error', (err) => console.error('❌ MongoDB error:', err));
-mongoose.connection.on('disconnected', () => console.log('📴 MongoDB disconnected'));
+mongoose.connection.on('error', (error) => console.error('MongoDB error:', error));
+mongoose.connection.on('disconnected', () => console.log('MongoDB disconnected'));
 
-// --- API Routes ---
-
-// Chat-specific routes
-app.get('/api/users', async (req, res) => {
+app.get('/api/users', async (_req, res) => {
   try {
     const users = await User.find({}, '_id name email');
     res.json(users);
-  } catch (err) {
+  } catch (_error) {
     res.status(500).json({ error: 'Failed to fetch users' });
   }
 });
@@ -154,14 +142,29 @@ app.get('/api/messages/:chatId', async (req, res) => {
   try {
     const messages = await Message.find({ chatId: req.params.chatId }).sort({ time: 1 });
     res.json(messages);
-  } catch (err) {
+  } catch (_error) {
     res.status(500).json({ error: 'Failed to fetch messages' });
   }
 });
 
-// Existing application routes
+app.get('/api/health', (_req, res) => {
+  const dbState = mongoose.connection.readyState;
+  const dbStateLabelMap = {
+    0: 'disconnected',
+    1: 'connected',
+    2: 'connecting',
+    3: 'disconnecting'
+  };
+
+  res.json({
+    success: true,
+    status: 'ok',
+    db: dbStateLabelMap[dbState] || 'unknown'
+  });
+});
+
 app.use('/api/auth', require('./routes/auth'));
-app.use('/api/posts', require('./routes/posts')); // Corrected path to match convention
+app.use('/api/posts', require('./routes/posts'));
 app.use('/api/skills', require('./routes/skills'));
 app.use('/api/booking', require('./routes/booking'));
 app.use('/api/dashboard', require('./routes/dashboard'));
@@ -170,17 +173,13 @@ app.use('/api/courses', require('./routes/courses'));
 app.use('/api/ai', require('./routes/ai'));
 app.use('/api/modules', require('./routes/moduleRoutes'));
 
-console.log('✅ All routes loaded, including /api/admin routes');
+console.log('All routes loaded');
 
-// Root endpoint
-app.get('/', (req, res) => {
+app.get('/', (_req, res) => {
   res.json({ message: 'CollabLearn API Running!' });
 });
 
-// --- Start Server ---
 server.listen(PORT, '0.0.0.0', () => {
-  const msg = `🚀 Server running on port ${PORT}`;
-  console.log(msg);
-  console.log(`   Local: http://localhost:${PORT}`);
+  console.log(`Server running on port ${PORT}`);
+  console.log(`Local: http://localhost:${PORT}`);
 });
-

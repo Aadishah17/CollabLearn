@@ -25,7 +25,8 @@
         android:label="CollabLearn"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/Theme.CollabLearn" >
+        android:theme="@style/Theme.CollabLearn"
+        android:usesCleartextTraffic="true" >
         <activity
             android:name="com.collablearn.app.MainActivity"
             android:exported="true" >
@@ -36,6 +37,7 @@
             </intent-filter>
         </activity>
         <activity android:name="com.collablearn.app.LoginActivity" />
+        <activity android:name="com.collablearn.app.AiLearningActivity" />
 
         <provider
             android:name="androidx.startup.InitializationProvider"

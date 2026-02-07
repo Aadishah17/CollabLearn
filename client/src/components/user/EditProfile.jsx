@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { X, Upload, User, FileText, Image, Camera, Save, AlertCircle, CheckCircle } from 'lucide-react';
 import Avatar from './Avatar';
-import { validateAvatarFile, fileToBase64 } from '../../utils/avatarUtils';
+import { validateAvatarFile } from '../../utils/avatarUtils';
+import { API_URL } from '../../config';
 
 export default function EditProfile({ isOpen, onClose, profileData, onSave }) {
   const [formData, setFormData] = useState({
@@ -79,18 +80,52 @@ export default function EditProfile({ isOpen, onClose, profileData, onSave }) {
     setErrors(prev => ({ ...prev, avatar: '' }));
 
     try {
-      // Convert to base64 for preview and storage
-      const base64 = await fileToBase64(file);
-      setImagePreview(base64);
+      const token = localStorage.getItem('token');
+      if (!token) {
+        throw new Error('Please login again to upload avatar.');
+      }
+
+      const formData = new FormData();
+      formData.append('avatar', file);
+
+      const response = await fetch(`${API_URL}/api/auth/avatar`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`
+        },
+        body: formData
+      });
+
+      const payload = await response.json();
+      if (!response.ok || !payload.success) {
+        throw new Error(payload.message || 'Failed to upload avatar');
+      }
+
+      const avatarUrl = payload.user?.avatar || '';
+      setImagePreview(avatarUrl);
       setFormData(prev => ({
         ...prev,
-        avatar: base64
+        avatar: avatarUrl
       }));
+
+      if (avatarUrl) {
+        localStorage.setItem('userAvatar', avatarUrl);
+      } else {
+        localStorage.removeItem('userAvatar');
+      }
+
+      window.dispatchEvent(
+        new CustomEvent('profileUpdated', {
+          detail: {
+            avatar: avatarUrl
+          }
+        })
+      );
     } catch (error) {
       console.error('Error processing image:', error);
       setErrors(prev => ({
         ...prev,
-        avatar: 'Failed to process image. Please try again.'
+        avatar: error.message || 'Failed to upload image. Please try again.'
       }));
     } finally {
       setUploadingImage(false);

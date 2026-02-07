@@ -1,8 +1,60 @@
 const express = require('express');
+const path = require('path');
+const fs = require('fs');
+const multer = require('multer');
 const authController = require('../controllers/authController');
 const auth = require('../middleware/auth');
 
 const router = express.Router();
+
+const avatarUploadDir = path.join(__dirname, '..', '..', 'uploads', 'avatars');
+if (!fs.existsSync(avatarUploadDir)) {
+  fs.mkdirSync(avatarUploadDir, { recursive: true });
+}
+
+const avatarStorage = multer.diskStorage({
+  destination: (_req, _file, cb) => cb(null, avatarUploadDir),
+  filename: (_req, file, cb) => {
+    const safeOriginal = String(file.originalname || 'avatar')
+      .replace(/[^\w.\-]+/g, '_')
+      .slice(0, 120);
+    const ext = path.extname(safeOriginal).toLowerCase() || '.png';
+    const base = path.basename(safeOriginal, ext) || 'avatar';
+    cb(null, `${Date.now()}-${base}${ext}`);
+  }
+});
+
+const avatarFileFilter = (_req, file, cb) => {
+  const allowed = new Set(['image/png', 'image/jpeg', 'image/jpg', 'image/webp']);
+  if (!allowed.has(String(file.mimetype || '').toLowerCase())) {
+    return cb(new Error('Only PNG, JPG, JPEG, and WebP images are allowed'));
+  }
+  cb(null, true);
+};
+
+const avatarUpload = multer({
+  storage: avatarStorage,
+  limits: {
+    fileSize: 5 * 1024 * 1024
+  },
+  fileFilter: avatarFileFilter
+});
+
+const runAvatarUpload = (req, res, next) => {
+  avatarUpload.single('avatar')(req, res, (error) => {
+    if (!error) return next();
+
+    const message =
+      error.code === 'LIMIT_FILE_SIZE'
+        ? 'Avatar file is too large. Max size is 5MB.'
+        : error.message || 'Avatar upload failed';
+
+    return res.status(400).json({
+      success: false,
+      message
+    });
+  });
+};
 
 // ============= AUTHENTICATION ROUTES =============
 
@@ -28,6 +80,9 @@ router.get('/me', auth, authController.getCurrentUser);
 
 // PUT /api/auth/profile - Update user profile
 router.put('/profile', auth, authController.updateProfile);
+
+// POST /api/auth/avatar - Upload profile avatar image
+router.post('/avatar', auth, runAvatarUpload, authController.uploadAvatar);
 
 // DELETE /api/auth/delete - Permanently delete current user's account
 router.delete('/delete', auth, authController.deleteAccount);

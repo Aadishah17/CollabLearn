@@ -242,11 +242,11 @@ const SkillSessions = () => {
     }
   };
 
-  const downloadDocument = (document) => {
-    const downloadUrl = `${API_URL}/uploads/sessions/${document.filename}`;
-    const link = document.createElement('a');
+  const downloadDocument = (doc) => {
+    const downloadUrl = `${API_URL}/uploads/session-documents/${doc.filename}`;
+    const link = window.document.createElement('a');
     link.href = downloadUrl;
-    link.download = document.title || document.filename;
+    link.download = doc.title || doc.filename;
     link.click();
   };
 

@@ -1,6 +1,11 @@
 {
   "scripts": {
-    "dev": "concurrently \"npm run dev --prefix server\" \"npm run dev --prefix client\""
+    "setup": "npm install && npm install --prefix server && npm install --prefix client",
+    "dev": "concurrently \"npm run dev --prefix server\" \"npm run dev --prefix client\"",
+    "dev:server": "npm run dev --prefix server",
+    "dev:client": "npm run dev --prefix client",
+    "start:server": "npm run start --prefix server",
+    "build": "npm run build --prefix client"
   },
   "dependencies": {
     "socket.io": "^4.8.1",

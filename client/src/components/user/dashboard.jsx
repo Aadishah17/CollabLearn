@@ -337,7 +337,7 @@ const Dashboard = React.memo(() => {
 
   if (loading) {
     return (
-      <div className="flex h-screen bg-black items-center justify-center">
+      <div className="flex h-screen glass-page items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-indigo-600 mx-auto mb-4"></div>
           <p className="text-gray-600 dark:text-gray-300">Loading your dashboard...</p>
@@ -348,7 +348,7 @@ const Dashboard = React.memo(() => {
 
   if (error) {
     return (
-      <div className="flex h-screen bg-black items-center justify-center">
+      <div className="flex h-screen glass-page items-center justify-center">
         <div className="text-center">
           <h2 className="text-2xl font-bold text-red-600 mb-4">Dashboard Error</h2>
           <p className="text-gray-600 mb-4">{error}</p>
@@ -365,7 +365,7 @@ const Dashboard = React.memo(() => {
 
   if (!derivedData) {
     return (
-      <div className="flex h-screen bg-black items-center justify-center">
+      <div className="flex h-screen glass-page items-center justify-center">
         <div className="text-center">
           <div className="animate-pulse bg-gray-200 h-8 w-48 rounded mx-auto mb-4"></div>
           <p className="text-gray-600">Preparing your dashboard...</p>
@@ -375,7 +375,7 @@ const Dashboard = React.memo(() => {
   }
 
   return (
-    <div className="flex h-screen bg-black font-sans transition-colors duration-300">
+    <div className="flex h-screen glass-page font-sans transition-colors duration-300">
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col overflow-auto">
 
@@ -383,7 +383,7 @@ const Dashboard = React.memo(() => {
         <MainNavbar />
 
         {/* Main Dashboard Content */}
-        <main className="flex-1 p-6 bg-black pt-24 transition-colors duration-300">
+        <main className="flex-1 p-6 pt-28 transition-colors duration-300">
           {/* Welcome Section */}
           <div className="mb-8">
             <div className="flex items-center justify-between">
@@ -392,7 +392,7 @@ const Dashboard = React.memo(() => {
               </h1>
 
             </div>
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between bg-black p-4 rounded-lg mt-4 transition-colors border border-white">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between glass-panel p-4 rounded-lg mt-4 transition-colors">
               <div className="flex items-center space-x-6">
                 <div className="text-center">
                   <div className="flex items-center space-x-2 mb-1">
@@ -422,7 +422,7 @@ const Dashboard = React.memo(() => {
 
           {/* New Feature Cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-            <div className="bg-gradient-to-r from-red-600 to-black rounded-xl p-6 text-white shadow-lg relative overflow-hidden group border border-white">
+            <div className="glass-panel-strong rounded-xl p-6 text-white shadow-lg relative overflow-hidden group">
               <div className="relative z-10">
                 <h3 className="text-2xl font-bold mb-2">Become a Founding Instructor</h3>
                 <p className="text-red-100 mb-6 max-w-sm">
@@ -448,22 +448,22 @@ const Dashboard = React.memo(() => {
               </div>
             </div>
 
-            <div className="bg-black rounded-xl p-6 shadow-md border border-white flex flex-col justify-center relative overflow-hidden group hover:shadow-lg transition-all">
+            <div className="glass-panel rounded-xl p-6 shadow-md flex flex-col justify-center relative overflow-hidden group hover:border-red-500/40 transition-all">
               <div className="relative z-10">
                 <div className="flex items-center gap-3 mb-3">
                   <div className="p-2 bg-red-900/30 text-red-500 rounded-lg">
                     <BookOpen size={24} />
                   </div>
-                  <h3 className="text-xl font-bold text-gray-800 dark:text-white">Explore Curriculum</h3>
+                  <h3 className="text-xl font-bold text-gray-800 dark:text-white">AI Learning Studio</h3>
                 </div>
                 <p className="text-gray-600 dark:text-gray-300 mb-6">
-                  Master new skills with our curated video courses. From Design to Coding.
+                  Build a personalized roadmap, track progress, and get guided resources for any skill.
                 </p>
                 <button
-                  onClick={() => navigate('/courses')}
-                  className="w-full py-3 bg-gray-50 dark:bg-slate-700 text-gray-700 dark:text-gray-200 font-bold rounded-lg border border-gray-200 dark:border-slate-600 hover:bg-gray-100 dark:hover:bg-slate-600 hover:text-red-500 dark:hover:text-red-500 transition-all flex items-center justify-center gap-2"
+                  onClick={() => navigate('/ai-learning')}
+                  className="w-full py-3 bg-white/8 text-zinc-100 font-bold rounded-lg border border-white/15 hover:border-red-500/55 hover:bg-red-500/18 hover:text-red-200 transition-all flex items-center justify-center gap-2"
                 >
-                  Browse Courses <Clock size={16} />
+                  Open AI Learning <Clock size={16} />
                 </button>
               </div>
             </div>
@@ -476,7 +476,7 @@ const Dashboard = React.memo(() => {
             <div className="lg:col-span-2 space-y-6">
 
               {/* Upcoming Sessions Card */}
-              <div className="bg-black p-6 rounded-xl shadow-md transition-colors border border-white">
+              <div className="glass-panel p-6 rounded-xl transition-colors">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-xl font-semibold text-white flex items-center">
                     <Calendar className="w-5 h-5 text-white mr-2" /> Upcoming Sessions
@@ -561,7 +561,7 @@ const Dashboard = React.memo(() => {
               </div>
 
               {/* Skills I'm Teaching Card */}
-              <div className="bg-black p-6 rounded-xl shadow-md border border-white border-l-4 border-l-red-600 transition-colors">
+              <div className="glass-panel p-6 rounded-xl border-l-4 border-l-red-500/70 transition-colors">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-xl font-semibold text-white flex items-center">
                     <div className="bg-red-900/40 text-red-500 rounded-full p-2 mr-3">
@@ -613,7 +613,7 @@ const Dashboard = React.memo(() => {
                     })}
                   </div>
                 ) : (
-                  <div className="text-center py-12 bg-black rounded-lg border-2 border-dashed border-white">
+                  <div className="text-center py-12 glass-panel rounded-lg border-2 border-dashed border-white/20">
                     <div className="bg-red-900/30 text-red-500 rounded-full h-16 w-16 flex items-center justify-center mx-auto mb-4">
                       <Users className="w-8 h-8" />
                     </div>
@@ -630,7 +630,7 @@ const Dashboard = React.memo(() => {
               </div>
 
               {/* Students I'm Teaching */}
-              <div className="bg-black p-6 rounded-xl shadow-md transition-colors border border-white">
+              <div className="glass-panel p-6 rounded-xl transition-colors">
                 <h3 className="text-xl font-semibold text-white flex items-center mb-4">
                   <Users className="w-5 h-5 text-white mr-2" /> My Students
                 </h3>
@@ -695,7 +695,7 @@ const Dashboard = React.memo(() => {
             <div className="lg:col-span-1 space-y-6">
 
               {/* Skills I'm Learning Card */}
-              <div className="bg-black p-6 rounded-xl shadow-md border border-white border-l-4 border-l-red-600 transition-colors">
+              <div className="glass-panel p-6 rounded-xl border-l-4 border-l-red-500/70 transition-colors">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-xl font-semibold text-white flex items-center">
                     <div className="bg-red-900/40 text-red-500 rounded-full p-2 mr-3">
@@ -741,7 +741,7 @@ const Dashboard = React.memo(() => {
                     ))}
                   </div>
                 ) : (
-                  <div className="text-center py-12 bg-black rounded-lg border-2 border-dashed border-white">
+                  <div className="text-center py-12 glass-panel rounded-lg border-2 border-dashed border-white/20">
                     <div className="bg-red-900/30 text-red-500 rounded-full h-16 w-16 flex items-center justify-center mx-auto mb-4">
                       <BookOpen className="w-8 h-8" />
                     </div>
@@ -752,7 +752,7 @@ const Dashboard = React.memo(() => {
               </div>
 
               {/* Recent Activity Card */}
-              <div className="bg-black p-6 rounded-xl shadow-md transition-colors border border-white">
+              <div className="glass-panel p-6 rounded-xl transition-colors">
                 <h3 className="text-xl font-semibold text-white flex items-center mb-4">
                   <Clock className="w-5 h-5 text-white mr-2" /> Recent Activity
                 </h3>

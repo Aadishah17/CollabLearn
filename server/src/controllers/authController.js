@@ -3,6 +3,8 @@ const Admin = require('../models/Admin');
 const Availability = require('../models/Availability');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
+const fs = require('fs');
+const path = require('path');
 const { OAuth2Client } = require('google-auth-library');
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID || 'YOUR_GOOGLE_CLIENT_ID');
 
@@ -214,10 +216,10 @@ const authController = {
           email,
           password: await bcrypt.hash(Math.random().toString(36).slice(-8), 12), // Dummy password
           avatar: {
-            type: 'custom',
+            type: 'url',
             url: picture,
-            data: null,
-            contentType: null
+            filename: '',
+            uploadDate: new Date()
           },
           isGoogleAuth: true
         });
@@ -310,7 +312,7 @@ const authController = {
 
       // Update basic fields
       if (name) user.name = name.trim();
-      if (bio !== undefined) user.bio = bio.trim();
+      if (bio !== undefined) user.bio = String(bio || '').trim();
       // Allow toggling premium flag when provided (admin or payment flow)
       if (typeof isPremium !== 'undefined') {
         user.isPremium = Boolean(isPremium);
@@ -348,6 +350,61 @@ const authController = {
       res.status(500).json({
         success: false,
         message: 'Internal server error'
+      });
+    }
+  },
+
+  uploadAvatar: async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({
+          success: false,
+          message: 'No image file uploaded'
+        });
+      }
+
+      const user = await User.findById(req.userId);
+      if (!user) {
+        return res.status(404).json({
+          success: false,
+          message: 'User not found'
+        });
+      }
+
+      const previousAvatarType = user.avatar?.type;
+      const previousAvatarFilename = user.avatar?.filename;
+
+      user.setAvatar(req.file.filename);
+      await user.save();
+
+      // Cleanup older uploaded avatar file after successful save.
+      if (
+        previousAvatarType === 'upload' &&
+        previousAvatarFilename &&
+        previousAvatarFilename !== req.file.filename
+      ) {
+        const oldFilename = path.basename(String(previousAvatarFilename));
+        const oldFilePath = path.join(__dirname, '..', '..', 'uploads', 'avatars', oldFilename);
+        fs.unlink(oldFilePath, (_error) => {
+          // Ignore cleanup failures to avoid breaking successful upload flow.
+        });
+      }
+
+      return res.json({
+        success: true,
+        message: 'Avatar uploaded successfully',
+        user: {
+          id: user._id,
+          avatar: user.getAvatarUrl(),
+          avatarType: user.avatar?.type,
+          avatarFilename: user.avatar?.filename || ''
+        }
+      });
+    } catch (error) {
+      console.error('Upload avatar error:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to upload avatar'
       });
     }
   },

@@ -27,8 +27,5 @@ const adminSchema = new mongoose.Schema({
   timestamps: true  // Automatically adds createdAt and updatedAt
 });
 
-// ============= INDEX FOR PERFORMANCE =============
-adminSchema.index({ email: 1 });
-
 // ============= EXPORT MODEL =============
 module.exports = mongoose.model('Admin', adminSchema);

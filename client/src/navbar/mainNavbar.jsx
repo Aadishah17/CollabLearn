@@ -1,124 +1,128 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Search, Home, Calendar, MessageSquare, Users, Trophy, Bell, User, UserCircle, Settings, FileText, LogOut, Moon, Sun, Play, Sparkles, Book } from 'lucide-react';
-
+import {
+  Search,
+  Home,
+  Calendar,
+  MessageSquare,
+  Users,
+  Trophy,
+  Bell,
+  User,
+  UserCircle,
+  Settings,
+  LogOut,
+  Moon,
+  Sun,
+  Play,
+  Sparkles,
+  Book,
+  Menu,
+  X,
+  GraduationCap
+} from 'lucide-react';
 import CollabLearnLogo from '../assets/react.svg';
 import Notification from '../components/Notification';
 import { useTheme } from '../components/user/ThemeContext';
 import { API_URL } from '../config';
 
-
 export default function MainNavbar() {
   const location = useLocation();
   const navigate = useNavigate();
+  const { isDarkMode, toggleDarkMode } = useTheme();
+
   const [username, setUsername] = useState('Guest');
   const [email, setEmail] = useState('');
   const [isPremium, setIsPremium] = useState(null);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  const { isDarkMode, toggleDarkMode } = useTheme();
-
   const dropdownRef = useRef(null);
   const notificationRef = useRef(null);
+  const mobileMenuRef = useRef(null);
 
-  // Fetch user data from database
+  const isGuest = username === 'Guest';
+
+  const navLinks = useMemo(() => {
+    const links = [
+      { path: '/dashboard', label: 'Dashboard', icon: Home },
+      { path: '/ai-learning', label: 'AI Learning', icon: Sparkles, featured: true },
+      { path: '/modules', label: 'Modules', icon: Book },
+      { path: '/browse-skills', label: 'Skills', icon: Search },
+      { path: '/courses', label: 'Courses', icon: Play },
+      { path: '/community', label: 'Community', icon: Users },
+      { path: '/calendar', label: 'Calendar', icon: Calendar },
+      { path: '/messages', label: 'Messages', icon: MessageSquare },
+      { path: '/teach', label: 'Teach', icon: GraduationCap }
+    ];
+
+    if (isPremium === false) {
+      links.push({ path: '/get-premium', label: 'Get Premium', icon: Trophy, premium: true });
+    }
+
+    return links;
+  }, [isPremium]);
+
   const fetchUserData = async () => {
     try {
       const token = localStorage.getItem('token');
-
       if (!token) {
-        // Fallback to localStorage if no token
         const storedUsername = localStorage.getItem('username');
         const storedEmail = localStorage.getItem('email');
         const storedIsPremium = localStorage.getItem('isPremium');
+
         if (storedUsername) {
           setUsername(storedUsername);
           setEmail(storedEmail || '');
         }
-        if (storedIsPremium !== null) {
-          setIsPremium(storedIsPremium === 'true');
-        } else {
-          // assume guest is not premium
-          setIsPremium(false);
-        }
-        setLoading(false);
+        setIsPremium(storedIsPremium !== null ? storedIsPremium === 'true' : false);
         return;
       }
 
       const response = await fetch(`${API_URL}/api/auth/me`, {
         method: 'GET',
         headers: {
-          'Authorization': `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json'
         }
       });
 
-      if (response.ok) {
-        const data = await response.json();
+      if (!response.ok) {
+        throw new Error('Failed to fetch user');
+      }
 
-        if (data.success && data.user) {
-          setUsername(data.user.name || 'Guest');
-          setEmail(data.user.email || '');
-          setIsPremium(Boolean(data.user.isPremium));
+      const data = await response.json();
+      if (data.success && data.user) {
+        setUsername(data.user.name || 'Guest');
+        setEmail(data.user.email || '');
+        setIsPremium(Boolean(data.user.isPremium));
 
-          // Update localStorage for future fallback
-          if (data.user.name) {
-            localStorage.setItem('username', data.user.name);
-          }
-          if (data.user.email) {
-            localStorage.setItem('email', data.user.email);
-          }
-          if (typeof data.user.isPremium !== 'undefined') {
-            localStorage.setItem('isPremium', String(Boolean(data.user.isPremium)));
-          }
-        } else {
-          // Fallback to localStorage
-          const storedUsername = localStorage.getItem('username');
-          const storedEmail = localStorage.getItem('email');
-          const storedIsPremium = localStorage.getItem('isPremium');
-          if (storedUsername) {
-            setUsername(storedUsername);
-            setEmail(storedEmail || '');
-          }
-          if (storedIsPremium !== null) setIsPremium(storedIsPremium === 'true');
-        }
-      } else {
-        const errorText = await response.text();
-
-        // Fallback to localStorage
-        const storedUsername = localStorage.getItem('username');
-        const storedEmail = localStorage.getItem('email');
-        const storedIsPremium = localStorage.getItem('isPremium');
-        if (storedUsername) {
-          setUsername(storedUsername);
-          setEmail(storedEmail || '');
-        }
-        if (storedIsPremium !== null) setIsPremium(storedIsPremium === 'true');
+        localStorage.setItem('username', data.user.name || 'Guest');
+        localStorage.setItem('email', data.user.email || '');
+        localStorage.setItem('isPremium', String(Boolean(data.user.isPremium)));
       }
     } catch (error) {
-      console.error('MainNavbar: Error fetching user data:', error);
-
-      // Fallback to localStorage
       const storedUsername = localStorage.getItem('username');
       const storedEmail = localStorage.getItem('email');
       const storedIsPremium = localStorage.getItem('isPremium');
+
       if (storedUsername) {
         setUsername(storedUsername);
         setEmail(storedEmail || '');
       }
-      if (storedIsPremium !== null) setIsPremium(storedIsPremium === 'true');
+      if (storedIsPremium !== null) {
+        setIsPremium(storedIsPremium === 'true');
+      }
+      console.error('MainNavbar: Error fetching user data:', error);
     } finally {
       setLoading(false);
     }
   };
 
-
-
   useEffect(() => {
-    // Immediately set from localStorage if available (for instant display)
     const storedUsername = localStorage.getItem('username');
     const storedEmail = localStorage.getItem('email');
     if (storedUsername) {
@@ -126,7 +130,6 @@ export default function MainNavbar() {
       setEmail(storedEmail || '');
     }
 
-    // Then fetch fresh data from API
     fetchUserData();
 
     const fetchNotifications = async () => {
@@ -137,10 +140,10 @@ export default function MainNavbar() {
       try {
         const [studentResponse, instructorResponse] = await Promise.all([
           fetch(`${API_URL}/api/booking/student/${userId}`, {
-            headers: { 'Authorization': `Bearer ${token}` }
+            headers: { Authorization: `Bearer ${token}` }
           }),
           fetch(`${API_URL}/api/booking/instructor/${userId}`, {
-            headers: { 'Authorization': `Bearer ${token}` }
+            headers: { Authorization: `Bearer ${token}` }
           })
         ]);
 
@@ -149,67 +152,72 @@ export default function MainNavbar() {
         if (studentResponse.ok) {
           const studentData = await studentResponse.json();
           if (studentData.success) {
-            const studentNotifications = studentData.bookings
-              .filter(b => b.status === 'confirmed' || b.status === 'cancelled')
-              .map(b => ({ ...b, type: 'student' }));
-            allNotifications.push(...studentNotifications);
+            allNotifications.push(
+              ...studentData.bookings
+                .filter((booking) => booking.status === 'confirmed' || booking.status === 'cancelled')
+                .map((booking) => ({ ...booking, type: 'student' }))
+            );
           }
         }
 
         if (instructorResponse.ok) {
           const instructorData = await instructorResponse.json();
           if (instructorData.success) {
-            const instructorNotifications = instructorData.bookings
-              .filter(b => b.status === 'pending')
-              .map(b => ({ ...b, type: 'instructor' }));
-            allNotifications.push(...instructorNotifications);
+            allNotifications.push(
+              ...instructorData.bookings
+                .filter((booking) => booking.status === 'pending')
+                .map((booking) => ({ ...booking, type: 'instructor' }))
+            );
           }
         }
 
         allNotifications.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
-
         setNotifications(allNotifications);
-
       } catch (error) {
         console.error('Error fetching notifications:', error);
       }
     };
 
     fetchNotifications();
-    const notificationInterval = setInterval(fetchNotifications, 30000); // Poll every 30 seconds
+    const notificationInterval = setInterval(fetchNotifications, 30000);
 
-    // Listen for profile updates
     const handleProfileUpdate = (event) => {
-      if (event.detail.name) {
-        setUsername(event.detail.name);
-      }
-      if (event.detail.email) {
-        setEmail(event.detail.email);
-      }
+      if (event.detail.name) setUsername(event.detail.name);
+      if (event.detail.email) setEmail(event.detail.email);
       if (typeof event.detail.isPremium !== 'undefined') {
         setIsPremium(Boolean(event.detail.isPremium));
         localStorage.setItem('isPremium', String(Boolean(event.detail.isPremium)));
       }
     };
 
-    function handleClickOutside(event) {
+    const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
         setIsDropdownOpen(false);
       }
       if (notificationRef.current && !notificationRef.current.contains(event.target)) {
         setIsNotificationsOpen(false);
       }
-    }
+      if (mobileMenuRef.current && !mobileMenuRef.current.contains(event.target)) {
+        setIsMobileMenuOpen(false);
+      }
+    };
 
     window.addEventListener('profileUpdated', handleProfileUpdate);
-    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener('mousedown', handleClickOutside);
 
     return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener('mousedown', handleClickOutside);
       window.removeEventListener('profileUpdated', handleProfileUpdate);
       clearInterval(notificationInterval);
     };
   }, []);
+
+  useEffect(() => {
+    setIsMobileMenuOpen(false);
+  }, [location.pathname]);
+
+  const isActive = (path) =>
+    location.pathname === path || location.pathname.startsWith(`${path}/`);
 
   const handleLogout = () => {
     localStorage.removeItem('token');
@@ -223,170 +231,136 @@ export default function MainNavbar() {
     navigate('/');
   };
 
-  const handleMenuClick = (path) => {
-    setIsDropdownOpen(false);
-    navigate(path);
-  };
-
-  const getLinkClass = (path) => {
-    const baseClasses = 'nav-item flex items-center gap-2 px-4 py-2 rounded-lg transition-all duration-200 transform hover:-translate-y-0.5';
-    return location.pathname === path
-      ? `${baseClasses} bg-red-600 text-white shadow-md`
-      : `${baseClasses} text-gray-600 hover:text-red-600 hover:bg-red-50`;
-  };
-
   return (
-    <>
-      <nav className="fixed top-0 left-0 right-0 bg-black border-b border-white z-50 shadow-sm">
-        {/* The change is in the line below */}
-        <div className="flex justify-between items-center h-20 px-8">
-          {/* Logo */}
-          <div className="flex items-center gap-3">
+    <nav className="fixed top-0 left-0 right-0 z-50 px-3 pt-3">
+      <div className="mx-auto max-w-[1500px] relative liquid-glass rounded-2xl" ref={mobileMenuRef}>
+        <div className="pointer-events-none absolute -top-10 left-6 h-28 w-28 rounded-full liquid-orb opacity-70"></div>
+        <div className="pointer-events-none absolute -right-8 -bottom-8 h-24 w-24 rounded-full liquid-orb opacity-45"></div>
+
+        <div className="relative flex h-20 items-center gap-3 px-4 md:px-6">
+          <Link to={isGuest ? '/' : '/dashboard'} className="flex items-center gap-3 shrink-0">
             <img
               src={CollabLearnLogo}
               alt="CollabLearn Logo"
-              className="w-12 h-12 rounded-xl object-cover hover:scale-110 hover:rotate-3 transition-all duration-300 cursor-pointer"
+              className="w-10 h-10 rounded-xl object-cover border border-white/20"
             />
-            <span className="text-2xl font-bold text-red-600">CollabLearn</span>
+            <span className="text-xl md:text-2xl font-bold text-white tracking-tight">CollabLearn</span>
+          </Link>
+
+          <div className="hidden lg:flex flex-1 items-center gap-2 overflow-x-auto no-scrollbar px-3">
+            {navLinks.map((link) => {
+              const Icon = link.icon;
+              const active = isActive(link.path);
+              return (
+                <Link
+                  key={link.path}
+                  to={link.path}
+                  className={`${active ? 'glass-tab glass-tab-active' : 'glass-tab'} ${
+                    link.premium && !active ? 'text-amber-200 hover:border-amber-400/40 hover:bg-amber-500/20' : ''
+                  } ${link.featured && !active ? 'hover:bg-rose-500/18' : ''}`}
+                >
+                  <Icon size={16} />
+                  <span>{link.label}</span>
+                </Link>
+              );
+            })}
           </div>
 
-          {/* Navigation Items */}
-          <div className="flex items-center gap-1">
-            <Link to="/dashboard" className={getLinkClass('/dashboard')}>
-              <Home size={20} />
-              <span className="font-medium">Dashboard</span>
-            </Link>
-            <Link to="/modules" className={getLinkClass('/modules')}>
-              <Book size={20} />
-              <span className="font-medium">Study Modules</span>
-            </Link>
-            <Link to="/browse-skills" className={getLinkClass('/browse-skills')}>
-              <Search size={20} />
-              <span className="font-medium">Browse Skills</span>
-            </Link>
-            <Link to="/calendar" className={getLinkClass('/calendar')}>
-              <Calendar size={20} />
-              <span className="font-medium">Calendar</span>
-            </Link>
-            <Link to="/messages" className={getLinkClass('/messages')}>
-              <MessageSquare size={20} />
-              <span className="font-medium">Messages</span>
-            </Link>
-            <Link to="/community" className={getLinkClass('/community')}>
-              <Users size={20} />
-              <span className="font-medium">Community</span>
-            </Link>
-            <Link to="/courses" className={getLinkClass('/courses')}>
-              <Play size={20} />
-              <span className="font-medium">Courses</span>
-            </Link>
-            <Link to="/teach" className={getLinkClass('/teach')}>
-              <span className="font-medium">Teach</span>
-            </Link>
-            <Link to="/ai-learning" className={`${getLinkClass('/ai-learning')} text-red-600 font-semibold bg-red-50`}>
-              <Sparkles size={18} />
-              <span className="font-medium">AI Learning</span>
-            </Link>
-            {isPremium === false && (
-              <Link to="/get-premium" className={location.pathname === '/get-premium' ? 'nav-item flex items-center gap-2 px-4 py-2 rounded-lg transition-all duration-200 transform bg-gradient-to-r from-amber-500 to-yellow-400 text-white shadow-xl' : 'nav-item flex items-center gap-2 px-4 py-2 rounded-lg transition-all duration-200 transform text-amber-700 hover:text-amber-900 hover:bg-amber-50'}>
-                <Trophy size={20} />
-                <span className="font-medium">Get Premium</span>
-              </Link>
-            )}
-            {/* <Link to="/achievements" className={getLinkClass('/achievements')}>
-              <Trophy size={20} />
-              <span className="font-medium">Achievements</span>
-            </Link> */}
-          </div>
-
-          {/* User Section */}
-          <div className="flex items-center gap-4">
-            {username === 'Guest' ? (
-              <div className="flex items-center gap-3">
+          <div className="ml-auto flex items-center gap-2">
+            {isGuest ? (
+              <div className="hidden md:flex items-center gap-2">
                 <Link
                   to="/login"
-                  className="px-5 py-2.5 text-gray-700 font-bold hover:text-red-600 transition-colors text-sm"
+                  className="px-4 py-2 rounded-xl text-sm font-semibold text-zinc-100 border border-white/20 hover:border-red-400/50 hover:bg-red-500/15 transition-colors"
                 >
-                  Log In
+                  Sign In
                 </Link>
                 <Link
                   to="/signup"
-                  className="px-5 py-2.5 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl shadow-lg shadow-red-200 hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200 text-sm flex items-center gap-2"
+                  className="px-4 py-2 rounded-xl text-sm font-semibold text-white bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 transition-colors shadow-lg shadow-red-950/50"
                 >
-                  <UserCircle size={18} />
-                  Sign Up Free
+                  Get Started
                 </Link>
               </div>
             ) : (
               <>
-                <div
-                  className="relative cursor-pointer p-2 rounded-full hover:bg-gray-100 transition-colors"
-                  ref={notificationRef}
-                  onClick={() => setIsNotificationsOpen(!isNotificationsOpen)}
-                >
-                  <Bell size={20} className="text-gray-600" />
-                  {notifications.length > 0 && (
-                    <span className="absolute top-1 right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center bell-notification">
-                      {notifications.length}
-                    </span>
-                  )}
-                  {isNotificationsOpen && <Notification notifications={notifications} onClose={() => setIsNotificationsOpen(false)} />}
-                </div>
-                <div className="relative" ref={dropdownRef}>
-                  <div
-                    className="flex items-center gap-2 cursor-pointer hover:bg-gray-100 rounded-lg p-2 transition-all duration-200"
-                    onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                <div className="relative" ref={notificationRef}>
+                  <button
+                    type="button"
+                    onClick={() => setIsNotificationsOpen((prev) => !prev)}
+                    className="glass-icon-btn"
+                    aria-label="Notifications"
                   >
-                    <div className="w-8 h-8 rounded-full bg-red-600 flex items-center justify-center text-white font-bold text-sm">
+                    <Bell size={18} />
+                    {notifications.length > 0 && (
+                      <span className="absolute -right-1 -top-1 min-w-5 h-5 rounded-full bg-red-500 px-1 text-[10px] font-bold text-white flex items-center justify-center">
+                        {notifications.length}
+                      </span>
+                    )}
+                  </button>
+                  {isNotificationsOpen && (
+                    <Notification notifications={notifications} onClose={() => setIsNotificationsOpen(false)} />
+                  )}
+                </div>
+
+                <div className="relative" ref={dropdownRef}>
+                  <button
+                    type="button"
+                    onClick={() => setIsDropdownOpen((prev) => !prev)}
+                    className="inline-flex items-center gap-2 rounded-xl border border-white/15 bg-white/5 px-2.5 py-1.5 hover:border-red-400/45 hover:bg-red-500/12 transition-colors"
+                  >
+                    <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-red-600 to-rose-500 text-white text-sm font-bold flex items-center justify-center">
                       {username.charAt(0).toUpperCase()}
                     </div>
-                    <span className="text-sm font-semibold text-gray-900 hidden md:block">{username}</span>
-                  </div>
+                    <span className="hidden md:block text-sm font-semibold text-zinc-100 max-w-24 truncate">
+                      {loading ? 'Loading...' : username}
+                    </span>
+                  </button>
+
                   {isDropdownOpen && (
-                    <div className="absolute right-0 mt-2 w-72 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50 animate-dropdown">
-                      {/* User Info Header */}
-                      <div className="px-4 py-3 border-b border-gray-200">
+                    <div className="absolute right-0 mt-2 w-72 liquid-glass rounded-2xl p-2">
+                      <div className="rounded-xl border border-white/15 bg-black/25 p-3">
                         <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center border border-gray-200">
-                            <User size={20} className="text-gray-500" />
+                          <div className="w-10 h-10 rounded-lg bg-white/10 border border-white/20 flex items-center justify-center">
+                            <User size={18} className="text-zinc-100" />
                           </div>
-                          <div className="overflow-hidden">
-                            <p className="font-semibold text-gray-900 truncate">
-                              {loading ? 'Loading...' : username}
-                            </p>
-                            <p className="text-xs text-gray-500 truncate">
-                              {loading ? '' : email}
-                            </p>
+                          <div className="min-w-0">
+                            <p className="font-semibold text-zinc-100 truncate">{loading ? 'Loading...' : username}</p>
+                            <p className="text-xs text-zinc-300 truncate">{loading ? '' : email}</p>
                           </div>
                         </div>
                       </div>
 
-                      {/* Menu Items with new hover effect */}
-                      <div className="p-2">
+                      <div className="mt-2 space-y-1">
                         <button
-                          onClick={() => handleMenuClick('/profile')}
-                          className="w-full flex items-center gap-3 px-4 py-2.5 text-gray-700 hover:bg-red-50 hover:text-red-600 rounded-lg transition-colors group"
+                          type="button"
+                          onClick={() => {
+                            setIsDropdownOpen(false);
+                            navigate('/profile');
+                          }}
+                          className="w-full inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm text-zinc-100 hover:bg-red-500/20 transition-colors"
                         >
-                          <UserCircle size={18} className="text-gray-500 group-hover:text-red-600 transition-colors" />
-                          <span className="font-medium">Profile</span>
+                          <UserCircle size={16} />
+                          Profile
                         </button>
                         <button
-                          onClick={() => handleMenuClick('/settings')}
-                          className="w-full flex items-center gap-3 px-4 py-2.5 text-gray-700 hover:bg-red-50 hover:text-red-600 rounded-lg transition-colors group"
+                          type="button"
+                          onClick={() => {
+                            setIsDropdownOpen(false);
+                            navigate('/settings');
+                          }}
+                          className="w-full inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm text-zinc-100 hover:bg-red-500/20 transition-colors"
                         >
-                          <Settings size={18} className="text-gray-500 group-hover:text-red-600 transition-colors" />
-                          <Link to="/settings"><span className="font-medium">Settings</span></Link>
+                          <Settings size={16} />
+                          Settings
                         </button>
-                      </div>
-
-                      {/* Sign Out Button */}
-                      <div className="px-4 pb-2 pt-1 border-t border-gray-200">
                         <button
+                          type="button"
                           onClick={handleLogout}
-                          className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-gray-50 hover:bg-red-50 text-gray-700 hover:text-red-600 rounded-lg font-medium transition-all text-sm mt-2"
+                          className="w-full inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm text-red-200 hover:bg-red-500/25 transition-colors"
                         >
                           <LogOut size={16} />
-                          <span>Sign Out</span>
+                          Sign Out
                         </button>
                       </div>
                     </div>
@@ -395,34 +369,64 @@ export default function MainNavbar() {
               </>
             )}
 
-            {/* Theme Toggle */}
             <button
+              type="button"
               onClick={toggleDarkMode}
-              className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors text-gray-600 dark:text-gray-300"
+              className="glass-icon-btn"
               aria-label="Toggle theme"
             >
-              {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
+              {isDarkMode ? <Sun size={18} /> : <Moon size={18} />}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setIsMobileMenuOpen((prev) => !prev)}
+              className="lg:hidden glass-icon-btn"
+              aria-label="Toggle menu"
+            >
+              {isMobileMenuOpen ? <X size={18} /> : <Menu size={18} />}
             </button>
           </div>
         </div>
-      </nav>
 
-      <style>{`
-        @keyframes dropdown {
-          from {
-            opacity: 0;
-            transform: translateY(-10px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
+        {isMobileMenuOpen && (
+          <div className="lg:hidden border-t border-white/15 px-3 pb-3 pt-2">
+            <div className="grid grid-cols-2 gap-2">
+              {navLinks.map((link) => {
+                const Icon = link.icon;
+                const active = isActive(link.path);
+                return (
+                  <Link
+                    key={link.path}
+                    to={link.path}
+                    className={`${active ? 'glass-tab glass-tab-active' : 'glass-tab'} justify-center`}
+                  >
+                    <Icon size={15} />
+                    <span>{link.label}</span>
+                  </Link>
+                );
+              })}
+            </div>
 
-        .animate-dropdown {
-          animation: dropdown 0.2s ease-out;
-        }
-      `}</style>
-    </>
+            {isGuest && (
+              <div className="mt-3 grid grid-cols-2 gap-2">
+                <Link
+                  to="/login"
+                  className="rounded-xl border border-white/20 py-2 text-center text-sm font-semibold text-zinc-100"
+                >
+                  Sign In
+                </Link>
+                <Link
+                  to="/signup"
+                  className="rounded-xl bg-gradient-to-r from-red-600 to-rose-600 py-2 text-center text-sm font-semibold text-white"
+                >
+                  Get Started
+                </Link>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </nav>
   );
 }
