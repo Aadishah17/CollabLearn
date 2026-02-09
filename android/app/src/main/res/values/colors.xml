@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="colorBackground">#F8FAFC</color>
+    <color name="colorSurface">#FFFFFF</color>
+    <color name="colorInputBackground">#F4F4F5</color>
+    
+    <color name="colorTextPrimary">#18181B</color>
+    <color name="colorTextSecondary">#52525B</color>
+    <color name="colorTextTertiary">#71717A</color>
+    
+    <color name="colorPrimaryBrand">#0284C7</color>
+    <color name="colorSecondaryBrand">#9333EA</color>
+    <color name="colorSuccess">#16A34A</color>
+    
+    <color name="colorBorder">#E4E4E7</color>
+    <color name="colorCardBorder">#F4F4F5</color>
+    
+    <color name="colorBadgeBackground">#F3E8FF</color>
+    
+    <color name="white">#FFFFFF</color>
+    <color name="black">#000000</color>
+</resources>

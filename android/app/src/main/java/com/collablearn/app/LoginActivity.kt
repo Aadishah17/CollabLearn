@@ -27,14 +27,18 @@ class LoginActivity : AppCompatActivity() {
 
         btnRoleUser.setOnClickListener {
             selectedRole = "user"
-            btnRoleUser.setBackgroundColor(getColor(android.R.color.white))
-            btnRoleAdmin.setBackgroundColor(getColor(android.R.color.transparent))
+            btnRoleUser.background.setTint(getColor(R.color.colorSurface))
+            btnRoleAdmin.background.setTint(getColor(R.color.colorInputBackground))
+            btnRoleUser.setTextColor(getColor(R.color.colorPrimaryBrand))
+            btnRoleAdmin.setTextColor(getColor(R.color.colorTextSecondary))
         }
 
         btnRoleAdmin.setOnClickListener {
             selectedRole = "admin"
-            btnRoleAdmin.setBackgroundColor(getColor(android.R.color.white))
-            btnRoleUser.setBackgroundColor(getColor(android.R.color.transparent))
+            btnRoleAdmin.background.setTint(getColor(R.color.colorSurface))
+            btnRoleUser.background.setTint(getColor(R.color.colorInputBackground))
+            btnRoleAdmin.setTextColor(getColor(R.color.colorPrimaryBrand))
+            btnRoleUser.setTextColor(getColor(R.color.colorTextSecondary))
         }
 
         btnLogin.setOnClickListener {

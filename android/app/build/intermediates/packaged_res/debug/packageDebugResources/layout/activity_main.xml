@@ -4,7 +4,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#F8FAFC"
+    android:background="@color/colorBackground"
     tools:context=".MainActivity">
 
     <LinearLayout
@@ -25,7 +25,7 @@
                 android:layout_width="32dp"
                 android:layout_height="32dp"
                 android:src="@android:drawable/ic_menu_my_calendar"
-                app:tint="#0284C7" />
+                app:tint="@color/colorPrimaryBrand" />
 
             <TextView
                 android:layout_width="0dp"
@@ -35,7 +35,7 @@
                 android:text="CollabLearn"
                 android:textSize="20sp"
                 android:textStyle="bold"
-                android:textColor="#0284C7" />
+                android:textColor="@color/colorPrimaryBrand" />
 
             <Button
                 android:id="@+id/btnNavLogin"
@@ -61,7 +61,7 @@
                 android:background="@drawable/bg_badge"
                 android:paddingHorizontal="12dp"
                 android:paddingVertical="6dp"
-                android:textColor="#9333EA"
+                android:textColor="@color/colorSecondaryBrand"
                 android:layout_marginBottom="24dp"/>
 
             <TextView
@@ -70,7 +70,7 @@
                 android:text="Learn Skills,"
                 android:textSize="36sp"
                 android:textStyle="bold"
-                android:textColor="#18181B"
+                android:textColor="@color/colorTextPrimary"
                 android:gravity="center"/>
             
             <TextView
@@ -79,7 +79,7 @@
                 android:text="Teach Others"
                 android:textSize="36sp"
                 android:textStyle="bold"
-                android:textColor="#0284C7"
+                android:textColor="@color/colorPrimaryBrand"
                 android:gravity="center"/>
 
             <TextView
@@ -88,7 +88,7 @@
                 android:text="Grow Together"
                 android:textSize="36sp"
                 android:textStyle="bold"
-                android:textColor="#18181B"
+                android:textColor="@color/colorTextPrimary"
                 android:gravity="center"
                 android:layout_marginBottom="16dp"/>
 
@@ -97,7 +97,7 @@
                 android:layout_height="wrap_content"
                 android:text="The peer-to-peer learning platform where everyone is both a student and a teacher."
                 android:gravity="center"
-                android:textColor="#52525B"
+                android:textColor="@color/colorTextSecondary"
                 android:textSize="16sp"
                 android:layout_marginBottom="32dp"/>
 
@@ -116,7 +116,7 @@
                 android:layout_height="wrap_content"
                 android:text="Join Free"
                 android:padding="12dp"
-                android:backgroundTint="#0284C7"/>
+                android:backgroundTint="@color/colorPrimaryBrand"/>
 
             <Button
                 android:id="@+id/btnAiLearning"
@@ -125,7 +125,7 @@
                 android:layout_marginTop="10dp"
                 android:text="Try AI Learning"
                 android:padding="12dp"
-                android:backgroundTint="#16A34A" />
+                android:backgroundTint="@color/colorSuccess" />
         </LinearLayout>
 
         <!-- Categories Section -->
@@ -136,7 +136,7 @@
             android:textSize="24sp"
             android:textStyle="bold"
             android:gravity="center"
-            android:textColor="#18181B"
+            android:textColor="@color/colorTextPrimary"
             android:layout_marginTop="24dp"
             android:layout_marginBottom="16dp"/>
 
@@ -161,7 +161,7 @@
                     android:layout_width="40dp"
                     android:layout_height="40dp"
                     android:src="@android:drawable/ic_dialog_email"
-                    app:tint="#0284C7"/>
+                    app:tint="@color/colorPrimaryBrand"/>
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
@@ -173,7 +173,7 @@
                     android:layout_height="wrap_content"
                     android:text="2.5k+ skills"
                     android:textSize="12sp"
-                    android:textColor="#71717A"/>
+                    android:textColor="@color/colorTextTertiary"/>
             </LinearLayout>
 
             <!-- Card 2 -->
@@ -189,7 +189,7 @@
                     android:layout_width="40dp"
                     android:layout_height="40dp"
                     android:src="@android:drawable/ic_menu_agenda"
-                    app:tint="#16A34A"/>
+                    app:tint="@color/colorSuccess"/>
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
@@ -201,7 +201,7 @@
                     android:layout_height="wrap_content"
                     android:text="1.8k+ skills"
                     android:textSize="12sp"
-                    android:textColor="#71717A"/>
+                    android:textColor="@color/colorTextTertiary"/>
             </LinearLayout>
 
         </GridLayout>

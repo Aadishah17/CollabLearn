@@ -1,14 +1,27 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:ns1="http://schemas.android.com/tools">
+    <color name="black">#000000</color>
+    <color name="colorBackground">#F8FAFC</color>
+    <color name="colorBadgeBackground">#F3E8FF</color>
+    <color name="colorBorder">#E4E4E7</color>
+    <color name="colorCardBorder">#F4F4F5</color>
+    <color name="colorInputBackground">#F4F4F5</color>
+    <color name="colorPrimaryBrand">#0284C7</color>
+    <color name="colorSecondaryBrand">#9333EA</color>
+    <color name="colorSuccess">#16A34A</color>
+    <color name="colorSurface">#FFFFFF</color>
+    <color name="colorTextPrimary">#18181B</color>
+    <color name="colorTextSecondary">#52525B</color>
+    <color name="colorTextTertiary">#71717A</color>
     <color name="white">#FFFFFF</color>
     <style name="Theme.CollabLearn" parent="Theme.MaterialComponents.DayNight.NoActionBar">
         
-        <item name="colorPrimary">#0284C7</item>
-        <item name="colorPrimaryVariant">#0369A1</item>
+        <item name="colorPrimary">@color/colorPrimaryBrand</item>
+        <item name="colorPrimaryVariant">@color/colorPrimaryBrand</item>
         <item name="colorOnPrimary">@color/white</item>
         
-        <item name="colorSecondary">#9333EA</item>
-        <item name="colorSecondaryVariant">#7E22CE</item>
+        <item name="colorSecondary">@color/colorSecondaryBrand</item>
+        <item name="colorSecondaryVariant">@color/colorSecondaryBrand</item>
         <item name="colorOnSecondary">@color/white</item>
         
         <item name="android:statusBarColor" ns1:targetApi="l">?attr/colorPrimaryVariant</item>

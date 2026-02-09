@@ -1353,6 +1353,7 @@ int color background_floating_material_dark 0x7f05001d
 int color background_floating_material_light 0x7f05001e
 int color background_material_dark 0x7f05001f
 int color background_material_light 0x7f050020
+int color black 0x7f050303
 int color bright_foreground_disabled_material_dark 0x7f050021
 int color bright_foreground_disabled_material_light 0x7f050022
 int color bright_foreground_inverse_material_dark 0x7f050023
@@ -1367,6 +1368,18 @@ int color cardview_dark_background 0x7f05002b
 int color cardview_light_background 0x7f05002c
 int color cardview_shadow_end_color 0x7f05002d
 int color cardview_shadow_start_color 0x7f05002e
+int color colorBackground 0x7f050304
+int color colorBadgeBackground 0x7f050305
+int color colorBorder 0x7f050306
+int color colorCardBorder 0x7f050307
+int color colorInputBackground 0x7f050308
+int color colorPrimaryBrand 0x7f050309
+int color colorSecondaryBrand 0x7f05030a
+int color colorSuccess 0x7f05030b
+int color colorSurface 0x7f05030c
+int color colorTextPrimary 0x7f05030d
+int color colorTextSecondary 0x7f05030e
+int color colorTextTertiary 0x7f05030f
 int color design_bottom_navigation_shadow_color 0x7f05002f
 int color design_box_stroke_color 0x7f050030
 int color design_dark_default_color_background 0x7f050031

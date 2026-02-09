@@ -1,5 +1,18 @@
 R_DEF: Internal format may change without notice
 local
+color black
+color colorBackground
+color colorBadgeBackground
+color colorBorder
+color colorCardBorder
+color colorInputBackground
+color colorPrimaryBrand
+color colorSecondaryBrand
+color colorSuccess
+color colorSurface
+color colorTextPrimary
+color colorTextSecondary
+color colorTextTertiary
 color white
 drawable bg_ai_card
 drawable bg_ai_input

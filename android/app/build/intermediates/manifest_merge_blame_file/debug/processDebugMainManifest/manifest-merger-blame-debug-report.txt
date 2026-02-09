@@ -9,8 +9,8 @@
 9        android:targetSdkVersion="34" />
 10
 11    <uses-permission android:name="android.permission.INTERNET" />
-11-->C:\Users\sseja\OneDrive\Desktop\Projects\CollabLearn-1\android\app\src\main\AndroidManifest.xml:5:5-67
-11-->C:\Users\sseja\OneDrive\Desktop\Projects\CollabLearn-1\android\app\src\main\AndroidManifest.xml:5:22-64
+11-->C:\Users\sseja\OneDrive\Desktop\CollabLearn\android\app\src\main\AndroidManifest.xml:5:5-67
+11-->C:\Users\sseja\OneDrive\Desktop\CollabLearn\android\app\src\main\AndroidManifest.xml:5:22-64
 12
 13    <permission
 13-->[androidx.core:core:1.12.0] C:\Users\sseja\.gradle\caches\9.1.0\transforms\63b12ced028790c35833807282e493c7\workspace\transformed\core-1.12.0\AndroidManifest.xml:22:5-24:47
@@ -24,49 +24,49 @@
 17-->[androidx.core:core:1.12.0] C:\Users\sseja\.gradle\caches\9.1.0\transforms\63b12ced028790c35833807282e493c7\workspace\transformed\core-1.12.0\AndroidManifest.xml:26:22-94
 18
 19    <application
-19-->C:\Users\sseja\OneDrive\Desktop\Projects\CollabLearn-1\android\app\src\main\AndroidManifest.xml:7:5-25:19
+19-->C:\Users\sseja\OneDrive\Desktop\CollabLearn\android\app\src\main\AndroidManifest.xml:7:5-25:19
 20        android:allowBackup="true"
-20-->C:\Users\sseja\OneDrive\Desktop\Projects\CollabLearn-1\android\app\src\main\AndroidManifest.xml:8:9-35
+20-->C:\Users\sseja\OneDrive\Desktop\CollabLearn\android\app\src\main\AndroidManifest.xml:8:9-35
 21        android:appComponentFactory="androidx.core.app.CoreComponentFactory"
 21-->[androidx.core:core:1.12.0] C:\Users\sseja\.gradle\caches\9.1.0\transforms\63b12ced028790c35833807282e493c7\workspace\transformed\core-1.12.0\AndroidManifest.xml:28:18-86
 22        android:debuggable="true"
 23        android:extractNativeLibs="false"
 24        android:icon="@mipmap/ic_launcher"
-24-->C:\Users\sseja\OneDrive\Desktop\Projects\CollabLearn-1\android\app\src\main\AndroidManifest.xml:9:9-43
+24-->C:\Users\sseja\OneDrive\Desktop\CollabLearn\android\app\src\main\AndroidManifest.xml:9:9-43
 25        android:label="CollabLearn"
-25-->C:\Users\sseja\OneDrive\Desktop\Projects\CollabLearn-1\android\app\src\main\AndroidManifest.xml:10:9-36
+25-->C:\Users\sseja\OneDrive\Desktop\CollabLearn\android\app\src\main\AndroidManifest.xml:10:9-36
 26        android:roundIcon="@mipmap/ic_launcher_round"
-26-->C:\Users\sseja\OneDrive\Desktop\Projects\CollabLearn-1\android\app\src\main\AndroidManifest.xml:11:9-54
+26-->C:\Users\sseja\OneDrive\Desktop\CollabLearn\android\app\src\main\AndroidManifest.xml:11:9-54
 27        android:supportsRtl="true"
-27-->C:\Users\sseja\OneDrive\Desktop\Projects\CollabLearn-1\android\app\src\main\AndroidManifest.xml:12:9-35
+27-->C:\Users\sseja\OneDrive\Desktop\CollabLearn\android\app\src\main\AndroidManifest.xml:12:9-35
 28        android:testOnly="true"
 29        android:theme="@style/Theme.CollabLearn"
-29-->C:\Users\sseja\OneDrive\Desktop\Projects\CollabLearn-1\android\app\src\main\AndroidManifest.xml:14:9-49
+29-->C:\Users\sseja\OneDrive\Desktop\CollabLearn\android\app\src\main\AndroidManifest.xml:14:9-49
 30        android:usesCleartextTraffic="true" >
-30-->C:\Users\sseja\OneDrive\Desktop\Projects\CollabLearn-1\android\app\src\main\AndroidManifest.xml:13:9-44
+30-->C:\Users\sseja\OneDrive\Desktop\CollabLearn\android\app\src\main\AndroidManifest.xml:13:9-44
 31        <activity
-31-->C:\Users\sseja\OneDrive\Desktop\Projects\CollabLearn-1\android\app\src\main\AndroidManifest.xml:15:9-22:20
+31-->C:\Users\sseja\OneDrive\Desktop\CollabLearn\android\app\src\main\AndroidManifest.xml:15:9-22:20
 32            android:name="com.collablearn.app.MainActivity"
-32-->C:\Users\sseja\OneDrive\Desktop\Projects\CollabLearn-1\android\app\src\main\AndroidManifest.xml:16:13-41
+32-->C:\Users\sseja\OneDrive\Desktop\CollabLearn\android\app\src\main\AndroidManifest.xml:16:13-41
 33            android:exported="true" >
-33-->C:\Users\sseja\OneDrive\Desktop\Projects\CollabLearn-1\android\app\src\main\AndroidManifest.xml:17:13-36
+33-->C:\Users\sseja\OneDrive\Desktop\CollabLearn\android\app\src\main\AndroidManifest.xml:17:13-36
 34            <intent-filter>
-34-->C:\Users\sseja\OneDrive\Desktop\Projects\CollabLearn-1\android\app\src\main\AndroidManifest.xml:18:13-21:29
+34-->C:\Users\sseja\OneDrive\Desktop\CollabLearn\android\app\src\main\AndroidManifest.xml:18:13-21:29
 35                <action android:name="android.intent.action.MAIN" />
-35-->C:\Users\sseja\OneDrive\Desktop\Projects\CollabLearn-1\android\app\src\main\AndroidManifest.xml:19:17-69
-35-->C:\Users\sseja\OneDrive\Desktop\Projects\CollabLearn-1\android\app\src\main\AndroidManifest.xml:19:25-66
+35-->C:\Users\sseja\OneDrive\Desktop\CollabLearn\android\app\src\main\AndroidManifest.xml:19:17-69
+35-->C:\Users\sseja\OneDrive\Desktop\CollabLearn\android\app\src\main\AndroidManifest.xml:19:25-66
 36
 37                <category android:name="android.intent.category.LAUNCHER" />
-37-->C:\Users\sseja\OneDrive\Desktop\Projects\CollabLearn-1\android\app\src\main\AndroidManifest.xml:20:17-77
-37-->C:\Users\sseja\OneDrive\Desktop\Projects\CollabLearn-1\android\app\src\main\AndroidManifest.xml:20:27-74
+37-->C:\Users\sseja\OneDrive\Desktop\CollabLearn\android\app\src\main\AndroidManifest.xml:20:17-77
+37-->C:\Users\sseja\OneDrive\Desktop\CollabLearn\android\app\src\main\AndroidManifest.xml:20:27-74
 38            </intent-filter>
 39        </activity>
 40        <activity android:name="com.collablearn.app.LoginActivity" />
-40-->C:\Users\sseja\OneDrive\Desktop\Projects\CollabLearn-1\android\app\src\main\AndroidManifest.xml:23:9-51
-40-->C:\Users\sseja\OneDrive\Desktop\Projects\CollabLearn-1\android\app\src\main\AndroidManifest.xml:23:19-48
+40-->C:\Users\sseja\OneDrive\Desktop\CollabLearn\android\app\src\main\AndroidManifest.xml:23:9-51
+40-->C:\Users\sseja\OneDrive\Desktop\CollabLearn\android\app\src\main\AndroidManifest.xml:23:19-48
 41        <activity android:name="com.collablearn.app.AiLearningActivity" />
-41-->C:\Users\sseja\OneDrive\Desktop\Projects\CollabLearn-1\android\app\src\main\AndroidManifest.xml:24:9-56
-41-->C:\Users\sseja\OneDrive\Desktop\Projects\CollabLearn-1\android\app\src\main\AndroidManifest.xml:24:19-53
+41-->C:\Users\sseja\OneDrive\Desktop\CollabLearn\android\app\src\main\AndroidManifest.xml:24:9-56
+41-->C:\Users\sseja\OneDrive\Desktop\CollabLearn\android\app\src\main\AndroidManifest.xml:24:19-53
 42
 43        <provider
 43-->[androidx.emoji2:emoji2:1.2.0] C:\Users\sseja\.gradle\caches\9.1.0\transforms\c7e739cdcdca312a35bd5dfd1060b8cb\workspace\transformed\emoji2-1.2.0\AndroidManifest.xml:24:9-32:20
