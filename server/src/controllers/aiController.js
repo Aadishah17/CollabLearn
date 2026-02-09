@@ -34,6 +34,14 @@ const parseIntegerEnv = (value, fallback) => {
   return Number.isInteger(parsed) ? parsed : fallback;
 };
 
+const toTitleCase = (value) =>
+  String(value || '')
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
+
 const parseModelCandidates = () => {
   const preferredModel = sanitizeText(process.env.GEMINI_MODEL);
   const configuredCandidates = sanitizeText(process.env.GEMINI_MODEL_CANDIDATES)
@@ -127,6 +135,15 @@ const buildGenerationConfig = (overrides = {}) => {
       64,
       8192
     );
+  }
+
+  const responseMimeType = sanitizeText(overrides.responseMimeType);
+  if (responseMimeType) {
+    merged.responseMimeType = responseMimeType;
+  }
+
+  if (overrides.responseSchema && typeof overrides.responseSchema === 'object') {
+    merged.responseSchema = overrides.responseSchema;
   }
 
   return merged;
@@ -468,27 +485,151 @@ const extractJsonString = (responseText) => {
   return cleaned;
 };
 
+const sanitizeJsonCandidate = (candidate) =>
+  String(candidate || '')
+    .replace(/^\uFEFF/, '')
+    .replace(/[“”]/g, '"')
+    .replace(/[‘’]/g, "'")
+    .replace(/,\s*([}\]])/g, '$1')
+    .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, '');
+
+const parseJsonWithCleanup = (responseText) => {
+  const jsonPayload = extractJsonString(responseText);
+  if (!jsonPayload) {
+    throw new Error('Empty JSON payload received from model');
+  }
+
+  const parseCandidates = [jsonPayload, sanitizeJsonCandidate(jsonPayload)];
+  let parseError = null;
+
+  for (const candidate of parseCandidates) {
+    try {
+      return JSON.parse(candidate);
+    } catch (error) {
+      parseError = error;
+    }
+  }
+
+  throw parseError || new Error('Unable to parse model JSON output');
+};
+
+const ROADMAP_SCHEMA_REPAIR_TEMPLATE = `{
+  "summary": "string",
+  "steps": [
+    {
+      "title": "string",
+      "description": "string",
+      "goals": ["string", "string"],
+      "practiceTask": "string",
+      "estimatedHours": 4
+    }
+  ],
+  "milestones": [
+    {
+      "week": 1,
+      "title": "string",
+      "successCriteria": "string"
+    }
+  ],
+  "resources": [
+    {
+      "type": "Video | Article | Course | Docs | Community | Practice",
+      "title": "string",
+      "url": "https://...",
+      "reason": "string",
+      "level": "Beginner | Intermediate | Advanced | All Levels"
+    }
+  ],
+  "habits": ["string"],
+  "checkpoints": ["string"]
+}`;
+
+const STUDY_SESSION_SCHEMA_REPAIR_TEMPLATE = `{
+  "summary": "string",
+  "tasks": [
+    {
+      "title": "string",
+      "minutes": 30,
+      "instructions": "string",
+      "output": "string"
+    }
+  ],
+  "reflectionQuestions": ["string"],
+  "pitfalls": ["string"]
+}`;
+
+const buildJsonRepairPrompt = ({ schema, invalidJson }) => `
+You repair malformed JSON.
+Convert the content below into one valid JSON object that matches this schema.
+Return ONLY JSON.
+
+Schema:
+${schema}
+
+Malformed content:
+${invalidJson}
+`.trim();
+
+const isLegacyFallbackStep = ({ title, description, practiceTask, goals }) => {
+  const safeGoals = Array.isArray(goals) ? goals : [];
+  const joinedGoals = safeGoals.join(' ').toLowerCase();
+  const safeTitle = String(title || '').toLowerCase();
+  const safeDescription = String(description || '').toLowerCase();
+  const safePracticeTask = String(practiceTask || '').toLowerCase();
+
+  return (
+    /focus block \d+/i.test(safeTitle) ||
+    /create a mini project for .* phase \d+/i.test(safePracticeTask) ||
+    /understand the key concepts for phase \d+/i.test(joinedGoals) ||
+    /build confidence in .* during weeks \d+-\d+/i.test(safeDescription)
+  );
+};
+
 const buildFallbackRoadmap = ({ skill, learnerLevel, weeklyHours, targetWeeks, focusAreas }) => {
   const safeSkill = skill || 'New Skill';
   const planWeeks = clamp(targetWeeks, 2, 24);
   const stepCount = clamp(Math.ceil(planWeeks / 2), 4, 8);
   const baseHoursPerStep = Math.max(2, Math.round((weeklyHours * planWeeks) / stepCount));
-  const focusLabel = focusAreas.length > 0 ? focusAreas.join(', ') : `core ${safeSkill} fundamentals`;
+  const fallbackPhaseTitles = [
+    'Foundation and setup',
+    'Core fundamentals',
+    'Controlled practice',
+    'Applied execution',
+    'Feedback and refinement',
+    'Advanced combinations',
+    'Independent performance',
+    'Capstone and next steps'
+  ];
+  const fallbackFocusThemes = [
+    `posture and basics in ${safeSkill}`,
+    `essential ${safeSkill} techniques`,
+    `accuracy and repetition in ${safeSkill}`,
+    `combining skills in realistic scenarios`,
+    'self-review and corrections',
+    `intermediate-to-advanced ${safeSkill} patterns`,
+    'confident independent execution',
+    'final showcase and improvement plan'
+  ];
 
   const steps = Array.from({ length: stepCount }).map((_, index) => {
     const stepNumber = index + 1;
     const weekStart = Math.floor((index * planWeeks) / stepCount) + 1;
     const weekEnd = Math.max(weekStart, Math.floor(((index + 1) * planWeeks) / stepCount));
+    const phaseTitle = toTitleCase(fallbackPhaseTitles[Math.min(index, fallbackPhaseTitles.length - 1)]);
+    const focusArea = sanitizeText(
+      focusAreas[index % Math.max(1, focusAreas.length)] || fallbackFocusThemes[index],
+      fallbackFocusThemes[Math.min(index, fallbackFocusThemes.length - 1)]
+    );
 
     return {
-      title: `Phase ${stepNumber}: ${safeSkill} focus block ${stepNumber}`,
-      description: `Build confidence in ${safeSkill} with guided study and deliberate practice during weeks ${weekStart}-${weekEnd}.`,
+      title: `Phase ${stepNumber}: ${phaseTitle} (${safeSkill})`,
+      description: `Weeks ${weekStart}-${weekEnd}: strengthen ${focusArea} through focused practice sessions and one structured review.`,
       goals: [
-        `Understand the key concepts for phase ${stepNumber}`,
-        `Apply one practical ${safeSkill} exercise tied to ${focusLabel}`,
-        'Capture notes, questions, and takeaways in a learning log'
+        `Learn and explain the key principles behind ${focusArea}.`,
+        `Complete at least one guided ${safeSkill} drill tied to ${focusArea}.`,
+        'Capture what improved, what is weak, and the next practice adjustment.'
       ],
-      practiceTask: `Create a mini project for ${safeSkill} phase ${stepNumber} and review it against clear quality criteria.`,
+      practiceTask: `Run one 60-minute deliberate-practice session on ${focusArea}. Keep one proof of work (video clip, solved exercise, or written notes) and list 3 quality improvements for the next session.`,
       estimatedHours: baseHoursPerStep
     };
   });
@@ -502,12 +643,12 @@ const buildFallbackRoadmap = ({ skill, learnerLevel, weeklyHours, targetWeeks, f
     {
       week: Math.max(2, Math.ceil(planWeeks / 2)),
       title: 'Midpoint validation',
-      successCriteria: `Complete a working ${safeSkill} practice project and identify two improvement areas.`
+      successCriteria: `Complete a strong ${safeSkill} practice output and identify two concrete improvement areas.`
     },
     {
       week: planWeeks,
       title: 'Capstone completion',
-      successCriteria: `Ship a portfolio-quality ${safeSkill} capstone and document what to learn next.`
+      successCriteria: `Deliver a capstone-level ${safeSkill} demonstration and document what to learn next.`
     }
   ];
 
@@ -550,7 +691,7 @@ const buildFallbackRoadmap = ({ skill, learnerLevel, weeklyHours, targetWeeks, f
   ];
 
   return {
-    summary: `This plan helps you learn ${safeSkill} at ${learnerLevel} level in ${planWeeks} weeks with ${weeklyHours} hours per week.`,
+    summary: `This roadmap builds practical ${safeSkill} ability at ${learnerLevel} level in ${planWeeks} weeks with ${weeklyHours} hours per week.`,
     steps,
     milestones,
     resources,
@@ -575,16 +716,32 @@ const normalizeRoadmap = (rawRoadmap, input) => {
     ? safeRaw.steps
         .map((step, index) => {
           const safeStep = step && typeof step === 'object' ? step : {};
+          const fallbackStep = fallback.steps[index] || fallback.steps[fallback.steps.length - 1];
+          const title = sanitizeText(safeStep.title, fallbackStep.title);
+          const description = sanitizeText(safeStep.description, fallbackStep.description);
+          const goals = Array.isArray(safeStep.goals)
+            ? safeStep.goals.map((goal) => sanitizeText(goal)).filter(Boolean).slice(0, 5)
+            : [];
+          const practiceTask = sanitizeText(safeStep.practiceTask, fallbackStep.practiceTask);
+          const shouldUseFallbackStep = isLegacyFallbackStep({
+            title,
+            description,
+            practiceTask,
+            goals
+          });
+
+          if (shouldUseFallbackStep) {
+            return {
+              ...fallbackStep,
+              estimatedHours: clamp(Number(safeStep.estimatedHours) || fallbackStep.estimatedHours, 1, 40)
+            };
+          }
+
           return {
-            title: sanitizeText(safeStep.title, `Learning Step ${index + 1}`),
-            description: sanitizeText(
-              safeStep.description,
-              `Complete the key objectives for step ${index + 1}.`
-            ),
-            goals: Array.isArray(safeStep.goals)
-              ? safeStep.goals.map((goal) => sanitizeText(goal)).filter(Boolean).slice(0, 5)
-              : [],
-            practiceTask: sanitizeText(safeStep.practiceTask),
+            title: sanitizeText(title, fallbackStep.title),
+            description: sanitizeText(description, fallbackStep.description),
+            goals: goals.length > 0 ? goals : fallbackStep.goals,
+            practiceTask: sanitizeText(practiceTask, fallbackStep.practiceTask),
             estimatedHours: clamp(Number(safeStep.estimatedHours) || input.weeklyHours, 1, 40)
           };
         })
@@ -768,6 +925,8 @@ Return ONLY valid JSON with this exact schema:
 Rules:
 - 5 to 8 roadmap steps.
 - Every step must include at least 2 concrete goals.
+- Every description must state exactly what will be practiced in that phase.
+- Every practiceTask must create proof of work (recording, solved exercise, draft, or mini deliverable).
 - Milestones must map to realistic weeks inside target duration.
 - Give 5 to 8 high-value resources with practical relevance.
 - Keep writing concise, specific, and action-oriented.
@@ -810,11 +969,39 @@ const generateTextFromGemini = async (prompt, generationOverrides = {}) => {
   return null;
 };
 
+const parseAiJsonPayload = async ({ text, schemaTemplate }) => {
+  try {
+    return parseJsonWithCleanup(text);
+  } catch (parseError) {
+    const repairPrompt = buildJsonRepairPrompt({
+      schema: schemaTemplate,
+      invalidJson: String(text || '').slice(0, 12000)
+    });
+
+    const repairedResult = await generateTextFromGemini(repairPrompt, {
+      temperature: 0,
+      topP: 0.1,
+      responseMimeType: 'application/json',
+      maxOutputTokens: 4096
+    });
+
+    if (!repairedResult?.text) {
+      throw parseError;
+    }
+
+    return parseJsonWithCleanup(repairedResult.text);
+  }
+};
+
 const createRoadmap = async (input) => {
   const prompt = buildRoadmapPrompt(input);
 
   try {
-    const aiResult = await generateTextFromGemini(prompt);
+    const aiResult = await generateTextFromGemini(prompt, {
+      temperature: 0.4,
+      responseMimeType: 'application/json',
+      maxOutputTokens: 4096
+    });
     if (!aiResult || !aiResult.text) {
       const fallbackRoadmap = buildFallbackRoadmap(input);
       const enrichedFallback = await applyBestVideoGuidance(fallbackRoadmap, input);
@@ -826,8 +1013,10 @@ const createRoadmap = async (input) => {
       };
     }
 
-    const jsonPayload = extractJsonString(aiResult.text);
-    const parsed = JSON.parse(jsonPayload);
+    const parsed = await parseAiJsonPayload({
+      text: aiResult.text,
+      schemaTemplate: ROADMAP_SCHEMA_REPAIR_TEMPLATE
+    });
     const normalized = normalizeRoadmap(parsed, input);
     const enriched = await applyBestVideoGuidance(normalized, input);
     return {
@@ -1084,13 +1273,18 @@ const createStudySession = async (input) => {
   const prompt = buildStudySessionPrompt(input);
 
   try {
-    const aiResult = await generateTextFromGemini(prompt);
+    const aiResult = await generateTextFromGemini(prompt, {
+      temperature: 0.3,
+      responseMimeType: 'application/json'
+    });
     if (!aiResult || !aiResult.text) {
       return { session: buildFallbackStudySession(input), source: 'fallback', model: null };
     }
 
-    const jsonPayload = extractJsonString(aiResult.text);
-    const parsed = JSON.parse(jsonPayload);
+    const parsed = await parseAiJsonPayload({
+      text: aiResult.text,
+      schemaTemplate: STUDY_SESSION_SCHEMA_REPAIR_TEMPLATE
+    });
     const normalized = normalizeStudySession(parsed, input);
     return { session: normalized, source: 'ai', model: aiResult.model };
   } catch (error) {

@@ -34,6 +34,14 @@ const parseFocusAreas = (focusAreas) =>
     .map((item) => item.trim())
     .filter(Boolean);
 
+const sanitizeCoachNote = (note) =>
+  String(note || '')
+    .replace(/\*\*(.*?)\*\*/g, '$1')
+    .replace(/`([^`]*)`/g, '$1')
+    .replace(/[ \t]+\n/g, '\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+
 const buildAuthHeaders = () => {
   const token = localStorage.getItem('token');
   if (!token) {
@@ -397,7 +405,7 @@ const AiLearningPage = () => {
         throw new Error(data.message || 'Failed to fetch step guidance');
       }
 
-      setStepCoachNotes((prev) => ({ ...prev, [index]: data.response }));
+      setStepCoachNotes((prev) => ({ ...prev, [index]: sanitizeCoachNote(data.response) }));
     } catch (err) {
       console.error('Step coach error:', err);
       toast.error('Could not get AI step guidance');
