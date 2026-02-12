@@ -13,7 +13,7 @@
         android:orientation="vertical"
         android:paddingBottom="40dp">
 
-        <!-- Navbar Placeholder -->
+        <!-- Navbar -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -21,28 +21,25 @@
             android:padding="16dp"
             android:gravity="center_vertical">
 
-            <ImageView
-                android:layout_width="32dp"
-                android:layout_height="32dp"
-                android:src="@android:drawable/ic_menu_my_calendar"
-                app:tint="@color/colorPrimaryBrand" />
-
             <TextView
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:layout_marginStart="8dp"
-                android:text="CollabLearn"
-                android:textSize="20sp"
+                android:text="🎓 CollabLearn"
+                android:textSize="22sp"
                 android:textStyle="bold"
                 android:textColor="@color/colorPrimaryBrand" />
 
             <Button
                 android:id="@+id/btnNavLogin"
                 android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
+                android:layout_height="40dp"
                 android:text="Log in"
-                style="@style/Widget.MaterialComponents.Button.TextButton"/>
+                android:textColor="@color/colorPrimaryBrand"
+                android:background="@drawable/bg_red_button_outline"
+                android:paddingHorizontal="20dp"
+                android:textAllCaps="false"
+                android:textSize="14sp" />
         </LinearLayout>
 
         <!-- Hero Section -->
@@ -51,6 +48,7 @@
             android:layout_height="wrap_content"
             android:orientation="vertical"
             android:padding="24dp"
+            android:layout_marginTop="16dp"
             android:gravity="center">
 
             <!-- Badge -->
@@ -59,25 +57,26 @@
                 android:layout_height="wrap_content"
                 android:text="⚡ Join 10,000+ active learners"
                 android:background="@drawable/bg_badge"
-                android:paddingHorizontal="12dp"
-                android:paddingVertical="6dp"
-                android:textColor="@color/colorSecondaryBrand"
-                android:layout_marginBottom="24dp"/>
+                android:paddingHorizontal="16dp"
+                android:paddingVertical="8dp"
+                android:textColor="@color/colorPrimaryLight"
+                android:textSize="13sp"
+                android:layout_marginBottom="32dp"/>
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Learn Skills,"
-                android:textSize="36sp"
+                android:textSize="38sp"
                 android:textStyle="bold"
                 android:textColor="@color/colorTextPrimary"
                 android:gravity="center"/>
-            
+
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Teach Others"
-                android:textSize="36sp"
+                android:textSize="38sp"
                 android:textStyle="bold"
                 android:textColor="@color/colorPrimaryBrand"
                 android:gravity="center"/>
@@ -86,7 +85,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Grow Together"
-                android:textSize="36sp"
+                android:textSize="38sp"
                 android:textStyle="bold"
                 android:textColor="@color/colorTextPrimary"
                 android:gravity="center"
@@ -98,46 +97,149 @@
                 android:text="The peer-to-peer learning platform where everyone is both a student and a teacher."
                 android:gravity="center"
                 android:textColor="@color/colorTextSecondary"
-                android:textSize="16sp"
+                android:textSize="15sp"
+                android:lineSpacingExtra="4dp"
                 android:layout_marginBottom="32dp"/>
 
-            <EditText
-                android:id="@+id/etEmailSignup"
+            <!-- Glass Card with CTA -->
+            <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:hint="Enter your email to get started"
+                android:orientation="vertical"
+                android:background="@drawable/bg_glass_card"
+                android:padding="20dp">
+
+                <EditText
+                    android:id="@+id/etEmailSignup"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:hint="Enter your email to get started"
+                    android:padding="16dp"
+                    android:background="@drawable/bg_glass_input"
+                    android:textColor="@color/colorTextPrimary"
+                    android:textColorHint="@color/colorTextTertiary"
+                    android:layout_marginBottom="12dp"
+                    android:inputType="textEmailAddress"/>
+
+                <Button
+                    android:id="@+id/btnJoinFree"
+                    android:layout_width="match_parent"
+                    android:layout_height="52dp"
+                    android:text="Join Free →"
+                    android:background="@drawable/bg_red_button"
+                    android:textColor="@color/white"
+                    android:textAllCaps="false"
+                    android:textSize="16sp"
+                    android:textStyle="bold"/>
+
+                <Button
+                    android:id="@+id/btnAiLearning"
+                    android:layout_width="match_parent"
+                    android:layout_height="48dp"
+                    android:layout_marginTop="8dp"
+                    android:text="✨ Try AI Learning"
+                    android:background="@drawable/bg_red_button_outline"
+                    android:textColor="@color/colorPrimaryBrand"
+                    android:textAllCaps="false"
+                    android:textSize="14sp" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- Stats Section -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:padding="16dp"
+            android:layout_marginTop="24dp">
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical"
+                android:background="@drawable/bg_glass_stat"
                 android:padding="16dp"
-                android:background="@drawable/bg_input"
-                android:layout_marginBottom="8dp"/>
+                android:gravity="center"
+                android:layout_marginEnd="8dp">
 
-            <Button
-                android:id="@+id/btnJoinFree"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="Join Free"
-                android:padding="12dp"
-                android:backgroundTint="@color/colorPrimaryBrand"/>
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="10K+"
+                    android:textSize="24sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/colorPrimaryBrand"/>
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Active Learners"
+                    android:textSize="12sp"
+                    android:textColor="@color/colorTextSecondary"/>
+            </LinearLayout>
 
-            <Button
-                android:id="@+id/btnAiLearning"
-                android:layout_width="match_parent"
+            <LinearLayout
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="10dp"
-                android:text="Try AI Learning"
-                android:padding="12dp"
-                android:backgroundTint="@color/colorSuccess" />
+                android:layout_weight="1"
+                android:orientation="vertical"
+                android:background="@drawable/bg_glass_stat"
+                android:padding="16dp"
+                android:gravity="center"
+                android:layout_marginStart="4dp"
+                android:layout_marginEnd="4dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="500+"
+                    android:textSize="24sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/colorSuccess"/>
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Skills"
+                    android:textSize="12sp"
+                    android:textColor="@color/colorTextSecondary"/>
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical"
+                android:background="@drawable/bg_glass_stat"
+                android:padding="16dp"
+                android:gravity="center"
+                android:layout_marginStart="8dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="AI"
+                    android:textSize="24sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/colorInfo"/>
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Powered"
+                    android:textSize="12sp"
+                    android:textColor="@color/colorTextSecondary"/>
+            </LinearLayout>
         </LinearLayout>
 
         <!-- Categories Section -->
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Explore Popular Categories"
-            android:textSize="24sp"
+            android:text="Explore Categories"
+            android:textSize="22sp"
             android:textStyle="bold"
             android:gravity="center"
             android:textColor="@color/colorTextPrimary"
-            android:layout_marginTop="24dp"
+            android:layout_marginTop="32dp"
             android:layout_marginBottom="16dp"/>
 
         <GridLayout
@@ -145,28 +247,28 @@
             android:layout_height="wrap_content"
             android:columnCount="2"
             android:rowCount="2"
-            android:padding="16dp"
+            android:padding="12dp"
             android:alignmentMode="alignMargins">
 
-            <!-- Card 1 -->
             <LinearLayout
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_columnWeight="1"
                 android:orientation="vertical"
                 android:padding="16dp"
-                android:background="@drawable/bg_card"
-                android:layout_margin="8dp">
-                <ImageView
-                    android:layout_width="40dp"
-                    android:layout_height="40dp"
-                    android:src="@android:drawable/ic_dialog_email"
-                    app:tint="@color/colorPrimaryBrand"/>
+                android:background="@drawable/bg_glass_card"
+                android:layout_margin="6dp">
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="💻"
+                    android:textSize="28sp"/>
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Programming"
                     android:textStyle="bold"
+                    android:textColor="@color/colorTextPrimary"
                     android:layout_marginTop="8dp"/>
                 <TextView
                     android:layout_width="wrap_content"
@@ -176,25 +278,25 @@
                     android:textColor="@color/colorTextTertiary"/>
             </LinearLayout>
 
-            <!-- Card 2 -->
             <LinearLayout
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_columnWeight="1"
                 android:orientation="vertical"
                 android:padding="16dp"
-                android:background="@drawable/bg_card"
-                android:layout_margin="8dp">
-                <ImageView
-                    android:layout_width="40dp"
-                    android:layout_height="40dp"
-                    android:src="@android:drawable/ic_menu_agenda"
-                    app:tint="@color/colorSuccess"/>
+                android:background="@drawable/bg_glass_card"
+                android:layout_margin="6dp">
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="📚"
+                    android:textSize="28sp"/>
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Academics"
                     android:textStyle="bold"
+                    android:textColor="@color/colorTextPrimary"
                     android:layout_marginTop="8dp"/>
                 <TextView
                     android:layout_width="wrap_content"
@@ -204,6 +306,61 @@
                     android:textColor="@color/colorTextTertiary"/>
             </LinearLayout>
 
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_columnWeight="1"
+                android:orientation="vertical"
+                android:padding="16dp"
+                android:background="@drawable/bg_glass_card"
+                android:layout_margin="6dp">
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="🎨"
+                    android:textSize="28sp"/>
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Design"
+                    android:textStyle="bold"
+                    android:textColor="@color/colorTextPrimary"
+                    android:layout_marginTop="8dp"/>
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="900+ skills"
+                    android:textSize="12sp"
+                    android:textColor="@color/colorTextTertiary"/>
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_columnWeight="1"
+                android:orientation="vertical"
+                android:padding="16dp"
+                android:background="@drawable/bg_glass_card"
+                android:layout_margin="6dp">
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="🗣️"
+                    android:textSize="28sp"/>
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Languages"
+                    android:textStyle="bold"
+                    android:textColor="@color/colorTextPrimary"
+                    android:layout_marginTop="8dp"/>
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="1.2k+ skills"
+                    android:textSize="12sp"
+                    android:textColor="@color/colorTextTertiary"/>
+            </LinearLayout>
         </GridLayout>
 
     </LinearLayout>

@@ -1,22 +1,36 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="colorBackground">#000000</color>
-    <color name="colorSurface">#000000</color>
-    <color name="colorInputBackground">#121212</color>
-    
-    <color name="colorTextPrimary">#FFFFFF</color>
+    <!-- Night mode: same red dark theme as default -->
+    <color name="colorBackground">#0A0A0A</color>
+    <color name="colorSurface">#141420</color>
+    <color name="colorSurfaceGlass">#231A2E</color>
+    <color name="colorInputBackground">#1C1C2E</color>
+
+    <color name="colorTextPrimary">#F5F5F5</color>
     <color name="colorTextSecondary">#A1A1AA</color>
     <color name="colorTextTertiary">#71717A</color>
-    
-    <color name="colorPrimaryBrand">#38BDF8</color>
-    <color name="colorSecondaryBrand">#A855F7</color>
-    <color name="colorSuccess">#4ADE80</color>
-    
-    <color name="colorBorder">#333333</color>
-    <color name="colorCardBorder">#333333</color>
-    
-    <color name="colorBadgeBackground">#581C87</color>
-    
+
+    <color name="colorPrimaryBrand">#E11D48</color>
+    <color name="colorPrimaryLight">#FF2D55</color>
+    <color name="colorPrimaryDark">#BE123C</color>
+    <color name="colorSecondaryBrand">#FF4D6D</color>
+
+    <color name="colorSuccess">#22C55E</color>
+    <color name="colorWarning">#F59E0B</color>
+    <color name="colorInfo">#FF6B81</color>
+
+    <color name="colorGlassFill">#331A1A2E</color>
+    <color name="colorGlassBorder">#33FF2D55</color>
+    <color name="colorGlassStroke">#44FF2D55</color>
+
+    <color name="colorBorder">#1A1A2E</color>
+    <color name="colorCardBorder">#33FF2D55</color>
+    <color name="colorBadgeBackground">#33E11D48</color>
+
     <color name="white">#FFFFFF</color>
     <color name="black">#000000</color>
+
+    <color name="colorBottomNavBg">#0D0D15</color>
+    <color name="colorNavActive">#E11D48</color>
+    <color name="colorNavInactive">#71717A</color>
 </resources>

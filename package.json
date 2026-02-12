@@ -7,8 +7,7 @@
     "start:server": "npm run start --prefix server",
     "build": "npm run build --prefix client"
   },
-  "dependencies": {
-    "socket.io": "^4.8.1",
+  "devDependencies": {
     "concurrently": "^8.2.2"
   }
 }

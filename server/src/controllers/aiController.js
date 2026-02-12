@@ -69,8 +69,19 @@ const isPlaceholderApiKey = (apiKey) => {
   return knownPlaceholders.has(normalized);
 };
 
-const buildAiStudioConfig = () => {
-  const apiKey = sanitizeText(process.env.GEMINI_API_KEY);
+const buildAiStudioConfig = async () => {
+  let apiKey = sanitizeText(process.env.GEMINI_API_KEY);
+
+  try {
+    const Setting = require('../models/Setting');
+    const settings = await Setting.findOne({ key: 'main_settings' });
+    if (settings && settings.geminiApiKey && !isPlaceholderApiKey(settings.geminiApiKey)) {
+      apiKey = settings.geminiApiKey;
+    }
+  } catch (error) {
+    console.warn('Failed to load Gemini API key from database, using env fallback:', error.message);
+  }
+
   const generationConfig = {
     temperature: clamp(parseNumericEnv(process.env.GEMINI_TEMPERATURE, 0.7), 0, 2),
     topP: clamp(parseNumericEnv(process.env.GEMINI_TOP_P, 0.95), 0, 1),
@@ -88,7 +99,26 @@ const buildAiStudioConfig = () => {
   };
 };
 
-const AI_STUDIO_CONFIG = buildAiStudioConfig();
+let AI_STUDIO_CONFIG = {
+  provider: 'google-ai-studio',
+  apiKey: sanitizeText(process.env.GEMINI_API_KEY),
+  configured: !isPlaceholderApiKey(sanitizeText(process.env.GEMINI_API_KEY)),
+  modelCandidates: DEFAULT_MODEL_CANDIDATES,
+  generationConfig: {
+    temperature: 0.7,
+    topP: 0.95,
+    topK: 40,
+    maxOutputTokens: 2048
+  }
+};
+
+const refreshAiStudioConfig = async () => {
+  AI_STUDIO_CONFIG = await buildAiStudioConfig();
+  cachedGenAIClient = null;
+};
+
+// Initial load
+refreshAiStudioConfig().catch(err => console.error('Initial AI config load failed:', err));
 
 let cachedGenAIClient = null;
 
@@ -97,7 +127,7 @@ const getPublicAiStudioConfig = () => ({
   configured: AI_STUDIO_CONFIG.configured,
   modelCandidates: AI_STUDIO_CONFIG.modelCandidates,
   generationConfig: AI_STUDIO_CONFIG.generationConfig,
-  hasSystemInstruction: Boolean(AI_STUDIO_CONFIG.systemInstruction)
+  hasSystemInstruction: Boolean(AI_STUDIO_CONFIG.hasSystemInstruction)
 });
 
 const getGenAI = () => {
@@ -1107,6 +1137,7 @@ const chat = async (req, res) => {
     const chatPrompt = buildChatPrompt({ message, skillContext, learnerLevel, context });
 
     try {
+      await refreshAiStudioConfig();
       const aiResult = await generateTextFromGemini(chatPrompt);
       if (!aiResult || !aiResult.text) {
         return res.json({
@@ -1303,6 +1334,7 @@ const generateStudySession = async (req, res) => {
       });
     }
 
+    await refreshAiStudioConfig();
     const { session, source, model } = await createStudySession(input);
     return res.json({
       success: true,
@@ -1330,6 +1362,7 @@ const generateRoadmap = async (req, res) => {
       });
     }
 
+    await refreshAiStudioConfig();
     const { roadmap, source, model, videoGuidance } = await createRoadmap(input);
 
     const shouldSave = Boolean(req.body?.savePlan);

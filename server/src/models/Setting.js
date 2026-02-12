@@ -26,6 +26,11 @@ const settingsSchema = new mongoose.Schema({
         default: 8,
         min: 6,
         max: 16
+    },
+    geminiApiKey: {
+        type: String,
+        default: '',
+        trim: true
     }
 }, {
     timestamps: true // Adds createdAt and updatedAt timestamps

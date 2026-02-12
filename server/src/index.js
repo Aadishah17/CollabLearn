@@ -71,6 +71,7 @@ io.on('connection', (socket) => {
   socket.on('user_online', (userId) => {
     if (!userId) return;
 
+    console.log(`User online: ${userId} (Socket: ${socket.id})`);
     onlineUsers.set(userId, socket.id);
     socket.userId = userId;
 
@@ -105,6 +106,7 @@ io.on('connection', (socket) => {
 
   socket.on('disconnect', () => {
     if (!socket.userId) return;
+    console.log(`User disconnected: ${socket.userId}`);
     onlineUsers.delete(socket.userId);
     socket.broadcast.emit('user_status_change', { userId: socket.userId, isOnline: false });
   });

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Settings, Lock, Database, Globe, RefreshCw, AlertTriangle, Save, Loader, CheckCircle, XCircle } from 'lucide-react';
+import { Settings, Lock, Database, Globe, RefreshCw, AlertTriangle, Save, Loader, CheckCircle, XCircle, Sparkles } from 'lucide-react';
 import AdminNavbar from '../../navbar/adminNavbar.jsx';
 import { API_URL } from '../../config';
 
@@ -15,6 +15,7 @@ export default function AdminSettings() {
         siteName: 'CollabLearn',
         maintenanceMode: false,
         minPasswordLength: 8,
+        geminiApiKey: '',
     });
     const [loading, setLoading] = useState(true);
     const [saveStatus, setSaveStatus] = useState(null); // null, 'saving', 'success', 'error'
@@ -167,6 +168,31 @@ export default function AdminSettings() {
                                 max="16"
                                 required
                             />
+                        </div>
+                    </SettingsSection>
+
+                    <SettingsSection
+                        icon={Sparkles}
+                        title="AI Configuration (Gemini)"
+                        description="Manage your Google AI Studio API key for powered learning features."
+                    >
+                        <div className="mb-4">
+                            <label htmlFor="geminiApiKey" className="block text-sm font-medium text-gray-700 mb-1">Gemini API Key</label>
+                            <div className="relative max-w-xl">
+                                <input
+                                    type="password"
+                                    id="geminiApiKey"
+                                    name="geminiApiKey"
+                                    value={settings.geminiApiKey || ''}
+                                    onChange={handleInputChange}
+                                    placeholder="AIza..."
+                                    className="w-full p-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 font-mono"
+                                />
+                                <Sparkles className="absolute right-3 top-2.5 text-indigo-400" size={18} />
+                            </div>
+                            <p className="mt-2 text-xs text-gray-500">
+                                Get your key from the <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" className="text-indigo-600 hover:underline">Google AI Studio</a>.
+                            </p>
                         </div>
                     </SettingsSection>
 

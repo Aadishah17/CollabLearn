@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
@@ -12,123 +11,220 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="32dp">
+        android:padding="28dp"
+        android:gravity="center_horizontal">
 
-        <LinearLayout
+        <!-- Logo -->
+        <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:gravity="center_vertical"
-            android:layout_marginBottom="24dp">
-            <ImageView
-                android:layout_width="32dp"
-                android:layout_height="32dp"
-                android:src="@android:drawable/ic_menu_my_calendar"
-                app:tint="@color/colorPrimaryBrand"/>
+            android:text="🎓"
+            android:textSize="48sp"
+            android:layout_marginTop="32dp"
+            android:layout_marginBottom="8dp"/>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="CollabLearn"
+            android:textStyle="bold"
+            android:textSize="24sp"
+            android:textColor="@color/colorPrimaryBrand"
+            android:layout_marginBottom="32dp"/>
+
+        <!-- Glass Card Form -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:background="@drawable/bg_glass_card"
+            android:padding="24dp">
+
+            <!-- Title -->
+            <TextView
+                android:id="@+id/tvAuthTitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Welcome back"
+                android:textSize="28sp"
+                android:textStyle="bold"
+                android:textColor="@color/colorTextPrimary"
+                android:layout_marginBottom="4dp"/>
+
+            <TextView
+                android:id="@+id/tvAuthSubtitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Sign in to continue learning"
+                android:textColor="@color/colorTextSecondary"
+                android:textSize="14sp"
+                android:layout_marginBottom="24dp"/>
+
+            <!-- Login/Signup Toggle -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:background="@drawable/bg_glass_input"
+                android:padding="4dp"
+                android:layout_marginBottom="20dp">
+
+                <Button
+                    android:id="@+id/btnModeLogin"
+                    android:layout_width="0dp"
+                    android:layout_height="40dp"
+                    android:layout_weight="1"
+                    android:text="Sign In"
+                    android:background="@drawable/bg_red_button"
+                    android:textColor="@color/white"
+                    android:textAllCaps="false"
+                    android:textSize="14sp"/>
+
+                <Button
+                    android:id="@+id/btnModeSignup"
+                    android:layout_width="0dp"
+                    android:layout_height="40dp"
+                    android:layout_weight="1"
+                    android:text="Sign Up"
+                    android:backgroundTint="@android:color/transparent"
+                    android:textColor="@color/colorTextSecondary"
+                    android:textAllCaps="false"
+                    android:textSize="14sp"/>
+            </LinearLayout>
+
+            <!-- Name (signup only) -->
+            <TextView
+                android:id="@+id/tvNameLabel"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Full Name"
+                android:textStyle="bold"
+                android:textColor="@color/colorTextSecondary"
+                android:textSize="13sp"
+                android:layout_marginBottom="6dp"
+                android:visibility="gone"/>
+
+            <EditText
+                android:id="@+id/etName"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="Enter your name"
+                android:inputType="textPersonName"
+                android:padding="14dp"
+                android:background="@drawable/bg_glass_input"
+                android:textColor="@color/colorTextPrimary"
+                android:textColorHint="@color/colorTextTertiary"
+                android:layout_marginBottom="16dp"
+                android:visibility="gone"/>
+
+            <!-- Role Toggle -->
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="CollabLearn"
+                android:text="I am a"
                 android:textStyle="bold"
-                android:textSize="18sp"
-                android:layout_marginStart="8dp"
-                android:textColor="@color/colorTextPrimary"/>
-        </LinearLayout>
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Welcome back"
-            android:textSize="32sp"
-            android:textStyle="bold"
-            android:textColor="@color/colorTextPrimary"
-            android:layout_marginBottom="8dp"/>
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Please enter your details to sign in."
-            android:textColor="@color/colorTextSecondary"
-            android:layout_marginBottom="32dp"/>
-
-        <!-- Role Toggle -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:background="@color/colorInputBackground"
-            android:padding="4dp"
-            android:layout_marginBottom="32dp">
-            
-            <Button
-                android:id="@+id/btnRoleUser"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="Student"
-                android:backgroundTint="@color/colorSurface"
-                android:textColor="@color/colorPrimaryBrand"/>
-            
-            <Button
-                android:id="@+id/btnRoleAdmin"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="Admin"
-                android:backgroundTint="@color/colorInputBackground"
                 android:textColor="@color/colorTextSecondary"
-                style="@style/Widget.MaterialComponents.Button.TextButton"/>
+                android:textSize="13sp"
+                android:layout_marginBottom="6dp"/>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:background="@drawable/bg_glass_input"
+                android:padding="4dp"
+                android:layout_marginBottom="20dp">
+
+                <Button
+                    android:id="@+id/btnRoleUser"
+                    android:layout_width="0dp"
+                    android:layout_height="36dp"
+                    android:layout_weight="1"
+                    android:text="🎓 Student"
+                    android:background="@drawable/bg_red_button"
+                    android:textColor="@color/white"
+                    android:textAllCaps="false"
+                    android:textSize="13sp"/>
+
+                <Button
+                    android:id="@+id/btnRoleAdmin"
+                    android:layout_width="0dp"
+                    android:layout_height="36dp"
+                    android:layout_weight="1"
+                    android:text="⚙️ Admin"
+                    android:backgroundTint="@android:color/transparent"
+                    android:textColor="@color/colorTextSecondary"
+                    android:textAllCaps="false"
+                    android:textSize="13sp"/>
+            </LinearLayout>
+
+            <!-- Email -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Email"
+                android:textStyle="bold"
+                android:textColor="@color/colorTextSecondary"
+                android:textSize="13sp"
+                android:layout_marginBottom="6dp"/>
+
+            <EditText
+                android:id="@+id/etEmail"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="name@example.com"
+                android:inputType="textEmailAddress"
+                android:padding="14dp"
+                android:background="@drawable/bg_glass_input"
+                android:textColor="@color/colorTextPrimary"
+                android:textColorHint="@color/colorTextTertiary"
+                android:layout_marginBottom="16dp"/>
+
+            <!-- Password -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Password"
+                android:textStyle="bold"
+                android:textColor="@color/colorTextSecondary"
+                android:textSize="13sp"
+                android:layout_marginBottom="6dp"/>
+
+            <EditText
+                android:id="@+id/etPassword"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="••••••••"
+                android:inputType="textPassword"
+                android:padding="14dp"
+                android:background="@drawable/bg_glass_input"
+                android:textColor="@color/colorTextPrimary"
+                android:textColorHint="@color/colorTextTertiary"
+                android:layout_marginBottom="24dp"/>
+
+            <!-- Submit Button -->
+            <Button
+                android:id="@+id/btnLogin"
+                android:layout_width="match_parent"
+                android:layout_height="52dp"
+                android:text="Sign In →"
+                android:background="@drawable/bg_red_button"
+                android:textColor="@color/white"
+                android:textAllCaps="false"
+                android:textSize="16sp"
+                android:textStyle="bold"/>
         </LinearLayout>
 
+        <!-- Bottom link -->
         <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Email"
-            android:textStyle="bold"
-            android:layout_marginBottom="8dp"/>
-
-        <EditText
-            android:id="@+id/etEmail"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:hint="Enter your email"
-            android:inputType="textEmailAddress"
-            android:padding="16dp"
-            android:background="@drawable/bg_input"
-            android:layout_marginBottom="24dp"/>
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Password"
-            android:textStyle="bold"
-            android:layout_marginBottom="8dp"/>
-
-        <EditText
-            android:id="@+id/etPassword"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:hint="••••••••"
-            android:inputType="textPassword"
-            android:padding="16dp"
-            android:background="@drawable/bg_input"
-            android:layout_marginBottom="24dp"/>
-
-        <Button
-            android:id="@+id/btnLogin"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="Sign in"
-            android:padding="14dp"
-            android:backgroundTint="@color/colorPrimaryBrand"
-            android:layout_marginBottom="24dp"/>
-
-        <TextView
+            android:id="@+id/tvSwitchMode"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Don't have an account? Sign up"
             android:layout_gravity="center"
-            android:textColor="@color/colorTextSecondary"/>
+            android:layout_marginTop="20dp"
+            android:textColor="@color/colorTextSecondary"
+            android:textSize="14sp"/>
 
     </LinearLayout>
 </ScrollView>

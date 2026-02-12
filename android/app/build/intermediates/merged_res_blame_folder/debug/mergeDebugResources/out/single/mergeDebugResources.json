@@ -1,5 +1,21 @@
 [
     {
+        "merged": "com.collablearn.app-debug-31:/layout_activity_dashboard.xml.flat",
+        "source": "com.collablearn.app-main-33:/layout/activity_dashboard.xml"
+    },
+    {
+        "merged": "com.collablearn.app-debug-31:/drawable_bg_glass_input.xml.flat",
+        "source": "com.collablearn.app-main-33:/drawable/bg_glass_input.xml"
+    },
+    {
+        "merged": "com.collablearn.app-debug-31:/drawable_bg_red_button_outline.xml.flat",
+        "source": "com.collablearn.app-main-33:/drawable/bg_red_button_outline.xml"
+    },
+    {
+        "merged": "com.collablearn.app-debug-31:/drawable_bg_glass_stat.xml.flat",
+        "source": "com.collablearn.app-main-33:/drawable/bg_glass_stat.xml"
+    },
+    {
         "merged": "com.collablearn.app-debug-31:/drawable_bg_card.xml.flat",
         "source": "com.collablearn.app-main-33:/drawable/bg_card.xml"
     },
@@ -28,12 +44,24 @@
         "source": "com.collablearn.app-main-33:/mipmap-mdpi/ic_launcher.png"
     },
     {
+        "merged": "com.collablearn.app-debug-31:/drawable_bg_bottom_nav.xml.flat",
+        "source": "com.collablearn.app-main-33:/drawable/bg_bottom_nav.xml"
+    },
+    {
         "merged": "com.collablearn.app-debug-31:/drawable_bg_ai_card.xml.flat",
         "source": "com.collablearn.app-main-33:/drawable/bg_ai_card.xml"
     },
     {
+        "merged": "com.collablearn.app-debug-31:/drawable_bg_red_button.xml.flat",
+        "source": "com.collablearn.app-main-33:/drawable/bg_red_button.xml"
+    },
+    {
         "merged": "com.collablearn.app-debug-31:/drawable_bg_ai_input.xml.flat",
         "source": "com.collablearn.app-main-33:/drawable/bg_ai_input.xml"
+    },
+    {
+        "merged": "com.collablearn.app-debug-31:/drawable_bg_glass_card.xml.flat",
+        "source": "com.collablearn.app-main-33:/drawable/bg_glass_card.xml"
     },
     {
         "merged": "com.collablearn.app-debug-31:/layout_activity_login.xml.flat",

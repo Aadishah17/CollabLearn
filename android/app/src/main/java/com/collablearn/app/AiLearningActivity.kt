@@ -55,6 +55,8 @@ class AiLearningActivity : AppCompatActivity() {
         btnGenerateRoadmap.setOnClickListener { generateRoadmap() }
         btnGenerateSession.setOnClickListener { generateStudySession() }
         btnOpenVideo.setOnClickListener { openVideoGuidance() }
+
+        findViewById<Button>(R.id.btnBackToDash).setOnClickListener { finish() }
     }
 
     private fun bindViews() {

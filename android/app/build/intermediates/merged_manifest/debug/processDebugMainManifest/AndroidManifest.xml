@@ -38,6 +38,7 @@
             </intent-filter>
         </activity>
         <activity android:name="com.collablearn.app.LoginActivity" />
+        <activity android:name="com.collablearn.app.DashboardActivity" />
         <activity android:name="com.collablearn.app.AiLearningActivity" />
 
         <provider

@@ -23,14 +23,14 @@ const adminController = {
 
   updateSettings: async (req, res) => {
     try {
-      const { siteName, maintenanceMode, minPasswordLength } = req.body;
+      const { siteName, maintenanceMode, minPasswordLength, geminiApiKey } = req.body;
       
       // Find the single settings document and update it.
       // The { new: true } option returns the updated document.
       // The { upsert: true } option creates the document if it doesn't exist.
       const updatedSettings = await Setting.findOneAndUpdate(
         { key: 'main_settings' },
-        { siteName, maintenanceMode, minPasswordLength },
+        { siteName, maintenanceMode, minPasswordLength, geminiApiKey },
         { new: true, upsert: true, runValidators: true }
       );
       

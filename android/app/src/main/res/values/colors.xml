@@ -1,22 +1,42 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="colorBackground">#F8FAFC</color>
-    <color name="colorSurface">#FFFFFF</color>
-    <color name="colorInputBackground">#F4F4F5</color>
-    
-    <color name="colorTextPrimary">#18181B</color>
-    <color name="colorTextSecondary">#52525B</color>
+    <!-- Base Dark -->
+    <color name="colorBackground">#0A0A0A</color>
+    <color name="colorSurface">#141420</color>
+    <color name="colorSurfaceGlass">#231A2E</color>
+    <color name="colorInputBackground">#1C1C2E</color>
+
+    <!-- Text -->
+    <color name="colorTextPrimary">#F5F5F5</color>
+    <color name="colorTextSecondary">#A1A1AA</color>
     <color name="colorTextTertiary">#71717A</color>
-    
-    <color name="colorPrimaryBrand">#0284C7</color>
-    <color name="colorSecondaryBrand">#9333EA</color>
-    <color name="colorSuccess">#16A34A</color>
-    
-    <color name="colorBorder">#E4E4E7</color>
-    <color name="colorCardBorder">#F4F4F5</color>
-    
-    <color name="colorBadgeBackground">#F3E8FF</color>
-    
+
+    <!-- Red Brand -->
+    <color name="colorPrimaryBrand">#E11D48</color>
+    <color name="colorPrimaryLight">#FF2D55</color>
+    <color name="colorPrimaryDark">#BE123C</color>
+    <color name="colorSecondaryBrand">#FF4D6D</color>
+
+    <!-- Accent -->
+    <color name="colorSuccess">#22C55E</color>
+    <color name="colorWarning">#F59E0B</color>
+    <color name="colorInfo">#FF6B81</color>
+
+    <!-- Glass -->
+    <color name="colorGlassFill">#331A1A2E</color>
+    <color name="colorGlassBorder">#33FF2D55</color>
+    <color name="colorGlassStroke">#44FF2D55</color>
+
+    <!-- Misc -->
+    <color name="colorBorder">#1A1A2E</color>
+    <color name="colorCardBorder">#33FF2D55</color>
+    <color name="colorBadgeBackground">#33E11D48</color>
+
     <color name="white">#FFFFFF</color>
     <color name="black">#000000</color>
+
+    <!-- Bottom Nav -->
+    <color name="colorBottomNavBg">#0D0D15</color>
+    <color name="colorNavActive">#E11D48</color>
+    <color name="colorNavInactive">#71717A</color>
 </resources>
