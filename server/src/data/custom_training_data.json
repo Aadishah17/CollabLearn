@@ -1,0 +1,87 @@
+{
+  "skills": {
+    "javascript": {
+      "phases": [
+        "DOM Manipulation and Events",
+        "Asynchronous JavaScript (Promises, async/await)",
+        "ES6+ Features and Modern Syntax",
+        "Frontend Framework Integration (React/Vue/Svelte)",
+        "State Management",
+        "Testing and Debugging",
+        "Performance Optimization",
+        "Advanced Concepts (Closures, Prototypes)"
+      ],
+      "resources": [
+        {
+          "type": "Docs",
+          "title": "MDN Web Docs - JavaScript",
+          "url": "https://developer.mozilla.org/en-US/docs/Web/JavaScript",
+          "reason": "The ultimate source of truth for all JavaScript developers.",
+          "level": "All Levels"
+        },
+        {
+          "type": "Course",
+          "title": "JavaScript.info",
+          "url": "https://javascript.info/",
+          "reason": "A highly detailed, modern tutorial covering everything from fundamentals to advanced topics.",
+          "level": "All Levels"
+        },
+        {
+          "type": "Practice",
+          "title": "LeetCode / HackerRank",
+          "url": "https://leetcode.com/",
+          "reason": "Great for practicing algorithms and basic problem-solving in JS.",
+          "level": "Intermediate"
+        }
+      ]
+    },
+    "python": {
+      "phases": [
+        "Basic Syntax and Data Structures",
+        "Functions and Error Handling",
+        "Object-Oriented Programming",
+        "File I/O and Standard Library",
+        "Web Scraping / API Interaction",
+        "Data Analysis (Pandas/NumPy)",
+        "Web Frameworks (Django/Flask)",
+        "Automation and Scripting"
+      ],
+      "resources": [
+        {
+          "type": "Docs",
+          "title": "Official Python Documentation",
+          "url": "https://docs.python.org/3/",
+          "reason": "Comprehensive guide to all standard library features.",
+          "level": "All Levels"
+        },
+        {
+          "type": "Course",
+          "title": "Automate the Boring Stuff with Python",
+          "url": "https://automatetheboringstuff.com/",
+          "reason": "Excellent beginner course focused on practical scripting.",
+          "level": "Beginner"
+        }
+      ]
+    }
+  },
+  "defaultPhases": [
+    "Foundation and setup",
+    "Core fundamentals",
+    "Controlled practice",
+    "Applied execution",
+    "Feedback and refinement",
+    "Advanced combinations",
+    "Independent performance",
+    "Capstone and next steps"
+  ],
+  "defaultHabits": [
+    "Study in focused 45-60 minute blocks with short breaks.",
+    "Log one lesson learned and one blocker after each session.",
+    "Practice before consuming more theory whenever possible."
+  ],
+  "defaultCheckpoints": [
+    "Can you explain core concepts without notes?",
+    "Can you complete one task from scratch without tutorial copy-paste?",
+    "Can you identify your next weak area and make a targeted practice plan?"
+  ]
+}

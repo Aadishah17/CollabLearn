@@ -18,57 +18,102 @@ struct AiLearningView: View {
     private let levels = ["Beginner", "Intermediate", "Advanced"]
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 16) {
-                Text("AI Learning Studio")
-                    .font(.title2.bold())
+        ZStack {
+            Color.zinc950.ignoresSafeArea()
+            
+            ScrollView {
+                VStack(alignment: .leading, spacing: 24) {
+                    Text("AI Learning Studio")
+                        .font(.title2.bold())
+                        .foregroundStyle(.white)
 
-                Group {
-                    TextField("Skill (e.g. React, Data Analysis)", text: $skill)
-                    Picker("Level", selection: $learnerLevel) {
-                        ForEach(levels, id: \.self) { level in
-                            Text(level).tag(level)
+                    VStack(alignment: .leading, spacing: 20) {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Learning Goal")
+                                .font(.caption.bold())
+                                .foregroundStyle(.secondary)
+                            TextField("e.g. React, Data Analysis", text: $skill)
+                                .textFieldStyle(GlassTextFieldStyle())
+                        }
+                        
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Current Level")
+                                .font(.caption.bold())
+                                .foregroundStyle(.secondary)
+                            Picker("Level", selection: $learnerLevel) {
+                                ForEach(levels, id: \.self) { level in
+                                    Text(level).tag(level)
+                                }
+                            }
+                            .pickerStyle(.segmented)
+                        }
+
+                        HStack(spacing: 16) {
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text("Weekly Hours")
+                                    .font(.caption.bold())
+                                    .foregroundStyle(.secondary)
+                                TextField("6", text: $weeklyHours)
+                                    .keyboardType(.numberPad)
+                                    .textFieldStyle(GlassTextFieldStyle())
+                            }
+                            
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text("Target Weeks")
+                                    .font(.caption.bold())
+                                    .foregroundStyle(.secondary)
+                                TextField("8", text: $targetWeeks)
+                                    .keyboardType(.numberPad)
+                                    .textFieldStyle(GlassTextFieldStyle())
+                            }
+                        }
+                        
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Focus Areas")
+                                .font(.caption.bold())
+                                .foregroundStyle(.secondary)
+                            TextField("e.g. Basics, Projects", text: $focusAreas)
+                                .textFieldStyle(GlassTextFieldStyle())
+                        }
+
+                        HStack(spacing: 12) {
+                            Button {
+                                Task { await generateRoadmap() }
+                            } label: {
+                                Text(loadingRoadmap ? "Generating..." : "Generate Roadmap")
+                                    .brandButtonStyle(isPrimary: true)
+                            }
+                            .disabled(loadingRoadmap)
+
+                            Button {
+                                Task { await generateStudySession() }
+                            } label: {
+                                Text(loadingSession ? "Building..." : "Study Session")
+                                    .brandButtonStyle(isPrimary: false)
+                            }
+                            .disabled(loadingSession || roadmap == nil)
                         }
                     }
-                    .pickerStyle(.segmented)
+                    .padding(20)
+                    .glassCard()
 
-                    TextField("Weekly hours", text: $weeklyHours)
-                        .keyboardType(.numberPad)
-                    TextField("Target weeks", text: $targetWeeks)
-                        .keyboardType(.numberPad)
-                    TextField("Focus areas (comma separated)", text: $focusAreas)
-                }
-                .textFieldStyle(.roundedBorder)
-
-                HStack(spacing: 12) {
-                    Button(loadingRoadmap ? "Generating..." : "Generate Roadmap") {
-                        Task { await generateRoadmap() }
+                    if !errorMessage.isEmpty {
+                        Text(errorMessage)
+                            .font(.footnote)
+                            .foregroundStyle(.brandRed)
+                            .padding(.horizontal)
                     }
-                    .buttonStyle(.borderedProminent)
-                    .disabled(loadingRoadmap)
 
-                    Button(loadingSession ? "Building..." : "Study Session") {
-                        Task { await generateStudySession() }
+                    if let roadmap {
+                        roadmapSection(roadmap)
                     }
-                    .buttonStyle(.bordered)
-                    .disabled(loadingSession || roadmap == nil)
-                }
 
-                if !errorMessage.isEmpty {
-                    Text(errorMessage)
-                        .font(.footnote)
-                        .foregroundStyle(.red)
+                    if let studySession {
+                        studySessionSection(studySession)
+                    }
                 }
-
-                if let roadmap {
-                    roadmapSection(roadmap)
-                }
-
-                if let studySession {
-                    studySessionSection(studySession)
-                }
+                .padding(20)
             }
-            .padding(16)
         }
         .navigationTitle("AI Learning")
         .navigationBarTitleDisplayMode(.inline)
@@ -76,62 +121,112 @@ struct AiLearningView: View {
 
     @ViewBuilder
     private func roadmapSection(_ roadmap: RoadmapData) -> some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: 16) {
             Text("Roadmap Summary")
                 .font(.headline)
+                .foregroundStyle(.white)
+            
             Text(roadmap.summary ?? "No summary available")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
+                .padding(16)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .glassCard(opacity: 0.4)
 
             if let videoGuidanceURL, let url = URL(string: videoGuidanceURL) {
-                Link("Open Top Video Guidance", destination: url)
+                Link(destination: url) {
+                    HStack {
+                        Image(systemName: "play.rectangle.fill")
+                        Text("Open Top Video Guidance")
+                    }
                     .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 12)
+                    .background(Color.zinc800)
+                    .clipShape(RoundedRectangle(cornerRadius: 10))
+                }
             }
 
-            Text("Steps")
+            Text("Curated Steps")
                 .font(.headline)
-                .padding(.top, 6)
+                .foregroundStyle(.white)
+                .padding(.top, 8)
 
-            ForEach(Array(roadmap.steps.enumerated()), id: \.offset) { index, step in
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("\(index + 1). \(step.title ?? "Step")")
-                        .font(.subheadline.weight(.semibold))
-                    Text(step.description ?? "")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
+            VStack(spacing: 12) {
+                ForEach(Array(roadmap.steps.enumerated()), id: \.offset) { index, step in
+                    VStack(alignment: .leading, spacing: 8) {
+                        HStack {
+                            Text("\(index + 1)")
+                                .font(.caption.bold())
+                                .foregroundStyle(.white)
+                                .frame(width: 24, height: 24)
+                                .background(Color.brandRed)
+                                .clipShape(Circle())
+                            
+                            Text(step.title ?? "Step")
+                                .font(.subheadline.weight(.bold))
+                                .foregroundStyle(.white)
+                        }
+                        
+                        Text(step.description ?? "")
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                    }
+                    .padding(16)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .glassCard(opacity: 0.3)
                 }
-                .padding(10)
-                .background(Color.gray.opacity(0.08))
-                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
             }
         }
     }
 
     @ViewBuilder
     private func studySessionSection(_ session: StudySessionData) -> some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: 16) {
             Text("Study Session")
                 .font(.headline)
+                .foregroundStyle(.brandRed)
+                .padding(.top, 16)
+            
             Text(session.summary ?? "No session summary available")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
+                .padding(16)
+                .glassCard(opacity: 0.4)
 
             ForEach(Array(session.tasks.enumerated()), id: \.offset) { index, task in
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("\(index + 1). \(task.title ?? "Task") (\(task.minutes ?? 0) min)")
-                        .font(.subheadline.weight(.semibold))
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack {
+                        Text("\(task.minutes ?? 0) min")
+                            .font(.system(size: 10, weight: .bold))
+                            .foregroundStyle(.brandRed)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .background(Color.brandRed.opacity(0.1))
+                            .clipShape(Capsule())
+                        
+                        Spacer()
+                    }
+                    
+                    Text(task.title ?? "Task")
+                        .font(.subheadline.weight(.bold))
+                        .foregroundStyle(.white)
+                    
                     Text(task.instructions ?? "")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
+                    
                     if let output = task.output, !output.isEmpty {
+                        Divider().background(Color.white.opacity(0.1))
                         Text("Output: \(output)")
                             .font(.caption)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(.brandRedLight)
                     }
                 }
-                .padding(10)
-                .background(Color.gray.opacity(0.08))
-                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                .padding(16)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .glassCard(opacity: 0.3)
             }
         }
     }

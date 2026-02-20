@@ -1,16 +1,19 @@
 const jwt = require('jsonwebtoken');
-const { GoogleGenerativeAI } = require('@google/generative-ai');
 const LearningPlan = require('../models/LearningPlan');
+
+let customTrainingData = null;
+try {
+  customTrainingData = require('../data/custom_training_data.json');
+} catch (err) {
+  console.warn('Custom training data not found, relying solely on generic fallbacks.');
+}
 
 const LEVELS = ['Beginner', 'Intermediate', 'Advanced'];
 const RESOURCE_TYPES = ['Video', 'Article', 'Course', 'Docs', 'Community', 'Practice'];
 const DEFAULT_MODEL_CANDIDATES = [
-  'gemini-2.5-flash',
-  'gemini-2.0-flash',
-  'gemini-flash-latest',
-  'gemini-1.5-flash',
-  'gemini-1.5-pro',
-  'gemini-pro'
+  'llama3.1',
+  'llama3',
+  'mistral'
 ];
 const YOUTUBE_API_BASE_URL = 'https://www.googleapis.com/youtube/v3';
 const YOUTUBE_SEARCH_RESULTS_PER_QUERY = 25;
@@ -70,77 +73,35 @@ const isPlaceholderApiKey = (apiKey) => {
 };
 
 const buildAiStudioConfig = async () => {
-  let apiKey = sanitizeText(process.env.GEMINI_API_KEY);
-
-  try {
-    const Setting = require('../models/Setting');
-    const settings = await Setting.findOne({ key: 'main_settings' });
-    if (settings && settings.geminiApiKey && !isPlaceholderApiKey(settings.geminiApiKey)) {
-      apiKey = settings.geminiApiKey;
-    }
-  } catch (error) {
-    console.warn('Failed to load Gemini API key from database, using env fallback:', error.message);
-  }
-
-  const generationConfig = {
-    temperature: clamp(parseNumericEnv(process.env.GEMINI_TEMPERATURE, 0.7), 0, 2),
-    topP: clamp(parseNumericEnv(process.env.GEMINI_TOP_P, 0.95), 0, 1),
-    topK: clamp(parseIntegerEnv(process.env.GEMINI_TOP_K, 40), 1, 200),
-    maxOutputTokens: clamp(parseIntegerEnv(process.env.GEMINI_MAX_OUTPUT_TOKENS, 2048), 128, 8192)
-  };
-
   return {
-    provider: 'google-ai-studio',
-    apiKey,
-    configured: !isPlaceholderApiKey(apiKey),
-    modelCandidates: parseModelCandidates(),
-    generationConfig,
-    systemInstruction: sanitizeText(process.env.GEMINI_SYSTEM_INSTRUCTION)
+    provider: 'local-basic-engine',
+    configured: true,
+    modelCandidates: ['local-basic-engine'],
+    generationConfig: {}
   };
 };
 
 let AI_STUDIO_CONFIG = {
-  provider: 'google-ai-studio',
-  apiKey: sanitizeText(process.env.GEMINI_API_KEY),
-  configured: !isPlaceholderApiKey(sanitizeText(process.env.GEMINI_API_KEY)),
-  modelCandidates: DEFAULT_MODEL_CANDIDATES,
-  generationConfig: {
-    temperature: 0.7,
-    topP: 0.95,
-    topK: 40,
-    maxOutputTokens: 2048
-  }
+  provider: 'local-basic-engine',
+  configured: true,
+  modelCandidates: ['local-basic-engine'],
+  generationConfig: {}
 };
 
 const refreshAiStudioConfig = async () => {
   AI_STUDIO_CONFIG = await buildAiStudioConfig();
-  cachedGenAIClient = null;
 };
 
 // Initial load
 refreshAiStudioConfig().catch(err => console.error('Initial AI config load failed:', err));
-
-let cachedGenAIClient = null;
 
 const getPublicAiStudioConfig = () => ({
   provider: AI_STUDIO_CONFIG.provider,
   configured: AI_STUDIO_CONFIG.configured,
   modelCandidates: AI_STUDIO_CONFIG.modelCandidates,
   generationConfig: AI_STUDIO_CONFIG.generationConfig,
-  hasSystemInstruction: Boolean(AI_STUDIO_CONFIG.hasSystemInstruction)
+  hasSystemInstruction: false
 });
-
-const getGenAI = () => {
-  if (!AI_STUDIO_CONFIG.configured) {
-    return null;
-  }
-
-  if (!cachedGenAIClient) {
-    cachedGenAIClient = new GoogleGenerativeAI(AI_STUDIO_CONFIG.apiKey);
-  }
-
-  return cachedGenAIClient;
-};
 
 const buildGenerationConfig = (overrides = {}) => {
   const merged = {
@@ -620,7 +581,11 @@ const buildFallbackRoadmap = ({ skill, learnerLevel, weeklyHours, targetWeeks, f
   const planWeeks = clamp(targetWeeks, 2, 24);
   const stepCount = clamp(Math.ceil(planWeeks / 2), 4, 8);
   const baseHoursPerStep = Math.max(2, Math.round((weeklyHours * planWeeks) / stepCount));
-  const fallbackPhaseTitles = [
+  
+  const skillKey = safeSkill.toLowerCase();
+  const customSkillData = customTrainingData?.skills?.[skillKey];
+
+  const fallbackPhaseTitles = customSkillData?.phases || customTrainingData?.defaultPhases || [
     'Foundation and setup',
     'Core fundamentals',
     'Controlled practice',
@@ -630,7 +595,8 @@ const buildFallbackRoadmap = ({ skill, learnerLevel, weeklyHours, targetWeeks, f
     'Independent performance',
     'Capstone and next steps'
   ];
-  const fallbackFocusThemes = [
+
+  const fallbackFocusThemes = customSkillData?.phases || [
     `posture and basics in ${safeSkill}`,
     `essential ${safeSkill} techniques`,
     `accuracy and repetition in ${safeSkill}`,
@@ -682,42 +648,59 @@ const buildFallbackRoadmap = ({ skill, learnerLevel, weeklyHours, targetWeeks, f
     }
   ];
 
-  const resources = [
-    {
-      type: 'Docs',
-      title: `${safeSkill} official documentation`,
-      url: toSearchUrl(`${safeSkill} official documentation`),
-      reason: 'Primary source for accurate concepts and API behavior.',
-      level: 'All Levels'
-    },
-    {
-      type: 'Course',
-      title: `${safeSkill} structured beginner-to-advanced course`,
-      url: toSearchUrl(`${safeSkill} full course`),
-      reason: 'Gives step-by-step structure with consistent progression.',
-      level: learnerLevel
-    },
-    {
-      type: 'Video',
-      title: `${safeSkill} practical walkthroughs`,
-      url: toSearchUrl(`${safeSkill} tutorial playlist`),
-      reason: 'Useful for seeing practical workflows and project execution.',
-      level: 'All Levels'
-    },
-    {
-      type: 'Community',
-      title: `${safeSkill} discussion and Q&A`,
-      url: toSearchUrl(`${safeSkill} community forum`),
-      reason: 'Get unstuck faster by learning from common issues and solutions.',
-      level: 'All Levels'
-    },
-    {
-      type: 'Practice',
-      title: `${safeSkill} exercises and challenges`,
-      url: toSearchUrl(`${safeSkill} exercises challenges`),
-      reason: 'Hands-on repetition helps convert theory into skill.',
-      level: learnerLevel
-    }
+  let resources = [];
+  if (customSkillData?.resources && customSkillData.resources.length > 0) {
+    resources = [...customSkillData.resources];
+  } else {
+    resources = [
+      {
+        type: 'Docs',
+        title: `${safeSkill} official documentation`,
+        url: toSearchUrl(`${safeSkill} official documentation`),
+        reason: 'Primary source for accurate concepts and API behavior.',
+        level: 'All Levels'
+      },
+      {
+        type: 'Course',
+        title: `${safeSkill} structured beginner-to-advanced course`,
+        url: toSearchUrl(`${safeSkill} full course`),
+        reason: 'Gives step-by-step structure with consistent progression.',
+        level: learnerLevel
+      },
+      {
+        type: 'Video',
+        title: `${safeSkill} practical walkthroughs`,
+        url: toSearchUrl(`${safeSkill} tutorial playlist`),
+        reason: 'Useful for seeing practical workflows and project execution.',
+        level: 'All Levels'
+      },
+      {
+        type: 'Community',
+        title: `${safeSkill} discussion and Q&A`,
+        url: toSearchUrl(`${safeSkill} community forum`),
+        reason: 'Get unstuck faster by learning from common issues and solutions.',
+        level: 'All Levels'
+      },
+      {
+        type: 'Practice',
+        title: `${safeSkill} exercises and challenges`,
+        url: toSearchUrl(`${safeSkill} exercises challenges`),
+        reason: 'Hands-on repetition helps convert theory into skill.',
+        level: learnerLevel
+      }
+    ];
+  }
+
+  const habits = customTrainingData?.defaultHabits || [
+    'Study in focused 45-60 minute blocks with short breaks.',
+    'Log one lesson learned and one blocker after each session.',
+    'Practice before consuming more theory whenever possible.'
+  ];
+
+  const checkpoints = customTrainingData?.defaultCheckpoints || [
+    'Can you explain core concepts without notes?',
+    'Can you complete one task from scratch without tutorial copy-paste?',
+    'Can you identify your next weak area and make a targeted practice plan?'
   ];
 
   return {
@@ -725,16 +708,8 @@ const buildFallbackRoadmap = ({ skill, learnerLevel, weeklyHours, targetWeeks, f
     steps,
     milestones,
     resources,
-    habits: [
-      'Study in focused 45-60 minute blocks with short breaks.',
-      'Log one lesson learned and one blocker after each session.',
-      'Practice before consuming more theory whenever possible.'
-    ],
-    checkpoints: [
-      'Can you explain core concepts without notes?',
-      'Can you complete one task from scratch without tutorial copy-paste?',
-      'Can you identify your next weak area and make a targeted practice plan?'
-    ]
+    habits,
+    checkpoints
   };
 };
 
@@ -963,107 +938,26 @@ Rules:
 `.trim();
 };
 
-const generateTextFromGemini = async (prompt, generationOverrides = {}) => {
-  const genAI = getGenAI();
-  if (!genAI) {
-    return null;
-  }
-
-  let lastError = null;
-
-  for (const modelName of AI_STUDIO_CONFIG.modelCandidates) {
-    try {
-      const model = genAI.getGenerativeModel(buildModelConfig(modelName, generationOverrides));
-      const result = await model.generateContent(prompt);
-      const response = await result.response;
-      const text = sanitizeText(response.text());
-
-      if (text) {
-        return {
-          text,
-          model: modelName
-        };
-      }
-    } catch (error) {
-      lastError = error;
-      if (!isModelRetryableError(error)) {
-        throw error;
-      }
-    }
-  }
-
-  if (lastError) {
-    throw lastError;
-  }
-
-  return null;
-};
-
-const parseAiJsonPayload = async ({ text, schemaTemplate }) => {
-  try {
-    return parseJsonWithCleanup(text);
-  } catch (parseError) {
-    const repairPrompt = buildJsonRepairPrompt({
-      schema: schemaTemplate,
-      invalidJson: String(text || '').slice(0, 12000)
-    });
-
-    const repairedResult = await generateTextFromGemini(repairPrompt, {
-      temperature: 0,
-      topP: 0.1,
-      responseMimeType: 'application/json',
-      maxOutputTokens: 4096
-    });
-
-    if (!repairedResult?.text) {
-      throw parseError;
-    }
-
-    return parseJsonWithCleanup(repairedResult.text);
-  }
-};
+// Independent internal engine functions (no external fetch calls needed)
 
 const createRoadmap = async (input) => {
-  const prompt = buildRoadmapPrompt(input);
-
   try {
-    const aiResult = await generateTextFromGemini(prompt, {
-      temperature: 0.4,
-      responseMimeType: 'application/json',
-      maxOutputTokens: 4096
-    });
-    if (!aiResult || !aiResult.text) {
-      const fallbackRoadmap = buildFallbackRoadmap(input);
-      const enrichedFallback = await applyBestVideoGuidance(fallbackRoadmap, input);
-      return {
-        roadmap: enrichedFallback.roadmap,
-        source: 'fallback',
-        model: null,
-        videoGuidance: enrichedFallback.videoGuidance
-      };
-    }
-
-    const parsed = await parseAiJsonPayload({
-      text: aiResult.text,
-      schemaTemplate: ROADMAP_SCHEMA_REPAIR_TEMPLATE
-    });
-    const normalized = normalizeRoadmap(parsed, input);
-    const enriched = await applyBestVideoGuidance(normalized, input);
-    return {
-      roadmap: enriched.roadmap,
-      source: 'ai',
-      model: aiResult.model,
-      videoGuidance: enriched.videoGuidance
-    };
-  } catch (error) {
-    console.error('AI roadmap generation failed, using fallback:', error.message);
     const fallbackRoadmap = buildFallbackRoadmap(input);
     const enrichedFallback = await applyBestVideoGuidance(fallbackRoadmap, input);
     return {
       roadmap: enrichedFallback.roadmap,
-      source: 'fallback',
-      model: null,
+      source: 'basic-engine',
+      model: 'local-basic-engine',
       videoGuidance: enrichedFallback.videoGuidance
+    };
+  } catch (error) {
+    console.error('Basic Engine roadmap generation failed:', error.message);
+    const fallbackRoadmap = buildFallbackRoadmap(input);
+    return {
+      roadmap: fallbackRoadmap,
+      source: 'basic-engine',
+      model: 'local-basic-engine',
+      videoGuidance: null
     };
   }
 };
@@ -1138,35 +1032,21 @@ const chat = async (req, res) => {
 
     try {
       await refreshAiStudioConfig();
-      const aiResult = await generateTextFromGemini(chatPrompt);
-      if (!aiResult || !aiResult.text) {
-        return res.json({
-          success: true,
-          response: buildFallbackChatResponse({ message, skillContext, learnerLevel, context }),
-          source: 'fallback',
-          provider: 'fallback',
-          model: null
-        });
-      }
-
-      return res.json({
-        success: true,
-        response: sanitizeText(
-          aiResult.text,
-          buildFallbackChatResponse({ message, skillContext, learnerLevel, context })
-        ),
-        source: 'ai',
-        provider: AI_STUDIO_CONFIG.provider,
-        model: aiResult.model
-      });
-    } catch (error) {
-      console.error('AI chat failed, using fallback:', error.message);
       return res.json({
         success: true,
         response: buildFallbackChatResponse({ message, skillContext, learnerLevel, context }),
-        source: 'fallback',
-        provider: 'fallback',
-        model: null
+        source: 'basic-engine',
+        provider: AI_STUDIO_CONFIG.provider,
+        model: 'local-basic-engine'
+      });
+    } catch (error) {
+      console.error('Basic Engine chat failed:', error.message);
+      return res.json({
+        success: true,
+        response: buildFallbackChatResponse({ message, skillContext, learnerLevel, context }),
+        source: 'basic-engine',
+        provider: AI_STUDIO_CONFIG.provider,
+        model: 'local-basic-engine'
       });
     }
   } catch (error) {
@@ -1301,26 +1181,11 @@ Rules:
 };
 
 const createStudySession = async (input) => {
-  const prompt = buildStudySessionPrompt(input);
-
   try {
-    const aiResult = await generateTextFromGemini(prompt, {
-      temperature: 0.3,
-      responseMimeType: 'application/json'
-    });
-    if (!aiResult || !aiResult.text) {
-      return { session: buildFallbackStudySession(input), source: 'fallback', model: null };
-    }
-
-    const parsed = await parseAiJsonPayload({
-      text: aiResult.text,
-      schemaTemplate: STUDY_SESSION_SCHEMA_REPAIR_TEMPLATE
-    });
-    const normalized = normalizeStudySession(parsed, input);
-    return { session: normalized, source: 'ai', model: aiResult.model };
+    return { session: buildFallbackStudySession(input), source: 'basic-engine', model: 'local-basic-engine' };
   } catch (error) {
-    console.error('AI study session generation failed, using fallback:', error.message);
-    return { session: buildFallbackStudySession(input), source: 'fallback', model: null };
+    console.error('Basic Engine study session generation failed:', error.message);
+    return { session: buildFallbackStudySession(input), source: 'basic-engine', model: 'local-basic-engine' };
   }
 };
 
@@ -1516,51 +1381,16 @@ const getStudioStatus = async (_req, res) => {
 };
 
 const testStudioConnection = async (req, res) => {
-  const publicConfig = getPublicAiStudioConfig();
-  if (!publicConfig.configured) {
-    return res.status(400).json({
-      success: false,
-      message: 'GEMINI_API_KEY is not configured. Add a valid Google AI Studio API key in server/.env.',
-      ...publicConfig
-    });
-  }
-
   const startedAt = Date.now();
-  const prompt = sanitizeText(
-    req.body?.prompt,
-    'Reply with "CollabLearn AI Studio connection is working." in one short sentence.'
-  );
-
-  try {
-    const aiResult = await generateTextFromGemini(prompt, {
-      temperature: 0.2,
-      topP: 0.8,
-      topK: 20,
-      maxOutputTokens: 128
-    });
-
-    if (!aiResult || !aiResult.text) {
-      throw new Error('Google AI Studio returned an empty response');
-    }
-
-    return res.json({
-      success: true,
-      provider: AI_STUDIO_CONFIG.provider,
-      configured: true,
-      model: aiResult.model,
-      latencyMs: Date.now() - startedAt,
-      preview: aiResult.text.slice(0, 240)
-    });
-  } catch (error) {
-    console.error('AI Studio test failed:', error);
-    return res.status(502).json({
-      success: false,
-      message: 'Failed to reach Google AI Studio. Verify key permissions and model availability.',
-      provider: AI_STUDIO_CONFIG.provider,
-      configured: true,
-      modelCandidates: AI_STUDIO_CONFIG.modelCandidates
-    });
-  }
+  
+  return res.json({
+    success: true,
+    provider: AI_STUDIO_CONFIG.provider,
+    configured: true,
+    model: 'local-basic-engine',
+    latencyMs: Date.now() - startedAt,
+    preview: "CollabLearn Local Engine connection is working."
+  });
 };
 
 module.exports = {

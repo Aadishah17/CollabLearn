@@ -7,7 +7,7 @@ android {
     namespace 'com.collablearn.app'
     compileSdk 34
 
-    def apiBaseUrl = project.findProperty('API_BASE_URL') ?: 'http://10.0.2.2:5001/'
+    def apiBaseUrl = project.findProperty('API_BASE_URL') ?: 'http://10.217.22.87:5001/'
 
     defaultConfig {
         applicationId "com.collablearn.app"

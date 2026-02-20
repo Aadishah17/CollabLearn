@@ -1,12 +1,28 @@
-import React, { useState, useEffect, useMemo, useCallback, lazy, Suspense } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { Calendar, Star, Users, Trophy, BookOpen, Clock, MessageSquare, Settings, Lock } from 'lucide-react';
-import MainNavbar from '../../navbar/mainNavbar';
-import { API_URL } from '../../config';
-
+import React, {
+  useState,
+  useEffect,
+  useMemo,
+  useCallback,
+  lazy,
+  Suspense,
+} from "react";
+import { Link, useNavigate } from "react-router-dom";
+import {
+  Calendar,
+  Star,
+  Users,
+  Trophy,
+  BookOpen,
+  Clock,
+  MessageSquare,
+  Settings,
+  Lock,
+} from "lucide-react";
+import MainNavbar from "../../navbar/mainNavbar";
+import { API_URL } from "../../config";
 
 // Lazy load the StudentInfoModal for better initial load performance
-const StudentInfoModal = lazy(() => import('./StudentInfoModal'));
+const StudentInfoModal = lazy(() => import("./StudentInfoModal"));
 
 const Dashboard = React.memo(() => {
   const [dashboardData, setDashboardData] = useState(null);
@@ -18,7 +34,7 @@ const Dashboard = React.memo(() => {
   const navigate = useNavigate();
 
   // Memoize the token to avoid getting it on every render
-  const token = useMemo(() => localStorage.getItem('token'), []);
+  const token = useMemo(() => localStorage.getItem("token"), []);
 
   // In-memory cache as fallback if storage fails
   const memoryCache = useMemo(() => ({ data: null, timestamp: null }), []);
@@ -27,7 +43,7 @@ const Dashboard = React.memo(() => {
     if (token) {
       fetchDashboardData();
     } else {
-      setError('Please login to view dashboard');
+      setError("Please login to view dashboard");
       setLoading(false);
     }
   }, [token]);
@@ -49,8 +65,8 @@ const Dashboard = React.memo(() => {
       setError(null);
 
       // Check sessionStorage cache first (lasts for browser session, larger quota)
-      const cacheKey = 'dashboard_data';
-      const cacheTimestampKey = 'dashboard_timestamp';
+      const cacheKey = "dashboard_data";
+      const cacheTimestampKey = "dashboard_timestamp";
 
       try {
         // Try sessionStorage first
@@ -59,7 +75,8 @@ const Dashboard = React.memo(() => {
 
         if (cached && cacheTimestamp) {
           const age = Date.now() - parseInt(cacheTimestamp);
-          if (age < 2 * 60 * 1000) { // 2 minutes for faster refresh
+          if (age < 2 * 60 * 1000) {
+            // 2 minutes for faster refresh
             setDashboardData(JSON.parse(cached));
             setLoading(false);
             return;
@@ -69,36 +86,39 @@ const Dashboard = React.memo(() => {
         // Fall back to memory cache
         if (memoryCache.data && memoryCache.timestamp) {
           const age = Date.now() - memoryCache.timestamp;
-          if (age < 1 * 60 * 1000) { // 1 minute for memory cache
+          if (age < 1 * 60 * 1000) {
+            // 1 minute for memory cache
             setDashboardData(memoryCache.data);
             setLoading(false);
             return;
           }
         }
       } catch (cacheError) {
-        console.warn('Cache read failed:', cacheError);
+        console.warn("Cache read failed:", cacheError);
         // Clear potentially corrupted cache
         try {
           sessionStorage.removeItem(cacheKey);
           sessionStorage.removeItem(cacheTimestampKey);
         } catch (clearError) {
-          console.error('Failed to clear cache:', clearError);
+          console.error("Failed to clear cache:", clearError);
         }
       }
 
       // Fetch fresh data with optimized single API call
       const dashboardResponse = await fetch(`${API_URL}/api/dashboard/stats`, {
-        method: 'GET',
+        method: "GET",
         headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
       });
 
       if (!dashboardResponse.ok) {
         const errorText = await dashboardResponse.text();
-        console.error('Dashboard API error:', errorText);
-        throw new Error(`Failed to fetch dashboard data: ${dashboardResponse.status} ${dashboardResponse.statusText}`);
+        console.error("Dashboard API error:", errorText);
+        throw new Error(
+          `Failed to fetch dashboard data: ${dashboardResponse.status} ${dashboardResponse.statusText}`,
+        );
       }
 
       const dashboardData = await dashboardResponse.json();
@@ -114,17 +134,19 @@ const Dashboard = React.memo(() => {
             name: dashboardData.data.user?.name,
             email: dashboardData.data.user?.email,
             avatar: dashboardData.data.user?.avatar,
-            isPremium: !!dashboardData.data.user?.isPremium
+            isPremium: !!dashboardData.data.user?.isPremium,
           },
           stats: dashboardData.data.stats,
           skills: {
             teaching: dashboardData.data.skills?.teaching?.slice(0, 10) || [], // Limit to 10 most recent
-            learning: dashboardData.data.skills?.learning?.slice(0, 10) || []
+            learning: dashboardData.data.skills?.learning?.slice(0, 10) || [],
           },
           upcomingBookings: {
-            teaching: dashboardData.data.upcomingBookings?.teaching?.slice(0, 5) || [], // Limit to 5 most recent
-            learning: dashboardData.data.upcomingBookings?.learning?.slice(0, 5) || []
-          }
+            teaching:
+              dashboardData.data.upcomingBookings?.teaching?.slice(0, 5) || [], // Limit to 5 most recent
+            learning:
+              dashboardData.data.upcomingBookings?.learning?.slice(0, 5) || [],
+          },
         };
 
         // Always store in memory cache
@@ -140,20 +162,24 @@ const Dashboard = React.memo(() => {
             sessionStorage.setItem(cacheTimestampKey, Date.now().toString());
           }
         } catch (storageError) {
-          console.warn('Failed to cache dashboard data in sessionStorage:', storageError);
+          console.warn(
+            "Failed to cache dashboard data in sessionStorage:",
+            storageError,
+          );
         }
       } else {
-        throw new Error(dashboardData.message || 'Failed to fetch dashboard data');
+        throw new Error(
+          dashboardData.message || "Failed to fetch dashboard data",
+        );
       }
-
     } catch (err) {
-      console.error('Dashboard error:', err);
+      console.error("Dashboard error:", err);
 
       // Fallback to individual API calls if dashboard endpoint fails
       try {
         await fetchFallbackData(token);
       } catch (fallbackErr) {
-        console.error('Fallback also failed:', fallbackErr);
+        console.error("Fallback also failed:", fallbackErr);
         setError(err.message);
       }
     } finally {
@@ -165,13 +191,13 @@ const Dashboard = React.memo(() => {
     // Fetch user profile
     const userResponse = await fetch(`${API_URL}/api/auth/me`, {
       headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      }
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
     });
 
     if (!userResponse.ok) {
-      throw new Error('Failed to fetch user data');
+      throw new Error("Failed to fetch user data");
     }
 
     const userData = await userResponse.json();
@@ -181,9 +207,9 @@ const Dashboard = React.memo(() => {
     try {
       const skillsResponse = await fetch(`${API_URL}/api/skills/my-skills`, {
         headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
       });
 
       if (skillsResponse.ok) {
@@ -191,7 +217,7 @@ const Dashboard = React.memo(() => {
         // setTeachingSkills/setLearningSkills may be defined elsewhere in your app
       }
     } catch (skillsErr) {
-      console.error('Skills fetch error:', skillsErr);
+      console.error("Skills fetch error:", skillsErr);
     }
 
     // Additional fallback calls omitted for brevity
@@ -216,8 +242,11 @@ const Dashboard = React.memo(() => {
       // Pre-compute commonly used values
       hasTeachingSkills: teachingSkills.length > 0,
       hasLearningSkills: learningSkills.length > 0,
-      hasUpcomingSessions: upcomingBookings.length > 0 || studentBookings.length > 0,
-      allUpcomingSessions: [...upcomingBookings, ...studentBookings].sort((a, b) => new Date(a.date) - new Date(b.date))
+      hasUpcomingSessions:
+        upcomingBookings.length > 0 || studentBookings.length > 0,
+      allUpcomingSessions: [...upcomingBookings, ...studentBookings].sort(
+        (a, b) => new Date(a.date) - new Date(b.date),
+      ),
     };
   }, [dashboardData]);
 
@@ -231,76 +260,96 @@ const Dashboard = React.memo(() => {
     setShowStudentModal(true);
   }, []);
 
-  const handleMessageStudent = useCallback((student) => {
-    navigate('/messages', { state: { startChat: student } });
-    setShowStudentModal(false);
-  }, [navigate]);
+  const handleMessageStudent = useCallback(
+    (student) => {
+      navigate("/messages", { state: { startChat: student } });
+      setShowStudentModal(false);
+    },
+    [navigate],
+  );
 
   const handleScheduleSession = useCallback(() => {
-    navigate('/book-session');
+    navigate("/book-session");
   }, [navigate]);
 
   const handleManageAllSkills = useCallback(() => {
-    navigate('/browse-skills');
+    navigate("/browse-skills");
   }, [navigate]);
 
   const handleFindSkills = useCallback(() => {
-    navigate('/browse-skills');
+    navigate("/browse-skills");
   }, [navigate]);
 
   const handleAddTeachingSkill = useCallback(() => {
-    navigate('/browse-skills');
+    navigate("/browse-skills");
   }, [navigate]);
 
   const handleExploreSkillsToLearn = () => {
-    navigate('/browse-skills');
+    navigate("/browse-skills");
   };
 
   const handleViewAllSessions = useCallback(() => {
-    navigate('/calendar');
+    navigate("/calendar");
   }, [navigate]);
 
   const handleSetAvailability = useCallback(() => {
-    navigate('/calendar');
+    navigate("/calendar");
   }, [navigate]);
 
   const handleMessageCenter = useCallback(() => {
-    navigate('/messages');
+    navigate("/messages");
   }, [navigate]);
 
-  const handleBookSession = useCallback((skill) => {
-    const user = derivedData?.user;
-    if (user && skill) {
-      navigate(`/book-session?skillId=${skill._id}&instructorId=${user.id}&skillTitle=${encodeURIComponent(skill.name)}&instructorName=${encodeURIComponent(user.name)}`);
-    }
-  }, [navigate, derivedData?.user]);
+  const handleBookSession = useCallback(
+    (skill) => {
+      const user = derivedData?.user;
+      if (user && skill) {
+        navigate(
+          `/book-session?skillId=${skill._id}&instructorId=${user.id}&skillTitle=${encodeURIComponent(skill.name)}&instructorName=${encodeURIComponent(user.name)}`,
+        );
+      }
+    },
+    [navigate, derivedData?.user],
+  );
 
-  const handleViewMoreInfo = useCallback((skill) => {
-    if (!skill || !skill._id) {
-      console.error('Invalid skill data:', skill);
-      return;
-    }
-    navigate('/skill-sessions', { state: { skill } });
-  }, [navigate]);
+  const handleViewMoreInfo = useCallback(
+    (skill) => {
+      if (!skill || !skill._id) {
+        console.error("Invalid skill data:", skill);
+        return;
+      }
+      navigate("/skill-sessions", { state: { skill } });
+    },
+    [navigate],
+  );
 
-  const handleEditSkill = useCallback((skill) => {
-    navigate('/browse-skills', { state: { editSkill: skill } });
-  }, [navigate]);
+  const handleEditSkill = useCallback(
+    (skill) => {
+      navigate("/browse-skills", { state: { editSkill: skill } });
+    },
+    [navigate],
+  );
 
-  const handleViewStudents = useCallback((skill) => {
-    navigate('/calendar', { state: { filterBySkill: skill.name } });
-  }, [navigate]);
+  const handleViewStudents = useCallback(
+    (skill) => {
+      navigate("/calendar", { state: { filterBySkill: skill.name } });
+    },
+    [navigate],
+  );
 
-  const handleViewSkillDetails = useCallback((skill) => {
-    navigate('/browse-skills', { state: { viewSkill: skill } });
-  }, [navigate]);
+  const handleViewSkillDetails = useCallback(
+    (skill) => {
+      navigate("/browse-skills", { state: { viewSkill: skill } });
+    },
+    [navigate],
+  );
 
   const handleCalendar = useCallback(() => {
-    navigate('/calendar');
+    navigate("/calendar");
   }, [navigate]);
 
   const handleMessages = useCallback(() => {
-    navigate('/messages');
+    navigate("/messages");
   }, [navigate]);
 
   // Memoized utility functions
@@ -311,27 +360,27 @@ const Dashboard = React.memo(() => {
     tomorrow.setDate(today.getDate() + 1);
 
     if (date.toDateString() === today.toDateString()) {
-      return `Today @ ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+      return `Today @ ${date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
     } else if (date.toDateString() === tomorrow.toDateString()) {
-      return `Tomorrow @ ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+      return `Tomorrow @ ${date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
     } else {
-      return `${date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} @ ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+      return `${date.toLocaleDateString("en-US", { month: "short", day: "numeric" })} @ ${date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
     }
   }, []);
 
   const getProgressColor = useCallback((progress) => {
     // Use indigo accents to match browseSkills styling
-    if (progress >= 80) return 'bg-indigo-500';
-    if (progress >= 50) return 'bg-indigo-400';
-    if (progress >= 25) return 'bg-indigo-300';
-    return 'bg-gray-300';
+    if (progress >= 80) return "bg-indigo-500";
+    if (progress >= 50) return "bg-indigo-400";
+    if (progress >= 25) return "bg-indigo-300";
+    return "bg-gray-300";
   }, []);
 
   const getSkillInitials = useCallback((skillName) => {
     return skillName
-      .split(' ')
-      .map(word => word.charAt(0).toUpperCase())
-      .join('')
+      .split(" ")
+      .map((word) => word.charAt(0).toUpperCase())
+      .join("")
       .substring(0, 2);
   }, []);
 
@@ -340,7 +389,9 @@ const Dashboard = React.memo(() => {
       <div className="flex h-screen glass-page items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-indigo-600 mx-auto mb-4"></div>
-          <p className="text-gray-600 dark:text-gray-300">Loading your dashboard...</p>
+          <p className="text-gray-600 dark:text-gray-300">
+            Loading your dashboard...
+          </p>
         </div>
       </div>
     );
@@ -350,7 +401,9 @@ const Dashboard = React.memo(() => {
     return (
       <div className="flex h-screen glass-page items-center justify-center">
         <div className="text-center">
-          <h2 className="text-2xl font-bold text-red-600 mb-4">Dashboard Error</h2>
+          <h2 className="text-2xl font-bold text-red-600 mb-4">
+            Dashboard Error
+          </h2>
           <p className="text-gray-600 mb-4">{error}</p>
           <button
             onClick={fetchDashboardData}
@@ -378,7 +431,6 @@ const Dashboard = React.memo(() => {
     <div className="flex h-screen glass-page font-sans transition-colors duration-300">
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col overflow-auto">
-
         {/* Top Navbar Component */}
         <MainNavbar />
 
@@ -388,33 +440,38 @@ const Dashboard = React.memo(() => {
           <div className="mb-8">
             <div className="flex items-center justify-between">
               <h1 className="text-3xl font-bold text-gray-800 dark:text-white mb-2">
-                Welcome back, {derivedData?.user?.name || 'Guest'}!
+                Welcome back, {derivedData?.user?.name || "Guest"}!
               </h1>
-
             </div>
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between glass-panel p-4 rounded-lg mt-4 transition-colors">
               <div className="flex items-center space-x-6">
                 <div className="text-center">
                   <div className="flex items-center space-x-2 mb-1">
                     <Users className="w-5 h-5 text-red-500" />
-                    <span className="text-2xl font-bold text-white">{derivedData?.teachingSkills.length || 0}</span>
+                    <span className="text-2xl font-bold text-white">
+                      {derivedData?.teachingSkills.length || 0}
+                    </span>
                   </div>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">Teaching</p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    Teaching
+                  </p>
                 </div>
                 <div className="text-center">
                   <div className="flex items-center space-x-2 mb-1">
                     <BookOpen className="w-5 h-5 text-red-500" />
-                    <span className="text-2xl font-bold text-white">{derivedData?.learningSkills.length || 0}</span>
+                    <span className="text-2xl font-bold text-white">
+                      {derivedData?.learningSkills.length || 0}
+                    </span>
                   </div>
                   <p className="text-sm text-gray-400">Learning</p>
                 </div>
               </div>
               <div className="mt-2 sm:mt-0">
                 <p className="text-gray-600 dark:text-gray-300 text-sm">
-                  {(derivedData?.upcomingBookings.length > 0) || (derivedData?.studentBookings.length > 0)
-                    ? `${derivedData?.upcomingBookings.length || 0} teaching session${(derivedData?.upcomingBookings.length || 0) !== 1 ? 's' : ''} • ${derivedData?.studentBookings.length || 0} learning session${(derivedData?.studentBookings.length || 0) !== 1 ? 's' : ''} upcoming`
-                    : 'No upcoming sessions - Schedule your next session!'
-                  }
+                  {derivedData?.upcomingBookings.length > 0 ||
+                  derivedData?.studentBookings.length > 0
+                    ? `${derivedData?.upcomingBookings.length || 0} teaching session${(derivedData?.upcomingBookings.length || 0) !== 1 ? "s" : ""} • ${derivedData?.studentBookings.length || 0} learning session${(derivedData?.studentBookings.length || 0) !== 1 ? "s" : ""} upcoming`
+                    : "No upcoming sessions - Schedule your next session!"}
                 </p>
               </div>
             </div>
@@ -424,19 +481,22 @@ const Dashboard = React.memo(() => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
             <div className="glass-panel-strong rounded-xl p-6 text-white shadow-lg relative overflow-hidden group">
               <div className="relative z-10">
-                <h3 className="text-2xl font-bold mb-2">Become a Founding Instructor</h3>
+                <h3 className="text-2xl font-bold mb-2">
+                  Become a Founding Instructor
+                </h3>
                 <p className="text-red-100 mb-6 max-w-sm">
-                  Share your knowledge and earn revenue. We're looking for 10 founding partners.
+                  Share your knowledge and earn revenue. We're looking for 10
+                  founding partners.
                 </p>
                 <div className="flex gap-3">
                   <button
-                    onClick={() => navigate('/teach')}
+                    onClick={() => navigate("/teach")}
                     className="px-5 py-2 bg-white text-red-600 font-bold rounded-lg hover:bg-red-50 transition-colors shadow-md"
                   >
                     Start Teaching
                   </button>
                   <button
-                    onClick={() => navigate('/teach')}
+                    onClick={() => navigate("/teach")}
                     className="px-5 py-2 bg-red-500/30 text-white font-semibold rounded-lg hover:bg-red-500/50 transition-colors backdrop-blur-sm"
                   >
                     Learn More
@@ -454,13 +514,16 @@ const Dashboard = React.memo(() => {
                   <div className="p-2 bg-red-900/30 text-red-500 rounded-lg">
                     <BookOpen size={24} />
                   </div>
-                  <h3 className="text-xl font-bold text-gray-800 dark:text-white">AI Learning Studio</h3>
+                  <h3 className="text-xl font-bold text-gray-800 dark:text-white">
+                    AI Learning Studio
+                  </h3>
                 </div>
                 <p className="text-gray-600 dark:text-gray-300 mb-6">
-                  Build a personalized roadmap, track progress, and get guided resources for any skill.
+                  Build a personalized roadmap, track progress, and get guided
+                  resources for any skill.
                 </p>
                 <button
-                  onClick={() => navigate('/ai-learning')}
+                  onClick={() => navigate("/ai-learning")}
                   className="w-full py-3 bg-white/8 text-zinc-100 font-bold rounded-lg border border-white/15 hover:border-red-500/55 hover:bg-red-500/18 hover:text-red-200 transition-all flex items-center justify-center gap-2"
                 >
                   Open AI Learning <Clock size={16} />
@@ -471,15 +534,14 @@ const Dashboard = React.memo(() => {
 
           {/* Grid for two main sections: Upcoming/Skills and Learning Progress/Activity/Actions */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-
             {/* Left Column (Upcoming Sessions & Skills I'm Teaching) */}
             <div className="lg:col-span-2 space-y-6">
-
               {/* Upcoming Sessions Card */}
               <div className="glass-panel p-6 rounded-xl transition-colors">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-xl font-semibold text-white flex items-center">
-                    <Calendar className="w-5 h-5 text-white mr-2" /> Upcoming Sessions
+                    <Calendar className="w-5 h-5 text-white mr-2" /> Upcoming
+                    Sessions
                   </h3>
                   <button
                     onClick={handleCalendar}
@@ -492,44 +554,69 @@ const Dashboard = React.memo(() => {
                 {derivedData.allUpcomingSessions
                   .slice(0, 5)
                   .map((booking, index) => {
-                    const isTeaching = derivedData.upcomingBookings.includes(booking);
-                    const otherUser = isTeaching ? booking.student : booking.instructor;
+                    const isTeaching =
+                      derivedData.upcomingBookings.includes(booking);
+                    const otherUser = isTeaching
+                      ? booking.student
+                      : booking.instructor;
 
                     return (
-                      <div key={booking._id || index} className={`flex items-center justify-between py-4 px-4 rounded-lg mb-3 border-l-4 ${isTeaching
-                        ? 'bg-gray-900 border-red-600'
-                        : 'bg-gray-900 border-red-500'
-                        }`}>
+                      <div
+                        key={booking._id || index}
+                        className={`flex items-center justify-between py-4 px-4 rounded-lg mb-3 border-l-4 ${
+                          isTeaching
+                            ? "glass-card border-red-500/80"
+                            : "glass-card border-red-400/80"
+                        }`}
+                      >
                         <div className="flex items-center space-x-4">
-                          <div className={`rounded-full h-12 w-12 flex items-center justify-center text-white font-bold text-lg ${isTeaching ? 'bg-red-600' : 'bg-red-600'
-                            }`}>
-                            {getSkillInitials(booking.skill?.name || 'SK')}
+                          <div
+                            className={`rounded-full h-12 w-12 flex items-center justify-center text-white font-bold text-lg ${
+                              isTeaching ? "bg-red-600" : "bg-red-600"
+                            }`}
+                          >
+                            {getSkillInitials(booking.skill?.name || "SK")}
                           </div>
                           <div>
                             <div className="flex items-center space-x-2">
-                              <p className="font-semibold text-white text-lg">{booking.skill?.name || 'Unknown Skill'}</p>
-                              <span className={`text-xs px-2 py-1 rounded-full font-medium ${isTeaching
-                                ? 'bg-red-900/40 text-red-300'
-                                : 'bg-red-900/40 text-red-300'
-                                }`}>
-                                {isTeaching ? 'Teaching' : 'Learning'}
+                              <p className="font-semibold text-white text-lg">
+                                {booking.skill?.name || "Unknown Skill"}
+                              </p>
+                              <span
+                                className={`text-xs px-2 py-1 rounded-full font-medium ${
+                                  isTeaching
+                                    ? "bg-red-900/40 text-red-300"
+                                    : "bg-red-900/40 text-red-300"
+                                }`}
+                              >
+                                {isTeaching ? "Teaching" : "Learning"}
                               </span>
                             </div>
                             <p className="text-sm text-gray-300 font-medium">
-                              {isTeaching ? `Teaching ${otherUser?.name || 'Unknown Student'}` : `Learning with ${otherUser?.name || 'Unknown Instructor'}`}
+                              {isTeaching
+                                ? `Teaching ${otherUser?.name || "Unknown Student"}`
+                                : `Learning with ${otherUser?.name || "Unknown Instructor"}`}
                             </p>
-                            <p className="text-xs text-gray-400">{formatDate(booking.date)}</p>
+                            <p className="text-xs text-gray-400">
+                              {formatDate(booking.date)}
+                            </p>
                           </div>
                         </div>
                         <div className="flex items-center space-x-2">
                           <div className="relative group">
                             <button
-                              onClick={() => { if (!allowJoin) return; navigate('/video-call', { state: { userName: derivedData?.user?.name } }); }}
+                              onClick={() => {
+                                if (!allowJoin) return;
+                                navigate("/video-call", {
+                                  state: { userName: derivedData?.user?.name },
+                                });
+                              }}
                               disabled={!allowJoin}
-                              className={`px-3 py-1 text-sm rounded-md font-medium transition-colors ${isTeaching
-                                ? 'bg-red-600 text-white hover:bg-red-700'
-                                : 'bg-red-600 text-white hover:bg-red-700'
-                                } ${!allowJoin ? 'opacity-60 cursor-not-allowed' : ''}`}
+                              className={`px-3 py-1 text-sm rounded-md font-medium transition-colors ${
+                                isTeaching
+                                  ? "bg-red-600 text-white hover:bg-red-700"
+                                  : "bg-red-600 text-white hover:bg-red-700"
+                              } ${!allowJoin ? "opacity-60 cursor-not-allowed" : ""}`}
                             >
                               Join
                             </button>
@@ -549,15 +636,17 @@ const Dashboard = React.memo(() => {
                         </div>
                       </div>
                     );
-                  })
-                }
+                  })}
 
-                {derivedData.upcomingBookings.length === 0 && derivedData.studentBookings.length === 0 && (
-                  <div className="text-center py-8 text-gray-400">
-                    <p>No upcoming sessions scheduled</p>
-                    <p className="text-sm mt-2">Book a session to get started!</p>
-                  </div>
-                )}
+                {derivedData.upcomingBookings.length === 0 &&
+                  derivedData.studentBookings.length === 0 && (
+                    <div className="text-center py-8 text-gray-400">
+                      <p>No upcoming sessions scheduled</p>
+                      <p className="text-sm mt-2">
+                        Book a session to get started!
+                      </p>
+                    </div>
+                  )}
               </div>
 
               {/* Skills I'm Teaching Card */}
@@ -582,21 +671,38 @@ const Dashboard = React.memo(() => {
                     {derivedData.teachingSkills.map((skill, index) => {
                       // Determine unique students for this skill from upcoming teaching bookings
                       const students = (derivedData.upcomingBookings || [])
-                        .filter(b => b.skill && b.skill._id === skill._id && b.student && b.student.name)
-                        .map(b => b.student.name)
+                        .filter(
+                          (b) =>
+                            b.skill &&
+                            b.skill._id === skill._id &&
+                            b.student &&
+                            b.student.name,
+                        )
+                        .map((b) => b.student.name)
                         .filter((v, i, a) => a.indexOf(v) === i); // dedupe
 
                       return (
-                        <div key={skill._id || index} className="flex items-center justify-between p-4 bg-gray-900 rounded-lg border border-gray-700 hover:bg-gray-800 transition duration-150">
+                        <div
+                          key={skill._id || index}
+                          className="flex items-center justify-between p-4 glass-card border-gray-700/50"
+                        >
                           <div className="flex items-center space-x-4">
                             <div className="bg-red-600 text-white rounded-full h-12 w-12 flex items-center justify-center font-bold text-lg">
                               {getSkillInitials(skill.name)}
                             </div>
                             <div>
-                              <p className="font-semibold text-white text-lg">{skill.name}</p>
-                              <p className="text-sm text-gray-300">Level: {skill.offering?.level || 'Not specified'}</p>
+                              <p className="font-semibold text-white text-lg">
+                                {skill.name}
+                              </p>
+                              <p className="text-sm text-gray-300">
+                                Level:{" "}
+                                {skill.offering?.level || "Not specified"}
+                              </p>
                               <p className="text-sm text-gray-300 mt-1">
-                                Teaching: {students.length > 0 ? students.join(', ') : 'No active students'}
+                                Teaching:{" "}
+                                {students.length > 0
+                                  ? students.join(", ")
+                                  : "No active students"}
                               </p>
                             </div>
                           </div>
@@ -617,8 +723,12 @@ const Dashboard = React.memo(() => {
                     <div className="bg-red-900/30 text-red-500 rounded-full h-16 w-16 flex items-center justify-center mx-auto mb-4">
                       <Users className="w-8 h-8" />
                     </div>
-                    <p className="text-gray-300 text-lg font-medium mb-2">You're not teaching any skills yet</p>
-                    <p className="text-gray-400 text-sm mb-4">Share your expertise and start earning by teaching others!</p>
+                    <p className="text-gray-300 text-lg font-medium mb-2">
+                      You're not teaching any skills yet
+                    </p>
+                    <p className="text-gray-400 text-sm mb-4">
+                      Share your expertise and start earning by teaching others!
+                    </p>
                     <button
                       onClick={handleAddTeachingSkill}
                       className="px-6 py-3 bg-gradient-to-r from-red-600 to-red-800 text-white rounded-lg font-semibold hover:from-red-700 hover:to-red-900 transition-colors"
@@ -637,55 +747,85 @@ const Dashboard = React.memo(() => {
 
                 {derivedData.upcomingBookings.length > 0 ? (
                   <div className="space-y-4">
-                    {derivedData.upcomingBookings.slice(0, 4).map((booking, index) => {
-                      const progressPercentage = Math.floor(Math.random() * 80) + 20; // Mock progress for now
+                    {derivedData.upcomingBookings
+                      .slice(0, 4)
+                      .map((booking, index) => {
+                        const progressPercentage =
+                          Math.floor(Math.random() * 80) + 20; // Mock progress for now
 
-                      return (
-                        <div key={booking._id || index} className="flex items-center justify-between p-4 bg-gray-900 rounded-lg border border-gray-700">
-                          <div className="flex items-center space-x-4">
-                            <div className="bg-gradient-to-r from-red-600 to-red-800 text-white rounded-full h-12 w-12 flex items-center justify-center font-semibold text-lg">
-                              {booking.student?.name?.charAt(0).toUpperCase() || 'S'}
+                        return (
+                          <div
+                            key={booking._id || index}
+                            className="flex items-center justify-between p-4 glass-card border-gray-700/50"
+                          >
+                            <div className="flex items-center space-x-4">
+                              <div className="bg-gradient-to-r from-red-600 to-red-800 text-white rounded-full h-12 w-12 flex items-center justify-center font-semibold text-lg">
+                                {booking.student?.name
+                                  ?.charAt(0)
+                                  .toUpperCase() || "S"}
+                              </div>
+                              <div className="flex-1">
+                                <p className="font-semibold text-white">
+                                  {booking.student?.name || "Unknown Student"}
+                                </p>
+                                <p className="text-sm text-gray-300">
+                                  {booking.skill?.name || "Unknown Skill"}
+                                </p>
+                                <button
+                                  onClick={() =>
+                                    handleViewStudentProgress(
+                                      booking.student,
+                                      booking.skill,
+                                    )
+                                  }
+                                  className="flex items-center space-x-2 mt-2 w-full text-left"
+                                  title="View student progress"
+                                >
+                                  <div className="w-24 bg-gray-700 rounded-full h-2">
+                                    <div
+                                      className={`h-2 rounded-full ${getProgressColor(progressPercentage)}`}
+                                      style={{
+                                        width: `${progressPercentage}%`,
+                                      }}
+                                    ></div>
+                                  </div>
+                                  <span className="text-xs text-gray-500">
+                                    {progressPercentage}%
+                                  </span>
+                                </button>
+                              </div>
                             </div>
-                            <div className="flex-1">
-                              <p className="font-semibold text-white">{booking.student?.name || 'Unknown Student'}</p>
-                              <p className="text-sm text-gray-300">{booking.skill?.name || 'Unknown Skill'}</p>
+                            <div className="flex items-center space-x-2">
                               <button
-                                onClick={() => handleViewStudentProgress(booking.student, booking.skill)}
-                                className="flex items-center space-x-2 mt-2 w-full text-left"
-                                title="View student progress"
+                                onClick={() =>
+                                  handleViewStudentProgress(
+                                    booking.student,
+                                    booking.skill,
+                                  )
+                                }
+                                className="text-red-500 hover:text-red-700 text-sm font-medium"
                               >
-                                <div className="w-24 bg-gray-700 rounded-full h-2">
-                                  <div
-                                    className={`h-2 rounded-full ${getProgressColor(progressPercentage)}`}
-                                    style={{ width: `${progressPercentage}%` }}
-                                  ></div>
-                                </div>
-                                <span className="text-xs text-gray-500">{progressPercentage}%</span>
+                                View Progress
+                              </button>
+                              <button
+                                onClick={() =>
+                                  handleMessageStudent(booking.student)
+                                }
+                                className="text-green-500 hover:text-green-700 text-sm font-medium"
+                              >
+                                Message
                               </button>
                             </div>
                           </div>
-                          <div className="flex items-center space-x-2">
-                            <button
-                              onClick={() => handleViewStudentProgress(booking.student, booking.skill)}
-                              className="text-red-500 hover:text-red-700 text-sm font-medium"
-                            >
-                              View Progress
-                            </button>
-                            <button
-                              onClick={() => handleMessageStudent(booking.student)}
-                              className="text-green-500 hover:text-green-700 text-sm font-medium"
-                            >
-                              Message
-                            </button>
-                          </div>
-                        </div>
-                      );
-                    })}
+                        );
+                      })}
                   </div>
                 ) : (
                   <div className="text-center py-8 text-gray-400">
                     <p>No students yet</p>
-                    <p className="text-sm mt-2">Start teaching to connect with students!</p>
+                    <p className="text-sm mt-2">
+                      Start teaching to connect with students!
+                    </p>
                   </div>
                 )}
               </div>
@@ -693,7 +833,6 @@ const Dashboard = React.memo(() => {
 
             {/* Right Column (Learning Progress, Recent Activity, Quick Actions) */}
             <div className="lg:col-span-1 space-y-6">
-
               {/* Skills I'm Learning Card */}
               <div className="glass-panel p-6 rounded-xl border-l-4 border-l-red-500/70 transition-colors">
                 <div className="flex items-center justify-between mb-4">
@@ -711,19 +850,23 @@ const Dashboard = React.memo(() => {
                 {derivedData.learningSkills.length > 0 ? (
                   <div className="space-y-4">
                     {derivedData.learningSkills.map((skill, index) => (
-                      <div key={skill._id || index} className="p-4 bg-gray-900 rounded-lg border border-gray-700">
+                      <div
+                        key={skill._id || index}
+                        className="p-4 glass-card border-gray-700/50"
+                      >
                         <div className="flex items-center mb-3">
                           <div className="flex items-center space-x-3">
                             <div className="bg-red-600 text-white rounded-full h-10 w-10 flex items-center justify-center font-bold">
                               {getSkillInitials(skill.name)}
                             </div>
                             <div>
-                              <p className="text-white font-semibold text-lg">{skill.name}</p>
+                              <p className="text-white font-semibold text-lg">
+                                {skill.name}
+                              </p>
                               <p className="text-sm text-gray-300">
                                 {skill.seeking?.currentInstructor
                                   ? `Learning with ${skill.seeking.currentInstructor.name}`
-                                  : 'Looking for an instructor'
-                                }
+                                  : "Looking for an instructor"}
                               </p>
                             </div>
                           </div>
@@ -745,8 +888,12 @@ const Dashboard = React.memo(() => {
                     <div className="bg-red-900/30 text-red-500 rounded-full h-16 w-16 flex items-center justify-center mx-auto mb-4">
                       <BookOpen className="w-8 h-8" />
                     </div>
-                    <p className="text-gray-300 text-lg font-medium mb-2">No learning goals set</p>
-                    <p className="text-gray-400 text-sm">Discover new skills and connect with expert instructors!</p>
+                    <p className="text-gray-300 text-lg font-medium mb-2">
+                      No learning goals set
+                    </p>
+                    <p className="text-gray-400 text-sm">
+                      Discover new skills and connect with expert instructors!
+                    </p>
                   </div>
                 )}
               </div>
@@ -759,46 +906,62 @@ const Dashboard = React.memo(() => {
 
                 {/* Mock Recent Activities - In real implementation, fetch from database */}
                 <div className="space-y-3">
-                  {derivedData.upcomingBookings.slice(0, 3).map((booking, index) => (
-                    <div key={booking._id || index} className="flex items-start">
-                      <div className="w-6 h-6 bg-red-900/50 text-red-500 rounded-full flex items-center justify-center mr-3 mt-1 flex-shrink-0">
-                        <Users className="w-3 h-3" />
+                  {derivedData.upcomingBookings
+                    .slice(0, 3)
+                    .map((booking, index) => (
+                      <div
+                        key={booking._id || index}
+                        className="flex items-start"
+                      >
+                        <div className="w-6 h-6 bg-red-900/50 text-red-500 rounded-full flex items-center justify-center mr-3 mt-1 flex-shrink-0">
+                          <Users className="w-3 h-3" />
+                        </div>
+                        <div>
+                          <p className="text-gray-300">
+                            Teaching session:{" "}
+                            <span className="font-semibold">
+                              {booking.skill?.name || "Unknown Skill"}
+                            </span>
+                          </p>
+                          <p className="text-xs text-gray-400">
+                            {new Date(booking.date).toLocaleDateString()}
+                          </p>
+                        </div>
                       </div>
-                      <div>
-                        <p className="text-gray-300">
-                          Teaching session: <span className="font-semibold">{booking.skill?.name || 'Unknown Skill'}</span>
-                        </p>
-                        <p className="text-xs text-gray-400">
-                          {new Date(booking.date).toLocaleDateString()}
-                        </p>
-                      </div>
-                    </div>
-                  ))}
+                    ))}
 
-                  {derivedData.studentBookings.slice(0, 2).map((booking, index) => (
-                    <div key={`student-${booking._id || index}`} className="flex items-start">
-                      <div className="w-6 h-6 bg-red-900/50 text-red-500 rounded-full flex items-center justify-center mr-3 mt-1 flex-shrink-0">
-                        <BookOpen className="w-3 h-3" />
+                  {derivedData.studentBookings
+                    .slice(0, 2)
+                    .map((booking, index) => (
+                      <div
+                        key={`student-${booking._id || index}`}
+                        className="flex items-start"
+                      >
+                        <div className="w-6 h-6 bg-red-900/50 text-red-500 rounded-full flex items-center justify-center mr-3 mt-1 flex-shrink-0">
+                          <BookOpen className="w-3 h-3" />
+                        </div>
+                        <div>
+                          <p className="text-gray-300">
+                            Learning session:{" "}
+                            <span className="font-semibold">
+                              {booking.skill?.name || "Unknown Skill"}
+                            </span>
+                          </p>
+                          <p className="text-xs text-gray-400">
+                            {new Date(booking.date).toLocaleDateString()}
+                          </p>
+                        </div>
                       </div>
-                      <div>
-                        <p className="text-gray-300">
-                          Learning session: <span className="font-semibold">{booking.skill?.name || 'Unknown Skill'}</span>
-                        </p>
-                        <p className="text-xs text-gray-400">
-                          {new Date(booking.date).toLocaleDateString()}
-                        </p>
-                      </div>
-                    </div>
-                  ))}
+                    ))}
 
-                  {derivedData.upcomingBookings.length === 0 && derivedData.studentBookings.length === 0 && (
-                    <div className="text-center py-4 text-gray-400">
-                      <p>No recent activity</p>
-                    </div>
-                  )}
+                  {derivedData.upcomingBookings.length === 0 &&
+                    derivedData.studentBookings.length === 0 && (
+                      <div className="text-center py-4 text-gray-400">
+                        <p>No recent activity</p>
+                      </div>
+                    )}
                 </div>
               </div>
-
             </div>
           </div>
         </main>
@@ -806,14 +969,18 @@ const Dashboard = React.memo(() => {
 
       {/* Student Info Modal */}
       {showStudentModal && (
-        <Suspense fallback={
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg p-6">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-sky-600 mx-auto"></div>
-              <p className="mt-2 text-sm text-gray-600">Loading student details...</p>
+        <Suspense
+          fallback={
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+              <div className="bg-white rounded-lg p-6">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-sky-600 mx-auto"></div>
+                <p className="mt-2 text-sm text-gray-600">
+                  Loading student details...
+                </p>
+              </div>
             </div>
-          </div>
-        }>
+          }
+        >
           <StudentInfoModal
             student={selectedStudent}
             skill={selectedSkill}
@@ -830,6 +997,6 @@ const Dashboard = React.memo(() => {
   );
 });
 
-Dashboard.displayName = 'Dashboard';
+Dashboard.displayName = "Dashboard";
 
 export default Dashboard;
