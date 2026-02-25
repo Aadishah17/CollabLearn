@@ -1,8 +1,8 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Sun, Moon, Sparkles } from 'lucide-react';
+import { Sun, Moon } from 'lucide-react';
 import { useTheme } from '../components/user/ThemeContext';
-import logo from '../assets/react.svg';
+import logo from '../assets/Collablearn Logo.png';
 
 export default function LandingNavbar() {
   const { isDarkMode, toggleDarkMode } = useTheme();
@@ -18,8 +18,8 @@ export default function LandingNavbar() {
           </Link>
 
           <div className="hidden md:flex items-center gap-2 rounded-xl border border-white/15 bg-white/5 px-3 py-1.5 text-xs text-zinc-200">
-            <Sparkles size={14} className="text-red-300" />
-            AI roadmap learning platform
+            <Sparkles size={14} className="text-blue-400" />
+            AI coding agents + Roadmap
           </div>
 
           <div className="flex items-center gap-2">
@@ -39,7 +39,7 @@ export default function LandingNavbar() {
             </Link>
             <Link
               to="/signup"
-              className="px-4 py-2 rounded-xl text-sm font-semibold text-white bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 transition-colors shadow-lg shadow-red-950/50"
+              className="neo-btn text-sm px-4 py-2"
             >
               Get Started
             </Link>

@@ -8,6 +8,7 @@ class ProfileTab extends StatelessWidget {
   void _handleLogout(BuildContext context) async {
     final apiService = ApiService();
     await apiService.logout();
+    if (!context.mounted) return;
     Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
   }
 

@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { BarChart2, Users, Settings, LogOut, User, LayoutDashboard, Trash2, Home, Bell } from 'lucide-react';
 
 // Assuming the logo is imported
-import CollabLearnLogo from '../assets/react.svg';
+import CollabLearnLogo from '../assets/Collablearn Logo.png';
 
 export default function AdminNavbar() {
   const location = useLocation();

@@ -21,7 +21,7 @@ import {
   X,
   GraduationCap
 } from 'lucide-react';
-import CollabLearnLogo from '../assets/react.svg';
+import CollabLearnLogo from '../assets/Collablearn Logo.png';
 import Notification from '../components/Notification';
 import { useTheme } from '../components/user/ThemeContext';
 import { API_URL } from '../config';

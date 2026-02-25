@@ -14,8 +14,6 @@ class BookingPage extends StatefulWidget {
 class _BookingPageState extends State<BookingPage> {
   final _apiService = ApiService();
   final _skillController = TextEditingController();
-  final _instructorController =
-      TextEditingController(); // Placeholder for real selection
   final _dateController = TextEditingController();
 
   List<dynamic> _bookings = [];
@@ -75,6 +73,7 @@ class _BookingPageState extends State<BookingPage> {
 
       final response = await _apiService.createBooking(payload);
       if (response['success'] == true) {
+        if (!mounted) return;
         _fetchBookings();
         _skillController.clear();
         _dateController.clear();
