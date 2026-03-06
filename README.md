@@ -2,111 +2,112 @@
 
 CollabLearn is a full-stack skill-learning platform where users can learn any skill with AI guidance, personalized roadmaps, curated resources, mentor sessions, and community support.
 
+## Project Architecture
+
+The project is divided into three main components:
+
+- **`client/`**: React-based web frontend.
+- **`server/`**: Node.js & Express backend API.
+- **`flutter_app/`**: Cross-platform mobile application built with Flutter.
+
 ## Core Experience
 
-- AI learning roadmap generation based on skill, level, weekly hours, and timeline
-- Persistent learning plans with progress tracking
-- AI mentor chat for study guidance and next-step recommendations
-- Skill marketplace for teaching and learning
-- Session booking and calendar management
-- Community posting, comments, and engagement
-- Real-time messaging with Socket.IO
+- **AI Learning Roadmaps**: Personalized generation based on skill, level, and timeline.
+- **Progress Tracking**: Persistent learning plans to monitor your growth.
+- **AI Mentor Chat**: Real-time study guidance and next-step recommendations via Gemini AI.
+- **Skill Marketplace**: Platform for users to teach and learn from each other.
+- **Session Booking**: 1v1 booking system with calendar management.
+- **Community Engagement**: Posting, commenting, and real-time messaging with Socket.IO.
+- **Rating & Feedback**: Continuous improvement through peer reviews.
 
 ## Tech Stack
 
-- Frontend: React + Vite + Tailwind
-- Backend: Node.js + Express + MongoDB + Mongoose
-- Realtime: Socket.IO
-- AI: Google Generative AI (Gemini) with robust fallback planning
+### Web & Backend
 
-## Quick Start
+- **Frontend**: React + Vite + Tailwind CSS
+- **Backend**: Node.js + Express + MongoDB + Mongoose
+- **Real-time**: Socket.IO
+- **AI**: Google Generative AI (Gemini 2.5 Flash)
 
-1. Create env files from templates:
+### Mobile
 
-```bash
-cp server/.env.example server/.env
-cp client/.env.example client/.env
-```
+- **Framework**: Flutter / Dart
+- **State Management**: Provider
+- **Local Storage**: Shared Preferences
+- **Networking**: Http
 
-2. Configure backend environment in `server/.env`:
+## Quick Start (Web)
 
-```bash
-PORT=5001
-MONGODB_URI=mongodb://localhost:27017/collablearn
-JWT_SECRET=replace-with-secure-secret
-GEMINI_API_KEY=your-gemini-api-key
-GEMINI_MODEL=gemini-2.5-flash
-CORS_ORIGINS=http://localhost:5173,http://localhost:5174
-```
+1. **Environment Setup**:
 
-3. (Optional) Configure frontend API behavior in `client/.env`:
+   ```bash
+   cp server/.env.example server/.env
+   cp client/.env.example client/.env
+   ```
 
-```bash
-VITE_API_URL=
-VITE_DEV_PORT=5173
-VITE_API_PROXY_TARGET=http://localhost:5001
-VITE_GOOGLE_CLIENT_ID=
-```
+   Set your `GEMINI_API_KEY` and `MONGODB_URI` in `server/.env`.
 
-4. Install dependencies:
+2. **Install Dependencies**:
 
-```bash
-npm run setup
-```
+   ```bash
+   npm run setup
+   ```
 
-5. Start both frontend and backend:
+3. **Run Application**:
 
-```bash
-npm run dev
-```
+   ```bash
+   npm run dev
+   ```
 
-6. Open:
+   - Frontend: `http://localhost:5173`
+   - Backend: `http://localhost:5001`
 
-- Frontend: `http://localhost:5173`
-- Backend: `http://localhost:5001`
+## Mobile App Setup (Flutter)
 
-## Module APIs
+1. Ensure Flutter SDK is installed.
+2. Navigate to `flutter_app/`:
 
-- `GET /api/modules` (public + owned/collaborator modules when authenticated)
-- `POST /api/modules` (auth required)
-- `GET /api/modules/:id` (public/private access logic)
-- `PUT /api/modules/:id` (auth required)
-- `DELETE /api/modules/:id` (auth required)
+   ```bash
+   cd flutter_app
+   flutter pub get
+   flutter run
+   ```
 
-## AI API Endpoints
+## Utility Scripts
 
-- `GET /api/ai/studio-status`
-- `POST /api/ai/studio-test`
-- `POST /api/ai/chat`
-- `POST /api/ai/roadmap`
-- `GET /api/ai/plans` (auth required)
-- `GET /api/ai/plans/:planId` (auth required)
-- `PATCH /api/ai/plans/:planId/progress` (auth required)
+The project includes several root-level scripts for development and maintenance:
 
-## Google AI Studio Integration
+| Script | Description |
+|--------|-------------|
+| `start.bat` | Main entry point to run the entire stack. |
+| `run_everything.bat` | Quickly starts all services. |
+| `install_dependencies.bat` | Installs all required packages across all directories. |
+| `clean.js` | Utility to clean up temporary files and caches. |
+| `fix_deps.bat` | Resolves common dependency issues. |
+| `debug_*.bat` | Various scripts for debugging client, server, and environment. |
+| `run_flutter.bat` | Helper to launch the Flutter application. |
 
-1. Create an API key in Google AI Studio:
-   - `https://aistudio.google.com/app/apikey`
+## AI Integration
 
-2. Configure backend env (`server/.env`):
-
-```bash
-GEMINI_API_KEY=your-google-ai-studio-api-key
-GEMINI_MODEL=gemini-2.5-flash
-# Optional:
-# GEMINI_MODEL_CANDIDATES=gemini-1.5-flash,gemini-1.5-pro,gemini-pro
-# GEMINI_TEMPERATURE=0.7
-# GEMINI_TOP_P=0.95
-# GEMINI_TOP_K=40
-# GEMINI_MAX_OUTPUT_TOKENS=2048
-# GEMINI_SYSTEM_INSTRUCTION=You are a concise learning mentor.
-```
-
-3. Verify integration:
+Google AI Studio integration is pre-configured. To verify:
 
 ```bash
 curl http://localhost:5001/api/ai/studio-status
-curl -X POST http://localhost:5001/api/ai/studio-test -H "Content-Type: application/json" -d "{}"
 ```
 
-If `studio-test` succeeds, chat and roadmap endpoints will use Google AI Studio automatically.
+For more details, see the [AI Endpoints](#ai-api-endpoints) section.
+
+## Module APIs
+
+- `GET /api/modules`: List available learning modules.
+- `POST /api/modules`: Create a new module (Auth required).
+- `GET /api/modules/:id`: View module details.
+- `PUT /api/modules/:id`: Update module (Auth required).
+- `DELETE /api/modules/:id`: Remove module (Auth required).
+
+## AI API Endpoints
+
+- `POST /api/ai/chat`: Interactive mentor chat.
+- `POST /api/ai/roadmap`: Generate personalized learning paths.
+- `GET /api/ai/plans`: Retrieve saved learning plans.
+- `PATCH /api/ai/plans/:planId/progress`: Update learning progress.
