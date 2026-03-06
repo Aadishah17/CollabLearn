@@ -23,8 +23,9 @@ import {
 } from 'lucide-react';
 import CollabLearnLogo from '../assets/Collablearn Logo.png';
 import Notification from '../components/Notification';
-import { useTheme } from '../components/user/ThemeContext';
+import { useTheme } from '../components/user/useTheme.js';
 import { API_URL } from '../config';
+import { clearSession, emitProfileUpdated } from '../utils/session.js';
 
 export default function MainNavbar() {
   const location = useLocation();
@@ -182,12 +183,26 @@ export default function MainNavbar() {
     const notificationInterval = setInterval(fetchNotifications, 30000);
 
     const handleProfileUpdate = (event) => {
-      if (event.detail.name) setUsername(event.detail.name);
-      if (event.detail.email) setEmail(event.detail.email);
-      if (typeof event.detail.isPremium !== 'undefined') {
-        setIsPremium(Boolean(event.detail.isPremium));
-        localStorage.setItem('isPremium', String(Boolean(event.detail.isPremium)));
+      const detail = event.detail || {};
+
+      if (Object.prototype.hasOwnProperty.call(detail, 'name')) {
+        setUsername(detail.name || 'Guest');
       }
+      if (Object.prototype.hasOwnProperty.call(detail, 'email')) {
+        setEmail(detail.email || '');
+      }
+      if (Object.prototype.hasOwnProperty.call(detail, 'isPremium')) {
+        setIsPremium(Boolean(detail.isPremium));
+      }
+      if (!localStorage.getItem('token')) {
+        setUsername('Guest');
+        setEmail('');
+        setIsPremium(false);
+      }
+    };
+
+    const handleStorageSync = () => {
+      fetchUserData();
     };
 
     const handleClickOutside = (event) => {
@@ -203,11 +218,13 @@ export default function MainNavbar() {
     };
 
     window.addEventListener('profileUpdated', handleProfileUpdate);
+    window.addEventListener('storage', handleStorageSync);
     document.addEventListener('mousedown', handleClickOutside);
 
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
       window.removeEventListener('profileUpdated', handleProfileUpdate);
+      window.removeEventListener('storage', handleStorageSync);
       clearInterval(notificationInterval);
     };
   }, []);
@@ -220,13 +237,11 @@ export default function MainNavbar() {
     location.pathname === path || location.pathname.startsWith(`${path}/`);
 
   const handleLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('username');
-    localStorage.removeItem('userId');
-    localStorage.removeItem('userAvatar');
-    localStorage.removeItem('email');
-    localStorage.removeItem('isPremium');
+    clearSession();
+    emitProfileUpdated({ name: 'Guest', email: '', isPremium: false });
     setUsername('Guest');
+    setEmail('');
+    setIsPremium(false);
     setIsDropdownOpen(false);
     navigate('/');
   };
@@ -391,7 +406,14 @@ export default function MainNavbar() {
 
         {isMobileMenuOpen && (
           <div className="lg:hidden border-t border-white/15 px-3 pb-3 pt-2">
-            <div className="grid grid-cols-2 gap-2">
+            {!isGuest && (
+              <div className="mb-3 rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3">
+                <p className="text-sm font-semibold text-white">{loading ? 'Loading...' : username}</p>
+                <p className="mt-1 text-xs text-zinc-400">{email || 'No email connected'}</p>
+              </div>
+            )}
+
+            <div className="grid gap-2">
               {navLinks.map((link) => {
                 const Icon = link.icon;
                 const active = isActive(link.path);
@@ -399,7 +421,7 @@ export default function MainNavbar() {
                   <Link
                     key={link.path}
                     to={link.path}
-                    className={`${active ? 'glass-tab glass-tab-active' : 'glass-tab'} justify-center`}
+                    className={`${active ? 'glass-tab glass-tab-active' : 'glass-tab'} justify-start px-4 py-3`}
                   >
                     <Icon size={15} />
                     <span>{link.label}</span>
@@ -422,6 +444,33 @@ export default function MainNavbar() {
                 >
                   Get Started
                 </Link>
+              </div>
+            )}
+
+            {!isGuest && (
+              <div className="mt-3 grid gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsMobileMenuOpen(false);
+                    navigate('/settings');
+                  }}
+                  className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/15 py-3 text-sm font-semibold text-zinc-100"
+                >
+                  <Settings size={16} />
+                  Settings
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsMobileMenuOpen(false);
+                    handleLogout();
+                  }}
+                  className="inline-flex items-center justify-center gap-2 rounded-xl border border-red-500/35 bg-red-500/10 py-3 text-sm font-semibold text-red-100"
+                >
+                  <LogOut size={16} />
+                  Sign Out
+                </button>
               </div>
             )}
           </div>

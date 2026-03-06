@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { BarChart2, Users, Settings, LogOut, User, LayoutDashboard, Trash2, Home, Bell } from 'lucide-react';
 
 // Assuming the logo is imported
@@ -7,14 +7,12 @@ import CollabLearnLogo from '../assets/Collablearn Logo.png';
 
 export default function AdminNavbar() {
   const location = useLocation();
-  const navigate = useNavigate();
   const dropdownRef = useRef(null);
 
   // State and user data from localStorage
-  const [username, setUsername] = useState(localStorage.getItem('username') || 'Admin');
-  const [email, setEmail] = useState(localStorage.getItem('email') || 'admin@collab.com');
+  const [username] = useState(localStorage.getItem('username') || 'Admin');
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const userRole = localStorage.getItem('userRole');
+  // const userRole = localStorage.getItem('userRole');
 
   // --- Styling Helper Functions (Light Mode Only) ---
 
@@ -29,10 +27,10 @@ export default function AdminNavbar() {
   };
 
   // Dropdown menu item styling
-  const getMenuButtonClass = () => {
+  /* const getMenuButtonClass = () => {
     // Retaining the original hover style from the user's MainNavbar
     return `w-full flex items-center gap-3 px-4 py-2.5 text-gray-700 hover:bg-[#CC66FF] hover:text-white rounded-lg transition-colors group`;
-  };
+  }; */
 
   // --- Effects and Handlers ---
   useEffect(() => {
@@ -47,20 +45,6 @@ export default function AdminNavbar() {
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, []);
-
-  const handleLogout = () => {
-    // Clear all user data
-    localStorage.clear();
-    setUsername('Guest');
-    setEmail('');
-    setIsDropdownOpen(false);
-    navigate('/');
-  };
-
-  const handleMenuClick = (path) => {
-    setIsDropdownOpen(false);
-    navigate(path);
-  };
 
   // Define Admin Navigation Tabs
   const adminNavTabs = [
@@ -126,7 +110,7 @@ export default function AdminNavbar() {
                       </div>
                       <div>
                         <p className="font-semibold text-gray-900">{username}</p>
-                        <p className="text-sm text-gray-500">{email}</p>
+                        <p className="text-sm text-gray-500">admin@collab.com</p>
                       </div>
                     </div>
                   </div> */}

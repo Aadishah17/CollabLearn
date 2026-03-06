@@ -1,13 +1,27 @@
-import React, { useState, useEffect } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import { Eye, EyeOff, Lock, Mail, User, ArrowRight, Loader2, CheckCircle, XCircle, Sparkles } from 'lucide-react';
+import {
+  ArrowRight,
+  Calendar,
+  CheckCircle,
+  Eye,
+  EyeOff,
+  Loader2,
+  Sparkles,
+  Target,
+  Trophy,
+  XCircle,
+} from 'lucide-react';
 import { GoogleLogin } from '@react-oauth/google';
-import CollabLearnLogo from '../assets/react.svg';
-import { API_URL } from '../config';
+import CollabLearnLogo from '../assets/Collablearn Logo.png';
+import AuthShowcase from '../components/auth/AuthShowcase.jsx';
+import { API_URL, GOOGLE_AUTH_ENABLED } from '../config';
+import { emitProfileUpdated, persistSession } from '../utils/session.js';
 
+export default function SignupPage() {
+  const navigate = useNavigate();
 
-const SignupPage = () => {
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -15,22 +29,77 @@ const SignupPage = () => {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [passwordsMatch, setPasswordsMatch] = useState(true);
-
-  const navigate = useNavigate();
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
 
   useEffect(() => {
-    if (confirmPassword) {
-      setPasswordsMatch(password === confirmPassword);
-    } else {
-      setPasswordsMatch(true); // Don't show error when empty
-    }
-  }, [password, confirmPassword]);
+    const token = localStorage.getItem('token');
+    const storedRole = localStorage.getItem('userRole');
 
-  const handleSignup = async (e) => {
-    e.preventDefault();
+    if (token) {
+      navigate(storedRole === 'admin' ? '/admin' : '/dashboard', { replace: true });
+    }
+  }, [navigate]);
+
+  useEffect(() => {
+    setPasswordsMatch(!confirmPassword || password === confirmPassword);
+  }, [confirmPassword, password]);
+
+  const showcaseContent = useMemo(
+    () => ({
+      badge: {
+        icon: <Sparkles size={14} className="text-red-300" />,
+        label: 'Plan, practice, and teach in one product',
+      },
+      highlights: [
+        {
+          icon: <Target size={20} />,
+          title: 'Start with a usable roadmap',
+          description:
+            'Tell the platform what you want to learn and get weekly targets instead of a vague goal.',
+        },
+        {
+          icon: <Calendar size={20} />,
+          title: 'Make time visible early',
+          description:
+            'Connect your plan to actual study time, mentor sessions, and the progress markers that keep you honest.',
+        },
+        {
+          icon: <Trophy size={20} />,
+          title: 'Grow from learner to instructor',
+          description:
+            'Use the same platform to learn a skill now and teach one later when you have expertise to share.',
+        },
+      ],
+      stats: [
+        { value: '7d', label: 'session token window' },
+        { value: '3', label: 'core workflows in one app' },
+        { value: '0', label: 'extra tools required' },
+      ],
+    }),
+    [],
+  );
+
+  const completeSignup = (responseData, successMessage) => {
+    persistSession({ token: responseData.token, user: responseData.user });
+    emitProfileUpdated({
+      name: responseData.user?.name || username.trim(),
+      email: responseData.user?.email || email.trim().toLowerCase(),
+      isPremium: Boolean(responseData.user?.isPremium),
+    });
+    toast.success(successMessage);
+    navigate('/dashboard', { replace: true });
+  };
+
+  const handleSignup = async (event) => {
+    event.preventDefault();
+
+    if (!acceptedTerms) {
+      toast.error('Please confirm the terms note before creating your account.');
+      return;
+    }
 
     if (password !== confirmPassword) {
-      toast.error("Passwords don't match!");
+      toast.error("Passwords don't match.");
       return;
     }
 
@@ -42,27 +111,36 @@ const SignupPage = () => {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ name: username, email, password }),
+        body: JSON.stringify({
+          name: username.trim(),
+          email: email.trim().toLowerCase(),
+          password,
+        }),
       });
 
-      const data = await response.json();
+      const data = await response.json().catch(() => ({}));
 
-      if (response.ok) {
-        toast.success('Account created! Please log in.');
-        navigate('/login');
-      } else {
-        toast.error(data.message || 'Signup failed.');
-        setLoading(false);
+      if (!response.ok) {
+        throw new Error(data.message || 'Signup failed.');
       }
+
+      completeSignup(data, 'Account created. Your workspace is ready.');
     } catch (error) {
       console.error('Signup error:', error);
-      toast.error('Connection error. Please try again.');
+      toast.error(error.message || 'Connection error. Please try again.');
+    } finally {
       setLoading(false);
     }
   };
 
   const handleGoogleSuccess = async (credentialResponse) => {
+    if (!credentialResponse?.credential) {
+      toast.error('Google authentication did not return a token.');
+      return;
+    }
+
     setLoading(true);
+
     try {
       const response = await fetch(`${API_URL}/api/auth/google`, {
         method: 'POST',
@@ -72,223 +150,218 @@ const SignupPage = () => {
         body: JSON.stringify({ token: credentialResponse.credential }),
       });
 
-      const data = await response.json();
+      const data = await response.json().catch(() => ({}));
 
-      if (response.ok) {
-        localStorage.setItem('token', data.token);
-        if (data.user) {
-          localStorage.setItem('username', data.user.name);
-          localStorage.setItem('userId', data.user.id);
-          localStorage.setItem('email', data.user.email);
-          localStorage.setItem('isPremium', String(Boolean(data.user.isPremium)));
-        }
-
-        toast.success('Account Created with Google!');
-        window.dispatchEvent(new Event('storage'));
-        navigate('/dashboard');
-      } else {
-        toast.error(data.message || 'Google signup failed.');
+      if (!response.ok) {
+        throw new Error(data.message || 'Google signup failed.');
       }
+
+      completeSignup(data, 'Account created with Google.');
     } catch (error) {
       console.error('Google signup error:', error);
-      toast.error('Connection error.');
+      toast.error(error.message || 'Connection error.');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex glass-page transition-colors duration-300">
-      {/* Left Side - Signup Form */}
-      <div className="w-full lg:w-1/2 flex flex-col justify-center p-8 sm:p-12 lg:p-24 relative">
-        <Link to="/" className="absolute top-8 left-8 flex items-center gap-2 group">
-          <div className="w-10 h-10 bg-red-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-red-900/20">
-            <span className="font-bold text-xl">C</span>
-          </div>
-          <span className="font-bold text-white text-xl tracking-tight group-hover:text-red-300 transition-colors">CollabLearn</span>
-        </Link>
+    <div className="glass-page relative flex min-h-screen overflow-x-hidden">
+      <div className="pointer-events-none absolute left-[-10%] top-24 h-72 w-72 rounded-full bg-red-500/12 blur-[120px]" />
+      <div className="pointer-events-none absolute bottom-[-12%] right-[-8%] h-80 w-80 rounded-full bg-blue-500/12 blur-[140px]" />
 
-        <div className="max-w-md w-full mx-auto glass-panel p-8">
-          <div className="mb-8">
-            <h1 className="text-4xl font-bold text-white mb-3 tracking-tight">Create Account</h1>
-            <p className="text-zinc-300">Join the learning community and start growing today.</p>
-          </div>
+      <div className="relative flex w-full lg:w-[46%]">
+        <div className="mx-auto flex w-full max-w-xl flex-col justify-center px-6 py-12 sm:px-10 lg:px-14">
+          <Link to="/" className="mb-10 inline-flex items-center gap-3 self-start">
+            <img
+              src={CollabLearnLogo}
+              alt="CollabLearn Logo"
+              className="h-10 w-10 rounded-xl border border-white/20 object-cover"
+            />
+            <span className="text-xl font-bold tracking-tight text-white">CollabLearn</span>
+          </Link>
 
-          <form onSubmit={handleSignup} className="space-y-5">
-            <div>
-              <label className="block text-sm font-medium text-zinc-200 mb-2">Full Name</label>
-              <div className="relative">
+          <div className="surface-card p-7 sm:p-8">
+            <div className="eyebrow">
+              <Sparkles size={14} className="text-red-300" />
+              Create your workspace
+            </div>
+
+            <h1 className="mt-6 text-4xl font-black tracking-tight text-white sm:text-5xl">
+              Build a learning system that lasts.
+            </h1>
+            <p className="mt-4 text-base leading-7 text-zinc-300">
+              Create an account to start with an AI roadmap, make time for mentor
+              sessions, and keep progress visible from week one.
+            </p>
+
+            <form onSubmit={handleSignup} className="mt-8 space-y-5">
+              <div>
+                <label className="mb-2 block text-sm font-medium text-zinc-200">Full name</label>
                 <input
                   type="text"
                   value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  className="glass-input pl-5 pr-4 py-3.5"
-                  placeholder="John Doe"
+                  onChange={(event) => setUsername(event.target.value)}
+                  className="glass-input px-4 py-3.5"
+                  placeholder="Your name"
+                  autoComplete="name"
                   required
                 />
               </div>
-            </div>
 
-            <div>
-              <label className="block text-sm font-medium text-zinc-200 mb-2">Email</label>
-              <div className="relative">
+              <div>
+                <label className="mb-2 block text-sm font-medium text-zinc-200">Email</label>
                 <input
                   type="email"
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="glass-input pl-5 pr-4 py-3.5"
-                  placeholder="john@example.com"
+                  onChange={(event) => setEmail(event.target.value)}
+                  className="glass-input px-4 py-3.5"
+                  placeholder="you@example.com"
+                  autoComplete="email"
                   required
                 />
               </div>
-            </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-zinc-200 mb-2">Password</label>
-                <div className="relative">
-                  <input
-                    type={showPassword ? 'text' : 'password'}
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="glass-input pl-5 pr-10 py-3.5"
-                    placeholder="Min 6 chars"
-                    required
-                    minLength={6}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-red-600 dark:hover:text-red-500 transition-colors"
-                  >
-                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                  </button>
+              <div className="grid gap-4 md:grid-cols-2">
+                <div>
+                  <label className="mb-2 block text-sm font-medium text-zinc-200">Password</label>
+                  <div className="relative">
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      value={password}
+                      onChange={(event) => setPassword(event.target.value)}
+                      className="glass-input px-4 py-3.5 pr-12"
+                      placeholder="Minimum 6 characters"
+                      autoComplete="new-password"
+                      minLength={6}
+                      required
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword((visible) => !visible)}
+                      className="absolute inset-y-0 right-0 flex items-center pr-4 text-zinc-400 transition-colors hover:text-white"
+                      aria-label={showPassword ? 'Hide password' : 'Show password'}
+                    >
+                      {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                    </button>
+                  </div>
                 </div>
-              </div>
 
-              <div>
-                <label className="block text-sm font-medium text-zinc-200 mb-2">Confirm</label>
-                <div className="relative">
-                  <input
-                    type={showPassword ? 'text' : 'password'}
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    className={`w-full pl-5 pr-10 py-3.5 bg-zinc-900/40 border rounded-2xl focus:outline-none focus:ring-2 transition-all text-zinc-100 ${!passwordsMatch && confirmPassword
-                      ? 'border-red-500/50 focus:ring-red-500/30'
-                      : 'border-white/15 focus:ring-red-500/50 focus:border-red-500'
+                <div>
+                  <label className="mb-2 block text-sm font-medium text-zinc-200">
+                    Confirm password
+                  </label>
+                  <div className="relative">
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      value={confirmPassword}
+                      onChange={(event) => setConfirmPassword(event.target.value)}
+                      className={`glass-input px-4 py-3.5 pr-12 ${
+                        !passwordsMatch && confirmPassword ? 'border-red-500/50' : ''
                       }`}
-                    placeholder="Confirm"
-                    required
-                  />
-                  {confirmPassword && (
-                    <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
-                      {passwordsMatch ? (
-                        <CheckCircle size={18} className="text-emerald-500" />
-                      ) : (
-                        <XCircle size={18} className="text-red-500" />
-                      )}
-                    </div>
-                  )}
+                      placeholder="Repeat your password"
+                      autoComplete="new-password"
+                      required
+                    />
+                    {confirmPassword ? (
+                      <div className="absolute inset-y-0 right-0 flex items-center pr-4">
+                        {passwordsMatch ? (
+                          <CheckCircle size={18} className="text-emerald-300" />
+                        ) : (
+                          <XCircle size={18} className="text-red-300" />
+                        )}
+                      </div>
+                    ) : null}
+                  </div>
                 </div>
               </div>
-            </div>
 
-            <div className="flex items-start gap-3 mt-2">
-              <input type="checkbox" required className="mt-1 w-4 h-4 rounded border-zinc-700 text-red-600 focus:ring-red-500 bg-zinc-900" />
-              <span className="text-sm text-zinc-300">
-                I agree to the <a href="#" className="text-red-600 dark:text-red-500 hover:underline">Terms of Service</a> and <a href="#" className="text-red-600 dark:text-red-500 hover:underline">Privacy Policy</a>.
-              </span>
-            </div>
+              <label className="flex items-start gap-3 rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-sm leading-7 text-zinc-300">
+                <input
+                  type="checkbox"
+                  checked={acceptedTerms}
+                  onChange={(event) => setAcceptedTerms(event.target.checked)}
+                  className="mt-1 h-4 w-4 rounded border-zinc-700 bg-zinc-900 text-red-600 focus:ring-red-500"
+                  required
+                />
+                <span>
+                  I understand this build stores my learning account and workspace data so I can
+                  continue across sessions.
+                </span>
+              </label>
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full glass-cta py-3.5 font-bold disabled:opacity-70 disabled:cursor-not-allowed"
-            >
-              {loading ? (
+              <button
+                type="submit"
+                disabled={loading}
+                className="glass-cta w-full py-3.5 text-base disabled:cursor-not-allowed disabled:opacity-70"
+              >
+                {loading ? (
+                  <>
+                    <Loader2 size={20} className="animate-spin" />
+                    Creating account...
+                  </>
+                ) : (
+                  <>
+                    Create account
+                    <ArrowRight size={20} />
+                  </>
+                )}
+              </button>
+
+              {GOOGLE_AUTH_ENABLED ? (
                 <>
-                  <Loader2 size={20} className="animate-spin" />
-                  Creating Account...
+                  <div className="relative py-2">
+                    <div className="absolute inset-0 flex items-center">
+                      <div className="w-full border-t border-white/10" />
+                    </div>
+                    <div className="relative flex justify-center">
+                      <span className="bg-transparent px-4 text-sm font-medium text-zinc-400">
+                        Or continue with Google
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="flex justify-center">
+                    <GoogleLogin
+                      onSuccess={handleGoogleSuccess}
+                      onError={() => toast.error('Google signup failed.')}
+                      theme="outline"
+                      shape="pill"
+                      text="signup_with"
+                      width="100%"
+                    />
+                  </div>
                 </>
               ) : (
-                <>
-                  Create Account
-                  <ArrowRight size={20} />
-                </>
-              )}
-            </button>
-
-            <div className="relative my-8">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-white/15"></div>
-              </div>
-              <div className="relative flex justify-center text-sm">
-                <span className="px-4 bg-transparent text-zinc-400 font-medium">Or join with</span>
-              </div>
-            </div>
-
-            <div className="flex justify-center">
-              <div className="w-full">
-                <GoogleLogin
-                  onSuccess={handleGoogleSuccess}
-                  onError={() => {
-                    toast.error('Google Signup Failed');
-                  }}
-                  useOneTap
-                  theme="outline"
-                  shape="pill"
-                  text="signup_with"
-                  width="100%"
-                />
-              </div>
-            </div>
-          </form>
-
-          <p className="mt-8 text-center text-zinc-300 text-sm">
-            Already have an account?{' '}
-            <Link to="/login" className="text-red-400 font-semibold hover:text-red-300 hover:underline decoration-2 underline-offset-4 transition-all">
-              Sign in
-            </Link>
-          </p>
-        </div>
-      </div>
-
-      {/* Right Side - Image/Decoration */}
-      <div className="hidden lg:block w-1/2 bg-zinc-900 relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-red-600/10 via-black/50 to-black z-10" />
-        <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1531403009284-440f080d1e12?q=80&w=2670&auto=format&fit=crop')] bg-cover bg-center opacity-30 mix-blend-overlay"></div>
-
-        {/* Subtle Background Accent */}
-        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-red-600/20 rounded-full blur-[100px]"></div>
-
-
-        <div className="absolute inset-0 z-20 flex flex-col justify-center px-16 text-white">
-          <div className="mb-8 inline-flex items-center gap-2 px-3 py-1 bg-white/10 backdrop-blur-md rounded-full border border-white/10 w-fit">
-            <Sparkles size={14} className="text-red-400" />
-            <span className="text-xs font-medium text-white/90">Join 10,000+ Learners</span>
-          </div>
-          <h2 className="text-5xl font-bold mb-6 leading-tight tracking-tight">Start your journey <br /> <span className="text-gradient-red">today.</span></h2>
-          <p className="text-zinc-400 text-xl leading-relaxed max-w-lg mb-12">
-            "CollabLearn gave me structure, focus, and momentum. I finally know what to learn next every week."
-          </p>
-
-          <div className="flex items-center gap-4">
-            <div className="flex -space-x-3">
-              {[5, 6, 7, 8].map((i) => (
-                <div key={i} className={`w-10 h-10 rounded-full border-2 border-black bg-zinc-800 flex items-center justify-center text-xs font-bold ring-2 ring-white/10`}>
-                  <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${i + 10}`} className="w-full h-full rounded-full" alt="avatar" />
+                <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-4 text-sm leading-7 text-zinc-300">
+                  Google sign-up is hidden until `VITE_GOOGLE_CLIENT_ID` is configured for this
+                  deployment.
                 </div>
-              ))}
-            </div>
-            <div className="flex flex-col">
-              <span className="font-bold text-white">Top Rated</span>
-              <span className="text-xs text-zinc-500">Learning Platform</span>
-            </div>
+              )}
+            </form>
+
+            <p className="mt-8 text-center text-sm text-zinc-300">
+              Already have an account?{' '}
+              <Link
+                to="/login"
+                className="font-semibold text-red-300 transition-colors hover:text-red-200"
+              >
+                Sign in
+              </Link>
+            </p>
           </div>
         </div>
       </div>
+
+      <AuthShowcase
+        badge={showcaseContent.badge}
+        title="Start with clarity instead of collecting random resources."
+        description="CollabLearn gives new users a cleaner starting point: define the goal, map the work, and keep accountability nearby."
+        highlights={showcaseContent.highlights}
+        quote="I stopped restarting from scratch every Sunday because the next step was already planned."
+        quoteAttribution="New learner feedback"
+        stats={showcaseContent.stats}
+      />
     </div>
   );
-};
-
-export default SignupPage;
+}

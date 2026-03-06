@@ -1,49 +1,32 @@
-// src/context/ThemeContext.jsx
+import { useEffect, useState } from 'react';
+import { ThemeContext } from './theme-context.js';
 
-import React, { createContext, useState, useContext, useEffect } from 'react';
+function getInitialDarkMode() {
+  const savedTheme = localStorage.getItem('isDarkMode');
+  if (savedTheme !== null) {
+    return JSON.parse(savedTheme);
+  }
 
-// 1. Create the Context
-const ThemeContext = createContext({
-    isDarkMode: false,
-    toggleDarkMode: () => { },
-});
+  return window.matchMedia('(prefers-color-scheme: dark)').matches;
+}
 
-// 2. Create a custom hook for easy access
-export const useTheme = () => useContext(ThemeContext);
+export function ThemeProvider({ children }) {
+  const [isDarkMode, setIsDarkMode] = useState(getInitialDarkMode);
 
-// 3. Create the Provider component (wraps your whole App)
-export const ThemeProvider = ({ children }) => {
-    // Check local storage for saved theme preference or default to false (light)
-    const [isDarkMode, setIsDarkMode] = useState(() => {
-        // Use window.matchMedia for system preference fallback if local storage is empty
-        const savedTheme = localStorage.getItem('isDarkMode');
-        if (savedTheme !== null) {
-            return JSON.parse(savedTheme);
-        }
-        // Default to TRUE (Dark Mode) for the "Black" theme request
-        return true;
-    });
+  useEffect(() => {
+    localStorage.setItem('isDarkMode', JSON.stringify(isDarkMode));
+    document.documentElement.classList.toggle('dark', isDarkMode);
+    document.documentElement.style.colorScheme = isDarkMode ? 'dark' : 'light';
+  }, [isDarkMode]);
 
-    // Effect to apply the 'dark' class to the HTML root element
-    useEffect(() => {
-        // 1. Update the 'localStorage' to persist user's choice
-        localStorage.setItem('isDarkMode', JSON.stringify(isDarkMode));
-
-        // 2. Apply or remove the 'dark' class on the <html> element
-        if (isDarkMode) {
-            document.documentElement.classList.add('dark');
-        } else {
-            document.documentElement.classList.remove('dark');
-        }
-    }, [isDarkMode]);
-
-    const toggleDarkMode = () => {
-        setIsDarkMode(prevMode => !prevMode);
-    };
-
-    return (
-        <ThemeContext.Provider value={{ isDarkMode, toggleDarkMode }}>
-            {children}
-        </ThemeContext.Provider>
-    );
-};
+  return (
+    <ThemeContext.Provider
+      value={{
+        isDarkMode,
+        toggleDarkMode: () => setIsDarkMode((currentMode) => !currentMode),
+      }}
+    >
+      {children}
+    </ThemeContext.Provider>
+  );
+}

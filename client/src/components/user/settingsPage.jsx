@@ -1,366 +1,328 @@
-import React, { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
 import {
-    Settings, User, Bell, Shield, Moon, Sun, Lock, CreditCard,
-    LogOut, Trash2, MessageSquare, ExternalLink
-} from 'lucide-react'; // Added ExternalLink for Edit Cards
-
-// Assuming MainNavbar exists at this path
+  ArrowRight,
+  Calendar,
+  LogOut,
+  MessageSquare,
+  Moon,
+  Settings,
+  Shield,
+  Sparkles,
+  Sun,
+  Trash2,
+  Trophy,
+  User,
+} from 'lucide-react';
 import MainNavbar from '../../navbar/mainNavbar.jsx';
+import { useTheme } from './useTheme.js';
 import { API_URL } from '../../config';
+import { clearSession, emitProfileUpdated } from '../../utils/session.js';
 
+export default function SettingsPage() {
+  const navigate = useNavigate();
+  const { isDarkMode, toggleDarkMode } = useTheme();
+  const [user, setUser] = useState(() => ({
+    name: localStorage.getItem('username') || 'Learner',
+    email: localStorage.getItem('email') || '',
+    isPremium: localStorage.getItem('isPremium') === 'true',
+  }));
+  const [deleting, setDeleting] = useState(false);
 
-// ----------------------------------------------------------------------
-// NOTE ON DARK MODE: 
-// In a real application, the 'isDarkMode' state and 'toggleDarkMode' 
-// function would typically come from a React Context or a Redux store 
-// wrapping the entire application, not just passed as props to a single page.
-// We are simulating that global control here via component props.
-// ----------------------------------------------------------------------
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (!token) return;
 
-export default function SettingsPage({ isDarkMode, toggleDarkMode }) {
+    const fetchCurrentUser = async () => {
+      try {
+        const response = await fetch(`${API_URL}/api/auth/me`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        });
 
-    // Local state for settings form (simulated data)
-    const [notificationSettings, setNotificationSettings] = useState({
-        sessionReminders: true,
-        newSkillAlerts: false,
-        messageNotifications: true,
-    });
-    const [profilePrivacy, setProfilePrivacy] = useState(true); // True = Public, False = Private
+        if (!response.ok) return;
 
-    // --- Theme Utility Classes ---
-    const themeBg = isDarkMode ? 'bg-black text-white' : 'bg-gray-50 text-gray-900';
-    const cardBg = isDarkMode ? 'bg-black border-white' : 'bg-white border-gray-200';
-    const iconColor = isDarkMode ? 'text-red-500' : 'text-red-600';
-    const switchColor = isDarkMode ? 'bg-red-600' : 'bg-gray-200';
+        const data = await response.json();
+        if (!data.success || !data.user) return;
 
-    // --- Button Handler Functions ---
+        const nextUser = {
+          name: data.user.name || 'Learner',
+          email: data.user.email || '',
+          isPremium: Boolean(data.user.isPremium),
+        };
 
-    const handleNotificationChange = (name) => {
-        setNotificationSettings(prev => ({
-            ...prev,
-            [name]: !prev[name]
-        }));
+        setUser(nextUser);
+        localStorage.setItem('username', nextUser.name);
+        localStorage.setItem('email', nextUser.email);
+        localStorage.setItem('isPremium', String(nextUser.isPremium));
+      } catch (error) {
+        console.error('Settings: failed to fetch current user', error);
+      }
     };
 
-    const handleManageProfile = () => {
-        // Navigate to profile and open the edit modal via query param
-        navigate('/profile?edit=true');
-        console.log('Action: Manage Profile clicked. Navigating to /profile?edit=true');
-    };
+    fetchCurrentUser();
+  }, []);
 
-    const handleChangePassword = () => {
-        // In a real app, this would open a modal or navigate to a password change form
-        alert("Opening Change Password form...");
-        console.log("Action: Change Password clicked.");
-    };
+  const quickLinks = useMemo(
+    () => [
+      {
+        icon: Sparkles,
+        title: 'AI Learning',
+        description: 'Open your roadmap, guided resources, and learning plan.',
+        action: () => navigate('/ai-learning'),
+      },
+      {
+        icon: Calendar,
+        title: 'Calendar',
+        description: 'Review upcoming sessions and keep your study schedule visible.',
+        action: () => navigate('/calendar'),
+      },
+      {
+        icon: MessageSquare,
+        title: 'Messages',
+        description: 'Pick up conversations with mentors, learners, and collaborators.',
+        action: () => navigate('/messages'),
+      },
+    ],
+    [navigate],
+  );
 
-    const handleEditCards = () => {
-        // In a real app, this would navigate to a billing portal
-        alert("Navigating to Payment Methods management portal...");
-        console.log("Action: Edit Cards clicked.");
-    };
+  const handleManageProfile = () => {
+    navigate('/profile?edit=true');
+  };
 
-    const navigate = useNavigate();
+  const handleSignOut = () => {
+    clearSession();
+    emitProfileUpdated({ name: 'Guest', email: '', isPremium: false });
+    toast.success('Signed out from this device.');
+    navigate('/');
+  };
 
-    const handleLogoutAllDevices = async () => {
-        if (!window.confirm("Are you sure you want to log out from ALL other devices?")) return;
+  const handleDeleteAccount = async () => {
+    if (!window.confirm('Delete your account permanently? This will remove your profile, bookings, and related data.')) {
+      return;
+    }
 
-        try {
-            const token = localStorage.getItem('token');
+    const token = localStorage.getItem('token');
+    if (!token) {
+      toast.error('Session expired. Sign in again and retry.');
+      navigate('/login');
+      return;
+    }
 
-            // If server supports session revocation endpoint, call it.
-            // There is no explicit revoke route in the API docs, but we'll attempt a safe POST to /api/auth/logout-all
-            if (token) {
-                try {
-                    const resp = await fetch(`${API_URL}/api/auth/logout-all`, {
-                        method: 'POST',
-                        headers: {
-                            'Authorization': `Bearer ${token}`,
-                            'Content-Type': 'application/json'
-                        }
-                    });
+    setDeleting(true);
 
-                    if (resp.ok) {
-                        console.log('LogoutAllDevices: server-side session revocation succeeded');
-                    } else {
-                        console.log('LogoutAllDevices: no server-side revoke endpoint or it responded with', resp.status);
-                    }
-                } catch (err) {
-                    console.log('LogoutAllDevices: error calling revoke endpoint (it may not exist)', err);
-                }
-            }
+    try {
+      const response = await fetch(`${API_URL}/api/auth/delete`, {
+        method: 'DELETE',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
 
-            // Clear local client auth state
-            localStorage.removeItem('token');
-            localStorage.removeItem('username');
-            localStorage.removeItem('userId');
-            localStorage.removeItem('userAvatar');
-            localStorage.removeItem('email');
+      const data = await response.json().catch(() => ({}));
 
-            // Notify user and navigate to landing page
-            alert('Successfully logged out from all other devices. You will be redirected to the home page.');
-            console.log('Action: Logout All Devices confirmed. Client cleared and redirecting.');
-            navigate('/');
-        } catch (error) {
-            console.error('handleLogoutAllDevices error:', error);
-            alert('An error occurred while attempting to log out. Please try again.');
-        }
-    };
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to delete account.');
+      }
 
-    const handleDeleteAccount = () => {
-        if (window.confirm("WARNING: This action is irreversible. Are you absolutely sure you want to permanently delete your account?")) {
-            // API call to delete the account
-            (async () => {
-                try {
-                    const token = localStorage.getItem('token');
-                    if (!token) {
-                        alert('No authentication token found. Please login and try again.');
-                        return;
-                    }
+      clearSession();
+      emitProfileUpdated({ name: 'Guest', email: '', isPremium: false });
 
-                    const resp = await fetch(`${API_URL}/api/auth/delete`, {
-                        method: 'DELETE',
-                        headers: {
-                            'Authorization': `Bearer ${token}`,
-                            'Content-Type': 'application/json'
-                        }
-                    });
+      toast.success('Account deleted.');
+      navigate('/');
+    } catch (error) {
+      console.error('Settings: delete account failed', error);
+      toast.error(error.message || 'Unable to delete account right now.');
+    } finally {
+      setDeleting(false);
+    }
+  };
 
-                    if (resp.ok) {
-                        console.log('Action: Delete Account confirmed. Server removed account.');
-                        // Clear local auth state
-                        localStorage.removeItem('token');
-                        localStorage.removeItem('username');
-                        localStorage.removeItem('userId');
-                        localStorage.removeItem('userAvatar');
-                        localStorage.removeItem('email');
+  return (
+    <div className="glass-page min-h-screen font-sans transition-colors duration-300">
+      <MainNavbar />
 
-                        alert('Your account has been permanently deleted. You will be redirected to the home page.');
-                        navigate('/');
-                    } else {
-                        const data = await resp.json().catch(() => ({}));
-                        console.error('Delete account failed', resp.status, data);
-                        alert(data.message || 'Failed to delete account. Please contact support.');
-                    }
-                } catch (error) {
-                    console.error('handleDeleteAccount error:', error);
-                    alert('An error occurred while deleting your account. Please try again later.');
-                }
-            })();
-        }
-    };
-
-
-    // --- Feature Card Component (Helper) ---
-    const FeatureCard = ({ icon, title, description, action }) => (
-        <div className={`p-6 rounded-xl shadow-md ${cardBg} border transition-all duration-300`}>
-            <div className="flex items-start justify-between">
-                <div className="flex items-center">
-                    <div className={`p-3 rounded-full ${isDarkMode ? 'bg-red-900/30' : 'bg-red-100'} mr-4`}>
-                        {icon}
-                    </div>
-                    <div>
-                        <h3 className="text-lg font-semibold">{title}</h3>
-                        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{description}</p>
-                    </div>
-                </div>
-                {action}
+      <main className="mx-auto max-w-6xl px-6 pb-16 pt-28">
+        <header className="mb-10 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+          <div>
+            <div className="eyebrow">
+              <Settings size={14} className="text-red-300" />
+              Preferences
             </div>
-        </div>
-    );
+            <h1 className="mt-5 text-4xl font-black tracking-tight text-white md:text-5xl">
+              Settings that keep your workspace clear and reliable.
+            </h1>
+            <p className="mt-4 max-w-2xl text-base leading-7 text-zinc-300">
+              Manage your profile, visual preferences, and session state without leaving the learning flow.
+            </p>
+          </div>
+        </header>
 
-    // --- Main JSX Render ---
-    return (
-        <div className={`min-h-screen ${themeBg} font-sans transition-colors duration-500`}>
-            <MainNavbar isDarkMode={isDarkMode} /> {/* Pass Dark Mode state to Navbar */}
-
-            <div className="pt-24 max-w-5xl mx-auto px-6 py-12">
-                <header className="mb-10 flex items-center justify-between">
-                    <h1 className="text-4xl font-bold flex items-center">
-                        <Settings size={30} className={`mr-3 ${iconColor}`} />
-                        Settings
-                    </h1>
-                </header>
-
-                <div className="space-y-8">
-
-                    {/* 1. APPEARANCE SECTION */}
-                    <section>
-                        <h2 className="text-2xl font-bold mb-4 border-b pb-2 text-red-600 border-gray-700">Appearance</h2>
-
-                        <FeatureCard
-                            icon={isDarkMode ? <Sun size={24} /> : <Moon size={24} />}
-                            title="Dark Mode"
-                            description="Switch between light and dark themes to optimize your viewing experience."
-                            action={
-                                <button
-                                    onClick={toggleDarkMode}
-                                    className={`relative inline-flex flex-shrink-0 h-7 w-14 border-2 border-transparent rounded-full cursor-pointer transition-colors ease-in-out duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 ${switchColor} focus:ring-red-600`}
-                                    aria-checked={isDarkMode}
-                                >
-                                    <span className="sr-only">Toggle Dark Mode</span>
-                                    <span
-                                        className={`pointer-events-none inline-block h-6 w-6 rounded-full bg-white shadow-lg transform ring-0 transition ease-in-out duration-200 ${isDarkMode ? 'translate-x-7' : 'translate-x-0'
-                                            }`}
-                                    />
-                                    <span className="absolute left-1 top-1 text-xs text-gray-500">{isDarkMode ? 'Dark' : 'Light'}</span>
-                                </button>
-                            }
-                        />
-                    </section>
-
-                    {/* 2. ACCOUNT & PROFILE SECTION */}
-                    <section>
-                        <h2 className="text-2xl font-bold mb-4 border-b pb-2 text-red-600 border-gray-700">Account & Profile</h2>
-
-                        <div className="space-y-4">
-                            <FeatureCard
-                                icon={<User size={24} />}
-                                title="Edit Profile"
-                                description="Update your name, bio, skills, and profile picture."
-                                action={
-                                    <button
-                                        onClick={handleManageProfile}
-                                        className="px-4 py-2 bg-gradient-to-r from-red-600 to-orange-600 text-white rounded-lg text-sm font-semibold hover:from-red-700 hover:to-orange-700 transition-colors"
-                                    >
-                                        Manage
-                                    </button>
-                                }
-                            />
-                            <FeatureCard
-                                icon={<Lock size={24} />}
-                                title="Change Password"
-                                description="Update your security credentials for better protection."
-                                action={
-                                    <button
-                                        onClick={handleChangePassword}
-                                        className="px-4 py-2 border border-gray-300 dark:border-white rounded-lg text-sm font-semibold hover:bg-red-50 dark:hover:bg-gray-900 transition-colors"
-                                    >
-                                        Update
-                                    </button>
-                                }
-                            />
-                            {/* <FeatureCard
-                                icon={<Shield size={24} />}
-                                title="Privacy Settings"
-                                description={`Set your profile visibility. Currently: ${profilePrivacy ? 'Public' : 'Private'}`}
-                                action={
-                                    <button
-                                        onClick={() => setProfilePrivacy(prev => !prev)}
-                                        className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${
-                                                    profilePrivacy ? 'bg-indigo-600 text-white hover:bg-indigo-700' : 'bg-indigo-50 text-indigo-700 hover:bg-indigo-100'
-                                                }`}
-                                    >
-                                        {profilePrivacy ? 'Set Private' : 'Set Public'}
-                                    </button>
-                                }
-                            /> */}
-                        </div>
-                    </section>
-
-                    {/* 3. NOTIFICATIONS SECTION */}
-                    {/* <section>
-                        <h2 className="text-2xl font-bold mb-4 border-b pb-2 text-indigo-600">Notifications</h2>
-                        
-                        <div className="space-y-4">
-                            <FeatureCard
-                                icon={<Bell size={24} />}
-                                title="Session Reminders"
-                                description="Get alerts 15 minutes before your scheduled sessions start."
-                                action={
-                                    <ToggleSwitch 
-                                        isOn={notificationSettings.sessionReminders}
-                                        onToggle={() => handleNotificationChange('sessionReminders')}
-                                        isDarkMode={isDarkMode}
-                                    />
-                                }
-                            />
-                            <FeatureCard
-                                icon={<MessageSquare size={24} />}
-                                title="Message Notifications"
-                                description="Receive instant notifications for new chat messages."
-                                action={
-                                    <ToggleSwitch 
-                                        isOn={notificationSettings.messageNotifications}
-                                        onToggle={() => handleNotificationChange('messageNotifications')}
-                                        isDarkMode={isDarkMode}
-                                    />
-                                }
-                            />
-                        </div>
-                    </section> */}
-
-                    {/* 4. PAYMENT AND BILLING */}
-                    {/* <section>
-                        <h2 className="text-2xl font-bold mb-4 border-b pb-2 text-sky-500">Billing</h2>
-                        
-                        <FeatureCard
-                            icon={<CreditCard size={24} />}
-                            title="Payment Methods"
-                            description="Manage your credit cards and billing information securely."
-                            action={
-                                    <button 
-                                        onClick={handleEditCards}
-                                        className="flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm font-semibold hover:bg-indigo-50 dark:hover:bg-gray-700 transition-colors"
-                                    >
-                                        Edit Cards <ExternalLink size={14} className="ml-2" />
-                                    </button>
-                            }
-                        />
-                    </section> */}
-
-                    {/* 5. DANGER ZONE */}
-                    <section>
-                        <h2 className="text-2xl font-bold mb-4 border-b pb-2 text-red-600 border-gray-700">Danger Zone</h2>
-
-                        <div className="space-y-4">
-                            <FeatureCard
-                                icon={<LogOut size={24} />}
-                                title="Logout All Devices"
-                                description="Sign out from all devices."
-                                action={
-                                    <button
-                                        onClick={handleLogoutAllDevices}
-                                        className="px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-semibold hover:bg-red-700 transition-colors"
-                                    >
-                                        Logout
-                                    </button>
-                                }
-                            />
-                            <FeatureCard
-                                icon={<Trash2 size={24} />}
-                                title="Delete Account"
-                                description="Permanently delete your profile, history, and data."
-                                action={
-                                    <button
-                                        onClick={handleDeleteAccount}
-                                        className="px-4 py-2 border border-red-500 text-red-500 rounded-lg text-sm font-semibold hover:bg-red-50 transition-colors dark:hover:bg-gray-900"
-                                    >
-                                        Delete
-                                    </button>
-                                }
-                            />
-                        </div>
-                    </section>
+        <div className="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
+          <section className="space-y-6">
+            <div className="surface-card p-7">
+              <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
+                <div className="flex items-start gap-4">
+                  <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-red-600 to-rose-500 text-lg font-black text-white">
+                    {user.name.charAt(0).toUpperCase()}
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold uppercase tracking-[0.2em] text-zinc-400">
+                      Account summary
+                    </p>
+                    <h2 className="mt-2 text-2xl font-bold text-white">{user.name}</h2>
+                    <p className="mt-1 text-sm text-zinc-300">{user.email || 'No email synced'}</p>
+                    <div className="mt-4 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-sm font-semibold text-zinc-200">
+                      <Trophy size={15} className={user.isPremium ? 'text-amber-300' : 'text-zinc-400'} />
+                      {user.isPremium ? 'Premium member' : 'Standard member'}
+                    </div>
+                  </div>
                 </div>
+
+                <button
+                  type="button"
+                  onClick={handleManageProfile}
+                  className="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/15 px-5 py-3 text-sm font-semibold text-white transition-colors hover:border-red-400/45 hover:bg-red-500/12"
+                >
+                  Edit profile
+                  <ArrowRight size={18} />
+                </button>
+              </div>
             </div>
+
+            <div className="surface-card p-7">
+              <div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
+                <div>
+                  <p className="text-sm font-semibold uppercase tracking-[0.2em] text-zinc-400">
+                    Appearance
+                  </p>
+                  <h2 className="mt-2 text-2xl font-bold text-white">Theme mode</h2>
+                  <p className="mt-3 max-w-2xl text-sm leading-7 text-zinc-300">
+                    Keep the interface aligned with your preference. The theme is shared across the website and app workspace.
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={toggleDarkMode}
+                  className="inline-flex items-center gap-3 rounded-2xl border border-white/15 bg-white/5 px-4 py-3 text-sm font-semibold text-zinc-100 transition-colors hover:border-blue-400/45 hover:bg-blue-500/12"
+                  aria-pressed={isDarkMode}
+                >
+                  <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white/8">
+                    {isDarkMode ? <Sun size={18} className="text-amber-300" /> : <Moon size={18} className="text-blue-300" />}
+                  </span>
+                  <span>{isDarkMode ? 'Dark mode enabled' : 'Light mode enabled'}</span>
+                </button>
+              </div>
+            </div>
+
+            <div className="surface-card p-7">
+              <p className="text-sm font-semibold uppercase tracking-[0.2em] text-zinc-400">
+                Quick access
+              </p>
+              <h2 className="mt-2 text-2xl font-bold text-white">Jump back into the parts of the app you use most.</h2>
+              <div className="mt-6 grid gap-4 md:grid-cols-3">
+                {quickLinks.map((linkItem) => (
+                  <button
+                    key={linkItem.title}
+                    type="button"
+                    onClick={linkItem.action}
+                    className="feature-tile text-left"
+                  >
+                    <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-white/10 bg-white/6">
+                      <linkItem.icon size={20} className="text-red-300" />
+                    </div>
+                    <h3 className="mt-4 text-lg font-bold text-white">{linkItem.title}</h3>
+                    <p className="mt-2 text-sm leading-6 text-zinc-300">{linkItem.description}</p>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </section>
+
+          <aside className="space-y-6">
+            <div className="surface-card p-7">
+              <div className="flex items-start gap-4">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-500/10 text-blue-200">
+                  <Shield size={20} />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold uppercase tracking-[0.2em] text-zinc-400">
+                    Security
+                  </p>
+                  <h2 className="mt-2 text-2xl font-bold text-white">Session control</h2>
+                  <p className="mt-3 text-sm leading-7 text-zinc-300">
+                    This build uses token-based sign-in. You can safely clear your current device session here at any time.
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={handleSignOut}
+                className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-white/15 px-5 py-3 text-sm font-semibold text-white transition-colors hover:border-red-400/45 hover:bg-red-500/12"
+              >
+                <LogOut size={18} />
+                Sign out on this device
+              </button>
+            </div>
+
+            <div className="surface-card p-7">
+              <p className="text-sm font-semibold uppercase tracking-[0.2em] text-zinc-400">
+                Profile controls
+              </p>
+              <div className="mt-5 space-y-4">
+                <button
+                  type="button"
+                  onClick={handleManageProfile}
+                  className="flex w-full items-center justify-between rounded-2xl border border-white/10 bg-white/4 px-4 py-4 text-left transition-colors hover:border-white/20"
+                >
+                  <span className="flex items-center gap-3">
+                    <User size={18} className="text-red-300" />
+                    <span className="text-sm font-semibold text-white">Update profile details</span>
+                  </span>
+                  <ArrowRight size={18} className="text-zinc-400" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => navigate('/dashboard')}
+                  className="flex w-full items-center justify-between rounded-2xl border border-white/10 bg-white/4 px-4 py-4 text-left transition-colors hover:border-white/20"
+                >
+                  <span className="flex items-center gap-3">
+                    <Sparkles size={18} className="text-blue-300" />
+                    <span className="text-sm font-semibold text-white">Return to dashboard</span>
+                  </span>
+                  <ArrowRight size={18} className="text-zinc-400" />
+                </button>
+              </div>
+            </div>
+
+            <div className="surface-card border border-red-500/20 p-7">
+              <p className="text-sm font-semibold uppercase tracking-[0.2em] text-red-200/80">
+                Danger zone
+              </p>
+              <h2 className="mt-2 text-2xl font-bold text-white">Delete account</h2>
+              <p className="mt-3 text-sm leading-7 text-zinc-300">
+                Permanently removes your profile and related data. This action cannot be reversed.
+              </p>
+              <button
+                type="button"
+                onClick={handleDeleteAccount}
+                disabled={deleting}
+                className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-red-500/40 bg-red-500/10 px-5 py-3 text-sm font-semibold text-red-100 transition-colors hover:bg-red-500/18 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                <Trash2 size={18} />
+                {deleting ? 'Deleting account...' : 'Delete account permanently'}
+              </button>
+            </div>
+          </aside>
         </div>
-    );
+      </main>
+    </div>
+  );
 }
-
-// --- Reusable Toggle Switch Component (No changes needed here) ---
-const ToggleSwitch = ({ isOn, onToggle, isDarkMode }) => (
-    <button
-        onClick={onToggle}
-        className={`relative inline-flex flex-shrink-0 h-6 w-11 border-2 border-transparent rounded-full cursor-pointer transition-colors ease-in-out duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-600 ${isOn ? 'bg-red-600' : isDarkMode ? 'bg-gray-600' : 'bg-gray-200'
-            }`}
-        aria-checked={isOn}
-    >
-        <span className="sr-only">Use setting</span>
-        <span
-            className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow transform ring-0 transition ease-in-out duration-200 ${isOn ? 'translate-x-5' : 'translate-x-0'
-                }`}
-        />
-    </button>
-);
