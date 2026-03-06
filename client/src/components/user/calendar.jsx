@@ -27,6 +27,12 @@ const CalendarPage = () => {
   const [loadingRequests, setLoadingRequests] = useState(true);
   const [feedback, setFeedback] = useState({ show: false, message: '', type: '' });
 
+  useEffect(() => {
+    if (!['Month', 'Week', 'Day'].includes(currentView)) {
+      setCurrentView('Month');
+    }
+  }, [currentView]);
+
   // --- DATA FETCHING ---
   useEffect(() => {
     const userId = localStorage.getItem('userId');
@@ -179,11 +185,6 @@ const CalendarPage = () => {
     setCurrentDate(new Date());
   };
 
-  const handleViewChange = (event) => {
-    setCurrentView(event.target.value);
-    setCurrentDate(new Date()); // Reset date to today when changing view
-  };
-
   // --- CALENDAR LOGIC (for Month View) ---
 
   const monthName = format(currentDate, 'MMMM yyyy');
@@ -255,7 +256,10 @@ const CalendarPage = () => {
               <div className="relative">
                 {/* <select 
                   value={currentView}
-                  onChange={handleViewChange}
+                  onChange={(event) => {
+                    setCurrentView(event.target.value);
+                    setCurrentDate(new Date());
+                  }}
                   className="appearance-none border border-gray-300 rounded-lg py-2 px-4 bg-white text-gray-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 >
                     <option>Day</option>
@@ -417,7 +421,7 @@ const CalendarPage = () => {
                 ) : bookingRequests.length === 0 ? (
                   <p className="text-sm text-gray-400">You have no pending booking requests.</p>
                 ) : (
-                  bookingRequests.map((request, index) => {
+                  bookingRequests.map((request) => {
                     const studentName = request.student?.name || 'Unknown Student';
                     console.log('Request skill:', request.skill);
                     const skillName = request.skill?.name || 'Unknown Skill';

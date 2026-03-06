@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useCallback, useState, useEffect } from 'react';
 import { API_URL } from '../../config';
 
 
@@ -7,13 +7,7 @@ const StudentInfoModal = ({ student, skill, onClose, onMessage }) => {
   const [sessions, setSessions] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    if (student) {
-      fetchStudentDetails();
-    }
-  }, [student]);
-
-  const fetchStudentDetails = async () => {
+  const fetchStudentDetails = useCallback(async () => {
     try {
       setLoading(true);
       const token = localStorage.getItem('token');
@@ -106,7 +100,13 @@ const StudentInfoModal = ({ student, skill, onClose, onMessage }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [skill?.name, student]);
+
+  useEffect(() => {
+    if (student) {
+      fetchStudentDetails();
+    }
+  }, [fetchStudentDetails, student]);
 
   const getProgressColor = (progress) => {
     if (progress >= 80) return 'bg-green-500';

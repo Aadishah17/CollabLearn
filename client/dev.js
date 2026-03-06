@@ -1,5 +1,6 @@
 import { createServer } from 'vite';
 import fs from 'fs';
+import process from 'node:process';
 
 async function start() {
   try {

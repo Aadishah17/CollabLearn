@@ -87,7 +87,7 @@ const MonthlyUserChart = ({ data }) => {
 // --- Main Component: Admin Dashboard (Unified) ---
 export default function AdminDashboard() {
     const [summaryData, setSummaryData] = useState(initialSummaryData);
-    const [loading, setLoading] = useState(true);
+    const [_loading, setLoading] = useState(true);
 
     useEffect(() => {
         const fetchStats = async () => {

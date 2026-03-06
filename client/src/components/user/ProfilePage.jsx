@@ -149,7 +149,7 @@ export default function ProfilePage() {
       if (params.get('edit') === 'true') {
         setShowEditProfile(true);
       }
-    } catch (e) {
+    } catch {
       // ignore
     }
   }, []);
@@ -770,7 +770,7 @@ export default function ProfilePage() {
               const base = window.location.pathname + (params.toString() ? `?${params.toString()}` : '');
               window.history.replaceState({}, '', base);
             }
-          } catch (e) {
+          } catch {
             // ignore
           }
         }}

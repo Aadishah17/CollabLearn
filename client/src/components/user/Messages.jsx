@@ -22,7 +22,6 @@ const MessagesPage = () => {
   const [loadingContacts, setLoadingContacts] = useState(true);
   const [isTyping, setIsTyping] = useState(false);
   const [onlineUsers, setOnlineUsers] = useState(new Set()); // Track online users
-  const [lastMessageTimestamps, setLastMessageTimestamps] = useState({}); // Track last message times
   const socketRef = useRef(null);
   const activeContactIdRef = useRef(activeContactId);
   const messagesEndRef = useRef(null);
@@ -42,7 +41,7 @@ const MessagesPage = () => {
         orderMap[contact._id] = index;
       });
       localStorage.setItem('contactsOrder', JSON.stringify(orderMap));
-    } catch (e) {
+    } catch {
       console.warn('Failed to save contact order to localStorage');
     }
   };
@@ -114,7 +113,7 @@ const MessagesPage = () => {
         if (savedOrder) {
           try {
             userOrder = JSON.parse(savedOrder);
-          } catch (e) {
+          } catch {
             console.warn('Failed to parse saved contacts order');
           }
         }
@@ -166,11 +165,11 @@ const MessagesPage = () => {
       console.error('Socket connection error:', error);
     });
 
-    socketRef.current.on('disconnect', (reason) => {
+    socketRef.current.on('disconnect', () => {
       // Silent disconnect handling
     });
 
-    socketRef.current.on('reconnect', (attemptNumber) => {
+    socketRef.current.on('reconnect', () => {
       // Re-emit user_online after reconnection and request online users
       if (loggedInUserId) {
         socketRef.current.emit("user_online", loggedInUserId);
@@ -362,7 +361,7 @@ const MessagesPage = () => {
     }, 2000);
   };
 
-  const ChatBubble = ({ message, index }) => {
+  const ChatBubble = ({ message }) => {
     if (!loggedInUserId) return null;
 
     const msgSenderId = String(message.senderId).trim();

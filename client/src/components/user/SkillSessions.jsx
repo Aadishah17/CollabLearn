@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useCallback, useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
   Calendar,
@@ -48,17 +48,7 @@ const SkillSessions = () => {
 
   const token = localStorage.getItem('token');
 
-  useEffect(() => {
-    if (!skill || !skill._id) {
-      console.error('Invalid skill data received:', skill);
-      setError('Invalid skill data. Please try again from the dashboard.');
-      setLoading(false);
-      return;
-    }
-    fetchSessions();
-  }, [skill]);
-
-  const fetchSessions = async () => {
+  const fetchSessions = useCallback(async () => {
     try {
       setLoading(true);
 
@@ -135,10 +125,20 @@ const SkillSessions = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [skill, token]);
+
+  useEffect(() => {
+    if (!skill || !skill._id) {
+      console.error('Invalid skill data received:', skill);
+      setError('Invalid skill data. Please try again from the dashboard.');
+      setLoading(false);
+      return;
+    }
+    fetchSessions();
+  }, [fetchSessions, skill]);
 
   const getFilteredSessions = () => {
-    return sessions.filter(session => {
+    return sessions.filter(() => {
       if (activeTab === 'ongoing') {
         return true; // Show all sessions
       } else if (activeTab === 'completed') {
@@ -294,7 +294,7 @@ const SkillSessions = () => {
       } else {
         throw new Error('Failed to complete course');
       }
-    } catch (err) {
+    } catch {
       setError('Failed to complete course');
     }
   };

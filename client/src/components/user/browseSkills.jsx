@@ -5,14 +5,17 @@ import {
   RefreshCcw,
   Clock3,
   Star,
-  UserPlus,
   Plus,
   X,
   ChevronDown,
   Check,
   SlidersHorizontal,
   CircleDollarSign,
-  BookOpen
+  BookOpen,
+  ArrowRight,
+  Bookmark,
+  TrendingUp,
+  BadgeCheck
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import MainNavbar from '../../navbar/mainNavbar.jsx';
@@ -39,6 +42,14 @@ const SUB_CATEGORIES = {
 };
 
 const DURATION_OPTIONS = ['30 minutes', '1 hour', '1.5 hours', '2 hours', '2.5 hours', '3 hours'];
+const SAVED_SKILLS_KEY = 'collablearn-saved-skills';
+const SORT_OPTIONS = [
+  { key: 'recommended', label: 'Recommended' },
+  { key: 'rating', label: 'Highest rated' },
+  { key: 'price-low', label: 'Lowest price' },
+  { key: 'price-high', label: 'Highest price' },
+  { key: 'recent', label: 'Newest' }
+];
 
 const getLevelBadgeClass = (level) => {
   if (level === 'Advanced' || level === 'Expert') return 'bg-rose-500/20 text-rose-200 border-rose-400/30';
@@ -50,6 +61,14 @@ const formatPriceLabel = (price) => {
   const amount = Number(price || 0);
   if (!Number.isFinite(amount) || amount <= 0) return 'Free';
   return `INR ${amount.toLocaleString('en-IN')}/hr`;
+};
+
+const getSkillScore = (skill) => {
+  const rating = Number(skill.user?.rating?.average || skill.offering?.rating || 0);
+  const sessions = Number(skill.offering?.sessions || 0);
+  const price = Number(skill.offering?.price || 0);
+  const priceBonus = price === 0 ? 2 : Math.max(0, 5 - price / 800);
+  return rating * 4 + Math.log10(sessions + 1) * 3 + priceBonus;
 };
 
 const SkillSkeleton = () => (
@@ -80,6 +99,16 @@ export default function SkillSwapBrowse() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All Categories');
   const [selectedLevel, setSelectedLevel] = useState('All Levels');
+  const [sortBy, setSortBy] = useState('recommended');
+  const [showSavedOnly, setShowSavedOnly] = useState(false);
+  const [savedSkills, setSavedSkills] = useState(() => {
+    try {
+      const parsed = JSON.parse(localStorage.getItem(SAVED_SKILLS_KEY) || '[]');
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  });
 
   const [showPostSkillModal, setShowPostSkillModal] = useState(false);
   const [postSkillForm, setPostSkillForm] = useState({
@@ -95,6 +124,10 @@ export default function SkillSwapBrowse() {
   const [skillsLoading, setSkillsLoading] = useState(false);
   const [showSkillsDropdown, setShowSkillsDropdown] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
+
+  useEffect(() => {
+    localStorage.setItem(SAVED_SKILLS_KEY, JSON.stringify(savedSkills));
+  }, [savedSkills]);
 
   const fetchPostedSkills = async (showLoader = true) => {
     try {
@@ -154,7 +187,7 @@ export default function SkillSwapBrowse() {
   const filteredSkills = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
 
-    return skills.filter((skill) => {
+    const filtered = skills.filter((skill) => {
       const categoryMatch =
         selectedCategory === 'All Categories' || (skill.category || 'Other') === selectedCategory;
       if (!categoryMatch) return false;
@@ -162,6 +195,10 @@ export default function SkillSwapBrowse() {
       const level = skill.offering?.level || 'Beginner';
       const levelMatch = selectedLevel === 'All Levels' || level === selectedLevel;
       if (!levelMatch) return false;
+
+      if (showSavedOnly && !savedSkills.includes(skill._id)) {
+        return false;
+      }
 
       if (!query) return true;
 
@@ -179,13 +216,52 @@ export default function SkillSwapBrowse() {
 
       return searchableText.includes(query);
     });
-  }, [skills, searchQuery, selectedCategory, selectedLevel]);
+
+    const sorted = [...filtered];
+
+    if (sortBy === 'rating') {
+      sorted.sort(
+        (left, right) =>
+          Number(right.user?.rating?.average || right.offering?.rating || 0) -
+          Number(left.user?.rating?.average || left.offering?.rating || 0),
+      );
+    } else if (sortBy === 'price-low') {
+      sorted.sort((left, right) => Number(left.offering?.price || 0) - Number(right.offering?.price || 0));
+    } else if (sortBy === 'price-high') {
+      sorted.sort((left, right) => Number(right.offering?.price || 0) - Number(left.offering?.price || 0));
+    } else if (sortBy === 'recent') {
+      sorted.sort((left, right) => new Date(right.createdAt) - new Date(left.createdAt));
+    } else {
+      sorted.sort((left, right) => getSkillScore(right) - getSkillScore(left));
+    }
+
+    return sorted;
+  }, [savedSkills, searchQuery, selectedCategory, selectedLevel, showSavedOnly, skills, sortBy]);
 
   const displayedSkills = useMemo(() => filteredSkills.slice(0, visibleSkills), [filteredSkills, visibleSkills]);
 
+  const featuredSkill = useMemo(() => filteredSkills[0] || skills[0] || null, [filteredSkills, skills]);
+
+  const marketplaceSignals = useMemo(() => {
+    const topRatedCount = skills.filter(
+      (skill) => Number(skill.user?.rating?.average || skill.offering?.rating || 0) >= 4,
+    ).length;
+
+    return {
+      saved: savedSkills.length,
+      topRatedCount,
+      avgPrice:
+        skills.length === 0
+          ? 0
+          : Math.round(
+              skills.reduce((sum, item) => sum + Number(item.offering?.price || 0), 0) / skills.length,
+            ),
+    };
+  }, [savedSkills.length, skills]);
+
   useEffect(() => {
     setVisibleSkills(8);
-  }, [selectedCategory, selectedLevel, searchQuery]);
+  }, [searchQuery, selectedCategory, selectedLevel, showSavedOnly, sortBy]);
 
   const fetchAvailableSkills = async () => {
     try {
@@ -301,12 +377,20 @@ export default function SkillSwapBrowse() {
     setShowSkillsDropdown(false);
   };
 
+  const toggleSavedSkill = (skillId) => {
+    setSavedSkills((current) =>
+      current.includes(skillId)
+        ? current.filter((id) => id !== skillId)
+        : [...current, skillId],
+    );
+  };
+
   return (
     <div className="min-h-screen glass-page text-zinc-100">
       <MainNavbar />
 
       <main className="max-w-7xl mx-auto px-4 md:px-6 pt-28 pb-12 space-y-6">
-        <section className="glass-panel p-6 md:p-8 relative overflow-hidden">
+        <section className="surface-card surface-card-shimmer p-6 md:p-8 relative overflow-hidden">
           <div className="absolute -top-14 left-8 h-36 w-36 rounded-full bg-red-500/20 blur-3xl" />
           <div className="absolute -bottom-20 right-6 h-44 w-44 rounded-full bg-sky-500/18 blur-3xl" />
 
@@ -316,9 +400,12 @@ export default function SkillSwapBrowse() {
                 <Sparkles size={14} />
                 Skill Marketplace
               </p>
-              <h1 className="text-3xl md:text-4xl font-bold mt-2">Discover and Book Expert Skills</h1>
-              <p className="text-zinc-300 mt-2 max-w-3xl">
-                Search focused mentors, compare session styles, and book learning time that fits your schedule.
+              <h1 className="text-3xl md:text-5xl font-black tracking-tight mt-3">
+                Discover mentors and skill offers that feel ready to book, not random listings.
+              </h1>
+              <p className="text-zinc-300 mt-3 max-w-3xl leading-7">
+                The marketplace now surfaces stronger signals: who is rated well, which offers are worth saving,
+                and which sessions fit your level, budget, and timing.
               </p>
             </div>
 
@@ -338,7 +425,7 @@ export default function SkillSwapBrowse() {
             </div>
           </div>
 
-          <div className="relative mt-5 grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div className="relative mt-6 grid grid-cols-2 md:grid-cols-5 gap-3">
             <div className="glass-panel-strong p-3">
               <p className="text-xs uppercase text-zinc-400">Total Listings</p>
               <p className="text-xl font-bold mt-1">{skills.length}</p>
@@ -348,24 +435,22 @@ export default function SkillSwapBrowse() {
               <p className="text-xl font-bold mt-1">{filteredSkills.length}</p>
             </div>
             <div className="glass-panel-strong p-3">
-              <p className="text-xs uppercase text-zinc-400">Categories</p>
-              <p className="text-xl font-bold mt-1">{categories.length - 1}</p>
+              <p className="text-xs uppercase text-zinc-400">Saved</p>
+              <p className="text-xl font-bold mt-1">{marketplaceSignals.saved}</p>
+            </div>
+            <div className="glass-panel-strong p-3">
+              <p className="text-xs uppercase text-zinc-400">Top Rated</p>
+              <p className="text-xl font-bold mt-1">{marketplaceSignals.topRatedCount}</p>
             </div>
             <div className="glass-panel-strong p-3">
               <p className="text-xs uppercase text-zinc-400">Avg Price</p>
-              <p className="text-xl font-bold mt-1">
-                {skills.length === 0
-                  ? 'INR 0'
-                  : `INR ${Math.round(
-                      skills.reduce((sum, item) => sum + Number(item.offering?.price || 0), 0) / skills.length
-                    ).toLocaleString('en-IN')}`}
-              </p>
+              <p className="text-xl font-bold mt-1">INR {marketplaceSignals.avgPrice.toLocaleString('en-IN')}</p>
             </div>
           </div>
         </section>
 
         <section className="glass-panel p-4 md:p-5 space-y-4">
-          <div className="grid grid-cols-1 lg:grid-cols-[1fr,220px,auto] gap-3 items-center">
+          <div className="grid grid-cols-1 lg:grid-cols-[1fr,220px,220px,auto] gap-3 items-center">
             <div className="relative">
               <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
               <input
@@ -392,6 +477,21 @@ export default function SkillSwapBrowse() {
               </select>
             </label>
 
+            <label className="relative">
+              <TrendingUp size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
+              <select
+                value={sortBy}
+                onChange={(event) => setSortBy(event.target.value)}
+                className="glass-input pl-9 appearance-none"
+              >
+                {SORT_OPTIONS.map((option) => (
+                  <option key={option.key} value={option.key}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+
             <button
               type="button"
               onClick={() => fetchPostedSkills(false)}
@@ -404,7 +504,19 @@ export default function SkillSwapBrowse() {
             </button>
           </div>
 
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setShowSavedOnly((prev) => !prev)}
+              className={`glass-chip transition-colors ${
+                showSavedOnly
+                  ? 'border-amber-300/45 bg-amber-500/15 text-amber-50'
+                  : 'border-white/15 bg-white/5 text-zinc-300 hover:border-amber-300/35 hover:text-zinc-100'
+              }`}
+            >
+              <Bookmark size={14} />
+              Saved only
+            </button>
             {categories.map((category) => {
               const active = selectedCategory === category;
               return (
@@ -425,6 +537,78 @@ export default function SkillSwapBrowse() {
             })}
           </div>
         </section>
+
+        {featuredSkill && !loading && (
+          <section className="surface-card card-spotlight overflow-hidden p-6 md:p-7">
+            <div className="grid gap-6 xl:grid-cols-[1fr_0.42fr] xl:items-end">
+              <div>
+                <div className="eyebrow">
+                  <BadgeCheck size={14} className="text-red-300" />
+                  Featured listing
+                </div>
+                <h2 className="mt-5 text-3xl md:text-4xl font-black tracking-tight text-white">
+                  {featuredSkill.name}
+                </h2>
+                <p className="mt-3 max-w-3xl text-sm leading-7 text-zinc-300">
+                  {featuredSkill.offering?.description || 'A focused skill listing ready for booking.'}
+                </p>
+                <div className="mt-4 flex flex-wrap gap-2">
+                  <span className="glass-chip border-white/15 bg-white/5 text-zinc-200">
+                    {featuredSkill.category || 'Other'}
+                  </span>
+                  {featuredSkill.subCategory && (
+                    <span className="glass-chip border-red-400/40 bg-red-500/15 text-red-100">
+                      {featuredSkill.subCategory}
+                    </span>
+                  )}
+                  <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] ${getLevelBadgeClass(featuredSkill.offering?.level)}`}>
+                    {featuredSkill.offering?.level || 'Beginner'}
+                  </span>
+                </div>
+              </div>
+
+              <div className="rounded-[28px] border border-white/10 bg-white/[0.04] p-5">
+                <div className="space-y-3 text-sm text-zinc-300">
+                  <div className="flex items-center justify-between">
+                    <span>Instructor</span>
+                    <span className="font-semibold text-white">{featuredSkill.user?.name || 'Unknown'}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span>Rating</span>
+                    <span className="font-semibold text-white">
+                      {(featuredSkill.user?.rating?.average || featuredSkill.offering?.rating || 0).toFixed(1)}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span>Duration</span>
+                    <span className="font-semibold text-white">{featuredSkill.offering?.duration || 'Flexible'}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span>Price</span>
+                    <span className="font-semibold text-white">{formatPriceLabel(featuredSkill.offering?.price)}</span>
+                  </div>
+                </div>
+                <div className="mt-5 flex flex-col gap-3">
+                  <Link
+                    to={`/book-session?skillId=${featuredSkill._id}&instructorId=${featuredSkill.user?._id || featuredSkill.user?.id}&skillTitle=${encodeURIComponent(featuredSkill.name)}&instructorName=${encodeURIComponent(featuredSkill.user?.name || 'Unknown Instructor')}&price=${encodeURIComponent(featuredSkill.offering?.price || 0)}&duration=${encodeURIComponent(featuredSkill.offering?.duration || '')}&category=${encodeURIComponent(featuredSkill.category || '')}&level=${encodeURIComponent(featuredSkill.offering?.level || '')}`}
+                    className="glass-cta justify-center"
+                  >
+                    Book featured session
+                    <ArrowRight size={16} />
+                  </Link>
+                  <button
+                    type="button"
+                    onClick={() => toggleSavedSkill(featuredSkill._id)}
+                    className="glass-chip border-white/20 bg-white/8 hover:border-amber-300/45"
+                  >
+                    <Bookmark size={14} />
+                    {savedSkills.includes(featuredSkill._id) ? 'Saved' : 'Save listing'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </section>
+        )}
 
         {successMessage && (
           <section className="glass-panel p-3 border border-emerald-500/40 text-emerald-200 text-sm">
@@ -456,9 +640,11 @@ export default function SkillSwapBrowse() {
                 const ownerId = skill.user?._id || skill.user?.id;
                 const isOwnSkill = currentUserId && ownerId && String(ownerId) === String(currentUserId);
                 const avatar = getAvatarDisplayProps(skill.user, 44);
+                const rating = Number(skill.user?.rating?.average || skill.offering?.rating || 0);
+                const isSaved = savedSkills.includes(skill._id);
 
                 return (
-                  <article key={skill._id} className="glass-panel p-5 flex flex-col">
+                  <article key={skill._id} className="glass-panel interactive-tile p-5 flex flex-col">
                     <div className="flex items-start justify-between gap-3 mb-4">
                       <div className="flex items-center gap-3 min-w-0">
                         {avatar.hasCustom ? (
@@ -476,12 +662,24 @@ export default function SkillSwapBrowse() {
                           <p className="font-semibold text-zinc-100 truncate">{skill.user?.name || 'Unknown Instructor'}</p>
                           <p className="text-xs text-zinc-400 flex items-center gap-1">
                             <Star size={12} className="text-amber-300" />
-                            {(skill.user?.rating?.average || 0).toFixed(1)}
+                            {rating.toFixed(1)}
                           </p>
                         </div>
                       </div>
 
-                      <span className="glass-chip text-[10px] border-white/20 bg-black/30">{skill.category || 'Other'}</span>
+                      <button
+                        type="button"
+                        onClick={() => toggleSavedSkill(skill._id)}
+                        className={`glass-chip text-[10px] transition-colors ${
+                          isSaved
+                            ? 'border-amber-300/45 bg-amber-500/15 text-amber-50'
+                            : 'border-white/20 bg-black/30 text-zinc-300 hover:border-amber-300/35'
+                        }`}
+                        title={isSaved ? 'Remove from saved' : 'Save listing'}
+                      >
+                        <Bookmark size={12} />
+                        {isSaved ? 'Saved' : 'Save'}
+                      </button>
                     </div>
 
                     <h3 className="text-xl font-semibold leading-tight text-zinc-100">{skill.name}</h3>
@@ -501,6 +699,17 @@ export default function SkillSwapBrowse() {
                           {tag}
                         </span>
                       ))}
+                    </div>
+
+                    <div className="mt-4 grid grid-cols-2 gap-3">
+                      <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-3">
+                        <p className="text-[11px] uppercase tracking-[0.2em] text-zinc-500">Match</p>
+                        <p className="mt-2 text-lg font-bold text-white">{Math.min(98, Math.round(getSkillScore(skill) * 5))}%</p>
+                      </div>
+                      <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-3">
+                        <p className="text-[11px] uppercase tracking-[0.2em] text-zinc-500">Sessions</p>
+                        <p className="mt-2 text-lg font-bold text-white">{skill.offering?.sessions || 0}</p>
+                      </div>
                     </div>
 
                     <div className="flex items-center justify-between mt-4 pt-3 border-t border-white/10">
@@ -526,18 +735,20 @@ export default function SkillSwapBrowse() {
                       ) : (
                         <div className="flex items-center gap-2">
                           <Link
-                            to={`/book-session?skillId=${skill._id}&instructorId=${ownerId}&skillTitle=${encodeURIComponent(skill.name)}&instructorName=${encodeURIComponent(skill.user?.name || 'Unknown Instructor')}`}
+                            to="/skill-sessions"
+                            state={{ skill }}
+                            className="glass-chip border-white/20 bg-white/8 hover:border-red-300/45"
+                            title="View details"
+                          >
+                            <BookOpen size={14} />
+                          </Link>
+                          <Link
+                            to={`/book-session?skillId=${skill._id}&instructorId=${ownerId}&skillTitle=${encodeURIComponent(skill.name)}&instructorName=${encodeURIComponent(skill.user?.name || 'Unknown Instructor')}&price=${encodeURIComponent(skill.offering?.price || 0)}&duration=${encodeURIComponent(skill.offering?.duration || '')}&category=${encodeURIComponent(skill.category || '')}&level=${encodeURIComponent(skill.offering?.level || '')}`}
                             className="glass-cta px-4 py-2 text-sm"
                           >
                             Book Session
+                            <ArrowRight size={14} />
                           </Link>
-                          <button
-                            type="button"
-                            className="glass-chip border-white/20 bg-white/8 hover:border-red-300/45"
-                            title="Connect"
-                          >
-                            <UserPlus size={14} />
-                          </button>
                         </div>
                       )}
                     </div>

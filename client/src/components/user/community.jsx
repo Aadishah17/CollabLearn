@@ -1,665 +1,1040 @@
-import React, { useState, useEffect } from 'react';
-import {
-  FiSearch, FiFilter, FiPlus, FiMessageCircle,
-  FiEye, FiThumbsUp, FiTrash2, FiX
-} from 'react-icons/fi';
-import { FaFire } from 'react-icons/fa';
+import { createElement, useCallback, useEffect, useMemo, useState } from 'react';
 import { formatDistanceToNow } from 'date-fns';
-import MainNavbar from '../../navbar/mainNavbar';
 import { Link } from 'react-router-dom';
+import {
+  Compass,
+  Flame,
+  Hash,
+  MessageSquare,
+  Pin,
+  Plus,
+  RefreshCcw,
+  Search,
+  SendHorizontal,
+  Share2,
+  Sparkles,
+  ThumbsUp,
+  Trash2,
+  TrendingUp,
+  Users,
+  X,
+} from 'lucide-react';
+import MainNavbar from '../../navbar/mainNavbar';
 import { getAvatarDisplayProps } from '../../utils/avatarUtils';
 import { API_URL } from '../../config';
 
+const POSTS_PAGE_SIZE = 10;
 
-// --- Static Data ---
-const initialCategories = [
-  { name: 'C/C++', count: 120, color: 'bg-indigo-500' },
-  { name: 'Python', count: 95, color: 'bg-green-500' },
-  { name: 'Java', count: 80, color: 'bg-red-500' },
-  { name: 'React', count: 70, color: 'bg-red-600' },
-  { name: 'MongoDB', count: 70, color: 'bg-yellow-500' },
-  { name: 'Node.js', count: 70, color: 'bg-orange-500' },
-  { name: 'Express.js', count: 70, color: 'bg-red-700' },
+const CATEGORY_OPTIONS = [
+  'General Discussion',
+  'React',
+  'JavaScript',
+  'Python',
+  'Career Growth',
+  'Teaching',
+  'Study Systems',
+  'Projects',
 ];
 
-// Removed static top contributors; now fetched from API
-
-const trendingTopics = [
-  { name: 'React Hooks', count: 23 },
-  { name: 'Python Basics', count: 18 },
-  { name: 'Online Teaching', count: 15 },
-  { name: 'Career Change', count: 12 },
-  { name: 'JavaScript ES6', count: 11 },
+const POST_PROMPTS = [
+  'Share a workflow that helped you learn faster this week.',
+  'Ask for feedback on a module, portfolio piece, or curriculum idea.',
+  'Start a challenge thread for your next teaching or study sprint.',
 ];
 
+const VIEW_OPTIONS = [
+  { key: 'all', label: 'All discussions' },
+  { key: 'mine', label: 'My posts' },
+  { key: 'hot', label: 'Trending now' },
+  { key: 'unanswered', label: 'Needs replies' },
+];
 
-// --- SUB-COMPONENTS ---
+const SORT_OPTIONS = [
+  { key: 'recent', label: 'Newest first' },
+  { key: 'popular', label: 'Most active' },
+  { key: 'liked', label: 'Most liked' },
+];
 
-const PostCard = ({ post, handleDeletePost, currentUserId, fetchPosts, currentUser }) => {
-  const [commentText, setCommentText] = useState("");
-  const [isCommentVisible, setIsCommentVisible] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
+function getCurrentUserId(post) {
+  return String(post?.userInfo?.id || post?.userId?._id || post?.userId || '');
+}
 
-  // Get avatar display props for the post author
-  const avatarProps = getAvatarDisplayProps(
-    {
-      name: post.author,
-      avatar: post.userInfo?.avatar || post.authorAvatar || post.avatar
-    },
-    44
+function postScore(post) {
+  const likes = post?.stats?.likes || 0;
+  const comments = post?.stats?.comments || 0;
+  const views = post?.stats?.views || 0;
+  return likes * 3 + comments * 4 + views;
+}
+
+function getCategoryTone(category) {
+  const tones = {
+    React: 'bg-cyan-500/12 text-cyan-200 border-cyan-400/25',
+    JavaScript: 'bg-amber-500/12 text-amber-100 border-amber-300/30',
+    Python: 'bg-emerald-500/12 text-emerald-100 border-emerald-300/30',
+    Projects: 'bg-fuchsia-500/12 text-fuchsia-100 border-fuchsia-300/30',
+    Teaching: 'bg-red-500/12 text-red-100 border-red-300/30',
+    'Career Growth': 'bg-violet-500/12 text-violet-100 border-violet-300/30',
+    'Study Systems': 'bg-blue-500/12 text-blue-100 border-blue-300/30',
+  };
+
+  return tones[category] || 'bg-white/8 text-zinc-200 border-white/10';
+}
+
+function AvatarBadge({ user, size = 44, className = '' }) {
+  const avatar = getAvatarDisplayProps(user, size);
+
+  return (
+    <div
+      className={`overflow-hidden rounded-full border border-white/10 bg-white/5 ${className}`}
+      style={{ height: size, width: size }}
+    >
+      {avatar.hasCustom && avatar.avatarUrl ? (
+        <img
+          src={avatar.avatarUrl}
+          alt={avatar.userName}
+          className="h-full w-full object-cover"
+          loading="lazy"
+        />
+      ) : (
+        <div
+          className="flex h-full w-full items-center justify-center text-sm font-semibold text-white"
+          style={{ backgroundColor: avatar.initialsColor }}
+        >
+          {avatar.initials}
+        </div>
+      )}
+    </div>
   );
+}
 
-  const handleLike = async () => {
-    await fetch(`${API_URL}/api/posts/${post._id}/like`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ userId: currentUserId }),
-    });
-    fetchPosts();
-  };
+function SidebarPanel({ icon, title, children }) {
+  return (
+    <div className="glass-panel p-5">
+      <div className="flex items-center gap-3">
+        <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.06] text-zinc-100">
+          {createElement(icon, { size: 18 })}
+        </div>
+        <div>
+          <h3 className="text-sm font-semibold text-white">{title}</h3>
+        </div>
+      </div>
+      <div className="mt-4 space-y-3">{children}</div>
+    </div>
+  );
+}
 
-  const handleAddComment = async (e) => {
-    if (e.key === "Enter" && commentText.trim()) {
-      await fetch(`${API_URL}/api/posts/${post._id}/comment`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          userId: currentUserId,
-          author: currentUser.name,
-          text: commentText,
-        }),
-      });
-      setCommentText("");
-      fetchPosts();
-    }
-  };
+function CommunityPostCard({
+  currentUserId,
+  onAddComment,
+  onDelete,
+  onShare,
+  onToggleLike,
+  post,
+}) {
+  const [commentText, setCommentText] = useState('');
+  const [isCommentOpen, setIsCommentOpen] = useState(false);
+  const [submittingComment, setSubmittingComment] = useState(false);
+  const isOwner = getCurrentUserId(post) === String(currentUserId);
+  const isLiked = Array.isArray(post?.likedBy) && post.likedBy.includes(currentUserId);
 
-  const handleDelete = async () => {
-    setIsDeleting(true);
-    try {
-      await handleDeletePost(post._id);
-    } finally {
-      setIsDeleting(false);
+  const handleSubmitComment = async () => {
+    if (!commentText.trim() || submittingComment) return;
+    setSubmittingComment(true);
+    const saved = await onAddComment(post._id, commentText.trim());
+    setSubmittingComment(false);
+    if (saved) {
+      setCommentText('');
+      setIsCommentOpen(true);
     }
   };
 
   return (
-    <div className="bg-black border border-white p-6 rounded-lg shadow-sm hover:shadow-md transition-shadow duration-300 animate-fade-in-up">
-      <div className="flex items-start space-x-4">
-        {/* User Avatar */}
-        <div className="w-11 h-11 rounded-full overflow-hidden flex-shrink-0">
-          {avatarProps.hasCustom && avatarProps.avatarUrl ? (
-            <img
-              src={avatarProps.avatarUrl}
-              alt={post.author}
-              className="w-full h-full object-cover"
-              loading="lazy"
-              onError={(e) => {
-                // Fallback to placeholder if image fails to load
-                e.target.style.display = 'none';
-                e.target.nextSibling.style.display = 'flex';
-              }}
-            />
-          ) : null}
-          <div
-            className={`w-full h-full bg-red-600 rounded-full flex items-center justify-center text-white font-semibold text-sm ${avatarProps.hasCustom && avatarProps.avatarUrl ? 'hidden' : 'flex'}`}
-            style={{ backgroundColor: avatarProps.hasCustom ? avatarProps.initialsColor : undefined }}
-          >
-            {avatarProps.initials}
-          </div>
-        </div>
-        <div className="flex-1">
-          <div className="flex items-center justify-between">
-            <div>
-              <span className="font-semibold text-white">{post.author}</span>
-              <span className="text-sm text-gray-500 ml-2">
-                · {formatDistanceToNow(new Date(post.timestamp), { addSuffix: true })}
-              </span>
+    <article className="interactive-tile reveal-up rounded-[28px] border border-white/10 bg-black/35 p-5 shadow-[0_24px_60px_rgba(2,6,23,0.28)] backdrop-blur md:p-6">
+      <div className="flex gap-4">
+        <AvatarBadge
+          user={{
+            name: post.author,
+            avatar: post.userInfo?.avatar || post.avatar,
+            avatarUrl: post.userInfo?.avatarUrl,
+          }}
+        />
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-2 text-sm text-zinc-400">
+                <span className="font-semibold text-white">{post.author}</span>
+                <span>{formatDistanceToNow(new Date(post.timestamp), { addSuffix: true })}</span>
+                {(post.isHot || postScore(post) > 12) && (
+                  <span className="inline-flex items-center gap-1 rounded-full border border-red-400/30 bg-red-500/10 px-2.5 py-1 text-xs font-semibold text-red-100">
+                    <Flame size={12} />
+                    Hot
+                  </span>
+                )}
+              </div>
+
+              <div className="mt-3 flex flex-wrap items-center gap-2">
+                <span className="rounded-full border border-white/10 bg-white/[0.06] px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-300">
+                  {post.authorRole || 'Community member'}
+                </span>
+                <span className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${getCategoryTone(post.category)}`}>
+                  {post.category || 'General Discussion'}
+                </span>
+              </div>
             </div>
-            <div className="flex items-center space-x-2">
-              {post.isHot && (
-                <div className="flex items-center space-x-1 text-orange-500">
-                  <FaFire />
-                  <span className="text-sm font-semibold">Hot</span>
-                </div>
-              )}
-              {(post.userId === currentUserId || post.userId?.toString() === currentUserId || post.userId === currentUserId?.toString()) && (
+
+            <div className="flex items-center gap-2 self-start">
+              <button
+                type="button"
+                onClick={() => onShare(post)}
+                className="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04] text-zinc-300 transition-colors hover:border-blue-400/40 hover:bg-blue-500/10 hover:text-white"
+                aria-label="Share discussion"
+              >
+                <Share2 size={16} />
+              </button>
+              {isOwner && (
                 <button
-                  onClick={handleDelete}
-                  disabled={isDeleting}
-                  className={`transition-colors duration-200 p-1 rounded-full ${isDeleting
-                    ? 'text-gray-300 cursor-not-allowed'
-                    : 'text-gray-400 hover:text-red-500 hover:bg-black'
-                    }`}
-                  title={isDeleting ? "Deleting..." : "Delete post"}
+                  type="button"
+                  onClick={() => onDelete(post._id)}
+                  className="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04] text-zinc-300 transition-colors hover:border-red-400/40 hover:bg-red-500/10 hover:text-white"
+                  aria-label="Delete discussion"
                 >
-                  <FiTrash2 size={18} className={isDeleting ? 'animate-pulse' : ''} />
+                  <Trash2 size={16} />
                 </button>
               )}
             </div>
           </div>
 
-          <div className="text-sm text-gray-500 mb-2 flex items-center flex-wrap gap-2">
-            <span
-              className={`text-xs font-medium px-2 py-0.5 rounded-full ${post.authorRole === "Expert Teacher" ? "bg-indigo-100 text-indigo-800"
-                : post.authorRole === "Community Star" ? "bg-red-900 text-red-100 border border-red-500"
-                  : post.authorRole === "New Contributor" ? "bg-green-900 text-green-100 border border-green-500"
-                    : "bg-red-900 text-red-100 border border-red-500"
-                }`}
-            >
-              {post.authorRole}
-            </span>
-            <span className="bg-red-900 text-red-100 border border-red-500 text-xs font-semibold px-2 py-0.5 rounded-full">
-              #{post.category}
-            </span>
-          </div>
-
-          <Link to={`/post/${post._id}`}>
-            <h3 className="text-lg font-bold text-white mt-1 cursor-pointer hover:text-red-500">
+          <Link to={`/post/${post._id}`} className="mt-4 block">
+            <h2 className="text-2xl font-black tracking-tight text-white transition-colors hover:text-red-200">
               {post.title}
-            </h3>
-            <p className="text-gray-400 mt-1 text-sm">{post.excerpt}</p>
+            </h2>
+            <p className="mt-3 max-w-3xl text-sm leading-7 text-zinc-300">{post.excerpt}</p>
           </Link>
 
-          <div className="mt-4 flex items-center flex-wrap gap-2">
-            {post.tags.map((tag) => (
-              <span key={tag} className="bg-gray-800 text-gray-300 border border-gray-600 text-xs font-medium px-3 py-1 rounded-full">
-                {tag}
+          <div className="mt-4 flex flex-wrap gap-2">
+            {(post.tags || []).map((tag) => (
+              <span
+                key={`${post._id}-${tag}`}
+                className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs font-medium text-zinc-300"
+              >
+                #{tag}
               </span>
             ))}
           </div>
 
-          <div className="mt-4 flex items-center text-gray-500">
-            <div className="flex items-center space-x-5">
-              <button
-                onClick={() => setIsCommentVisible(!isCommentVisible)}
-                className="flex items-center space-x-1.5 cursor-pointer hover:text-red-500"
-              >
-                <FiMessageCircle className="w-4 h-4" />
-                <span className="text-sm font-medium">{post.stats.comments}</span>
-              </button>
-              <button
-                onClick={handleLike}
-                className="flex items-center space-x-1.5 hover:text-red-500 cursor-pointer"
-              >
-                <FiThumbsUp className="w-4 h-4" />
-                <span className="text-sm font-medium">{post.stats.likes}</span>
-              </button>
-              <span className="flex items-center space-x-1.5">
-                <FiEye className="w-4 h-4" />
-                <span className="text-sm font-medium">{post.stats.views}</span>
-              </span>
-            </div>
+          <div className="mt-5 flex flex-wrap items-center gap-3 text-sm text-zinc-400">
+            <button
+              type="button"
+              onClick={() => onToggleLike(post._id)}
+              className={`inline-flex items-center gap-2 rounded-full border px-3 py-2 transition-colors ${
+                isLiked
+                  ? 'border-red-400/40 bg-red-500/10 text-red-100'
+                  : 'border-white/10 bg-white/[0.04] hover:border-red-400/35 hover:text-white'
+              }`}
+            >
+              <ThumbsUp size={15} />
+              {post?.stats?.likes || 0}
+            </button>
+            <button
+              type="button"
+              onClick={() => setIsCommentOpen((value) => !value)}
+              className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-2 transition-colors hover:border-blue-400/35 hover:text-white"
+            >
+              <MessageSquare size={15} />
+              {post?.stats?.comments || 0}
+            </button>
+            <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-2">
+              {post?.stats?.views || 0} views
+            </span>
           </div>
 
-          {isCommentVisible && (
-            <div className="mt-3">
-              <input
-                type="text"
-                placeholder="Write a comment..."
-                value={commentText}
-                onChange={(e) => setCommentText(e.target.value)}
-                onKeyDown={handleAddComment}
-                className="w-full px-3 py-2 bg-black border border-white rounded-lg text-sm text-white focus:ring-2 focus:ring-red-600 focus:border-red-600 placeholder-gray-500"
-              />
-              <div className="mt-2 text-sm text-gray-300 space-y-2">
-                {post.comments && post.comments.slice(-2).map((c, idx) => {
-                  const commentAvatarProps = getAvatarDisplayProps({ name: c.author }, 24);
-                  return (
-                    <div key={idx} className="flex items-start space-x-2">
-                      <div className="w-6 h-6 rounded-full overflow-hidden flex-shrink-0">
-                        {commentAvatarProps.hasCustom && commentAvatarProps.avatarUrl ? (
-                          <img
-                            src={commentAvatarProps.avatarUrl}
-                            alt={c.author}
-                            className="w-full h-full object-cover"
-                            loading="lazy"
-                            onError={(e) => {
-                              e.target.style.display = 'none';
-                              e.target.nextSibling.style.display = 'flex';
-                            }}
-                          />
-                        ) : null}
-                        <div
-                          className={`w-full h-full bg-red-600 rounded-full flex items-center justify-center text-white font-semibold text-xs ${commentAvatarProps.hasCustom && commentAvatarProps.avatarUrl ? 'hidden' : 'flex'}`}
-                          style={{ backgroundColor: commentAvatarProps.hasCustom ? commentAvatarProps.initialsColor : undefined }}
-                        >
-                          {commentAvatarProps.initials}
-                        </div>
-                      </div>
-                      <div className="flex-1">
-                        <span className="font-semibold">{c.author}</span>: {c.text}
-                      </div>
-                    </div>
-                  );
-                })}
-                {post.stats.comments > 2 && (
-                  <div className="text-xs text-gray-500">
-                    ...and {post.stats.comments - 2} more
+          {isCommentOpen && (
+            <div className="mt-5 rounded-[24px] border border-white/10 bg-white/[0.03] p-4">
+              <div className="flex flex-col gap-3 md:flex-row">
+                <input
+                  type="text"
+                  value={commentText}
+                  onChange={(event) => setCommentText(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter') {
+                      handleSubmitComment();
+                    }
+                  }}
+                  placeholder="Add a useful reply, resource, or follow-up question"
+                  className="glass-input flex-1"
+                />
+                <button
+                  type="button"
+                  onClick={handleSubmitComment}
+                  disabled={!commentText.trim() || submittingComment}
+                  className="glass-cta disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  <SendHorizontal size={16} />
+                  Reply
+                </button>
+              </div>
+
+              <div className="mt-4 space-y-3">
+                {(post.comments || []).slice(-3).map((comment, index) => (
+                  <div
+                    key={`${post._id}-comment-${index}`}
+                    className="rounded-2xl border border-white/8 bg-black/25 px-4 py-3"
+                  >
+                    <p className="text-sm font-semibold text-white">{comment.author}</p>
+                    <p className="mt-1 text-sm leading-6 text-zinc-300">{comment.text}</p>
                   </div>
+                ))}
+                {!post.comments?.length && (
+                  <p className="text-sm text-zinc-400">
+                    No replies yet. Start the conversation with a concrete next step or resource.
+                  </p>
                 )}
               </div>
             </div>
           )}
         </div>
       </div>
-    </div>
+    </article>
   );
-};
+}
 
-const SidebarCard = ({ title, children }) => (
-  <div className="bg-black border border-white p-5 rounded-lg shadow-sm">
-    <h3 className="font-bold text-white text-md mb-4">{title}</h3>
-    <div className="space-y-2">{children}</div>
-  </div>
-);
-
-const NewPostModal = ({ onAddPost, onClose, currentUser }) => {
+function NewPostModal({ onClose, onCreate, submitting }) {
   const [title, setTitle] = useState('');
   const [excerpt, setExcerpt] = useState('');
+  const [category, setCategory] = useState(CATEGORY_OPTIONS[0]);
   const [tags, setTags] = useState('');
-  const [category, setCategory] = useState('');
 
-  const availableCategories = [
-    "C/C++",
-    "Java",
-    "Python",
-    "React",
-    "MongoDB",
-    "Node.js",
-    "Express.js",
-    "General Discussion",
-  ];
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (!title.trim() || !excerpt.trim() || !category) {
-      alert("Please fill in the title, content, and select a category.");
-      return;
-    }
-    onAddPost({
-      author: currentUser.name,
-      title,
-      excerpt,
-      tags: tags.split(',').map(tag => tag.trim()).filter(tag => tag),
-      authorRole: 'New Contributor',
-      category,
-      userId: currentUser.id,
-    });
-  };
+  const canSubmit = title.trim() && excerpt.trim();
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-80 z-50 flex justify-center items-center p-4">
-      <div className="bg-black border border-white rounded-lg shadow-xl w-full max-w-2xl" onClick={(e) => e.stopPropagation()}>
-        <div className="flex justify-between items-center p-5 border-b border-gray-700">
-          <h3 className="text-xl font-semibold text-white">Create a New Post</h3>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
-            <FiX size={24} />
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4 py-10 backdrop-blur-md">
+      <div className="surface-card w-full max-w-2xl p-6 md:p-7">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <p className="eyebrow">
+              <Sparkles size={14} className="text-red-300" />
+              Start a sharper discussion
+            </p>
+            <h2 className="mt-4 text-3xl font-black tracking-tight text-white">
+              Publish a post worth replying to
+            </h2>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.05] text-zinc-300 transition-colors hover:text-white"
+            aria-label="Close composer"
+          >
+            <X size={18} />
           </button>
         </div>
-        <form onSubmit={handleSubmit}>
-          <div className="p-6 space-y-4">
-            <div>
-              <label htmlFor="title" className="block text-sm font-medium text-gray-300 mb-1">Title</label>
-              <input type="text" id="title" value={title} onChange={(e) => setTitle(e.target.value)} className="w-full px-3 py-2 bg-black border border-gray-600 text-white rounded-lg focus:ring-2 focus:ring-red-600" placeholder="What's on your mind?" />
-            </div>
-            <div>
-              <label htmlFor="excerpt" className="block text-sm font-medium text-gray-300 mb-1">Content</label>
-              <textarea id="excerpt" value={excerpt} onChange={(e) => setExcerpt(e.target.value)} rows="5" className="w-full px-3 py-2 bg-black border border-gray-600 text-white rounded-lg focus:ring-2 focus:ring-red-600" placeholder="Elaborate on your topic..."></textarea>
-            </div>
-            <div>
-              <label htmlFor="tags" className="block text-sm font-medium text-gray-300 mb-1">Tags (Optional)</label>
-              <input type="text" id="tags" value={tags} onChange={(e) => setTags(e.target.value)} className="w-full px-3 py-2 bg-black border border-gray-600 text-white rounded-lg focus:ring-2 focus:ring-red-600" placeholder="e.g., react, tailwind, webdev" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">Category (Required)</label>
-              {category && (
-                <div className="mb-2">
-                  <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-red-900 text-red-100 border border-red-500">
-                    {category}
-                    <button type="button" onClick={() => setCategory('')} className="ml-2 text-red-400 hover:text-red-300">
-                      <FiX size={16} />
-                    </button>
-                  </span>
-                </div>
-              )}
-              <div className="flex flex-wrap gap-2">
-                {availableCategories.map(cat => (
-                  <button key={cat} type="button" onClick={() => setCategory(cat)} disabled={!!category} className={`px-3 py-1 border rounded-full text-sm font-medium transition-colors ${category === cat ? 'bg-red-600 text-white border-red-600' : 'bg-black text-gray-300 border-gray-600 hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed'}`}>
-                    {cat}
-                  </button>
+
+        <div className="mt-6 grid gap-5">
+          <label className="grid gap-2">
+            <span className="text-sm font-semibold text-zinc-200">Title</span>
+            <input
+              type="text"
+              value={title}
+              onChange={(event) => setTitle(event.target.value)}
+              className="glass-input"
+              placeholder="What should the community help you solve or improve?"
+            />
+          </label>
+
+          <label className="grid gap-2">
+            <span className="text-sm font-semibold text-zinc-200">Summary</span>
+            <textarea
+              value={excerpt}
+              onChange={(event) => setExcerpt(event.target.value)}
+              rows={5}
+              className="glass-input min-h-[150px]"
+              placeholder="Add context, what you tried, what outcome you want, and any constraints."
+            />
+          </label>
+
+          <div className="grid gap-5 md:grid-cols-[0.9fr_1.1fr]">
+            <label className="grid gap-2">
+              <span className="text-sm font-semibold text-zinc-200">Category</span>
+              <select
+                value={category}
+                onChange={(event) => setCategory(event.target.value)}
+                className="glass-input"
+              >
+                {CATEGORY_OPTIONS.map((option) => (
+                  <option key={option} value={option}>
+                    {option}
+                  </option>
                 ))}
-              </div>
+              </select>
+            </label>
+
+            <label className="grid gap-2">
+              <span className="text-sm font-semibold text-zinc-200">Tags</span>
+              <input
+                type="text"
+                value={tags}
+                onChange={(event) => setTags(event.target.value)}
+                className="glass-input"
+                placeholder="react, modules, study-group"
+              />
+            </label>
+          </div>
+
+          <div>
+            <p className="text-sm font-semibold text-zinc-200">Prompt starters</p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {POST_PROMPTS.map((prompt) => (
+                <button
+                  key={prompt}
+                  type="button"
+                  onClick={() => setExcerpt(prompt)}
+                  className="rounded-full border border-white/10 bg-white/[0.05] px-3 py-2 text-left text-xs font-medium text-zinc-300 transition-colors hover:border-red-300/30 hover:bg-red-500/10 hover:text-white"
+                >
+                  {prompt}
+                </button>
+              ))}
             </div>
           </div>
-          <div className="flex justify-end items-center p-5 border-t border-gray-700 space-x-3">
-            <button type="button" onClick={onClose} className="px-4 py-2 border border-white rounded-lg bg-black text-white font-medium hover:bg-gray-800">Cancel</button>
-            <button type="submit" className="px-4 py-2 bg-red-600 text-white font-medium rounded-lg hover:bg-red-700 shadow-sm border border-transparent">Publish Post</button>
+
+          <div className="flex flex-col gap-3 border-t border-white/8 pt-4 md:flex-row md:items-center md:justify-between">
+            <p className="text-sm text-zinc-400">
+              Strong posts get faster replies when they include context, examples, and a clear ask.
+            </p>
+            <button
+              type="button"
+              onClick={() =>
+                onCreate({
+                  title: title.trim(),
+                  excerpt: excerpt.trim(),
+                  category,
+                  tags: tags
+                    .split(',')
+                    .map((tag) => tag.trim())
+                    .filter(Boolean),
+                })
+              }
+              disabled={!canSubmit || submitting}
+              className="glass-cta disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              <Plus size={16} />
+              Publish discussion
+            </button>
           </div>
-        </form>
+        </div>
       </div>
     </div>
   );
-};
+}
 
-// --- MAIN COMPONENT ---
-const CommunityPage = () => {
+export default function CommunityPage() {
+  const currentUserId = localStorage.getItem('userId') || '';
+  const currentUserName = localStorage.getItem('username') || 'Community member';
+  const currentUserRole = localStorage.getItem('role') || 'Learner';
 
-  const [allPosts, setAllPosts] = useState([]); // Holds posts loaded so far (paginated)
-  const [filteredPosts, setFilteredPosts] = useState([]); // Holds posts to be displayed
-  const [selectedCategory, setSelectedCategory] = useState('All Posts'); // For filtering
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [currentUser, setCurrentUser] = useState(null);
+  const [allPosts, setAllPosts] = useState([]);
   const [topContributors, setTopContributors] = useState([]);
-  const [loadingPosts, setLoadingPosts] = useState(false);
-  const [postsPage, setPostsPage] = useState(1);
+  const [loadingPosts, setLoadingPosts] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [loadingContributors, setLoadingContributors] = useState(true);
+  const [error, setError] = useState('');
+  const [isComposerOpen, setIsComposerOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('All');
+  const [sortBy, setSortBy] = useState('recent');
+  const [activeView, setActiveView] = useState('all');
+  const [page, setPage] = useState(1);
   const [hasMorePosts, setHasMorePosts] = useState(true);
-  const POSTS_PAGE_SIZE = 10;
 
-
-  // Create a dynamic list of categories including "All Posts"
-  const categoriesForFilter = [
-    { name: 'All Posts', count: allPosts.length, color: 'bg-red-600' },
-    ...initialCategories
-  ];
-
-  const getCurrentUser = () => {
-    const username = localStorage.getItem('username');
-    const userId = localStorage.getItem('userId');
-    if (!username || !userId) {
-      return { id: 'anonymous', name: 'Anonymous User', avatar: null };
-    }
-    return { id: userId, name: username, avatar: null };
-  };
-
-  // Fetch current user data including avatar
-  const fetchCurrentUser = async () => {
-    const localUser = getCurrentUser();
-    if (localUser.id === 'anonymous') {
-      setCurrentUser(localUser);
-      return;
-    }
+  const fetchPosts = useCallback(async (nextPage = 1, append = false) => {
+    const query = new URLSearchParams({
+      page: String(nextPage),
+      limit: String(POSTS_PAGE_SIZE),
+    });
 
     try {
-      const response = await fetch(`${API_URL}/api/auth/user/${localUser.id}`);
-      if (response.ok) {
-        const data = await response.json();
-        if (data.success && data.user) {
-          setCurrentUser({
-            id: data.user.id,
-            name: data.user.name,
-            avatar: data.user.avatar,
-            avatarUrl: data.user.avatarUrl
-          });
-        } else {
-          setCurrentUser(localUser);
-        }
+      if (append) {
+        setLoadingMore(true);
       } else {
-        setCurrentUser(localUser);
+        setLoadingPosts(true);
       }
-    } catch (error) {
-      console.error("Failed to fetch user data:", error);
-      setCurrentUser(localUser);
-    }
-  };
 
-  const fetchPosts = async (page = 1, append = false) => {
-    try {
-      setLoadingPosts(true);
-      const response = await fetch(`${API_URL}/api/posts?page=${page}&limit=${POSTS_PAGE_SIZE}`);
-      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+      const response = await fetch(`${API_URL}/api/posts?${query.toString()}`);
+      if (!response.ok) {
+        throw new Error('Unable to load discussions.');
+      }
+
       const data = await response.json();
-      const incoming = data?.posts || [];
-      setAllPosts(prev => append ? [...prev, ...incoming] : incoming);
-      setHasMorePosts(((data?.page || 1) * (data?.limit || POSTS_PAGE_SIZE)) < (data?.total || 0));
-      setPostsPage(data?.page || page);
-    } catch (error) {
-      // Silently fail to avoid noisy console logs
+      const posts = Array.isArray(data.posts) ? data.posts : [];
+
+      setAllPosts((current) => (append ? [...current, ...posts] : posts));
+      setPage(nextPage);
+      setHasMorePosts(nextPage * POSTS_PAGE_SIZE < Number(data.total || 0));
+      setError('');
+    } catch (fetchError) {
+      console.error(fetchError);
+      setError(fetchError.message || 'Unable to load discussions.');
     } finally {
       setLoadingPosts(false);
+      setLoadingMore(false);
     }
-  };
+  }, []);
 
-  const fetchTopContributors = async () => {
+  const fetchTopContributors = useCallback(async () => {
     try {
-      const response = await fetch(`${API_URL}/api/posts/top-contributors?limit=3`);
-      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+      setLoadingContributors(true);
+      const response = await fetch(`${API_URL}/api/posts/top-contributors?limit=5`);
+      if (!response.ok) {
+        throw new Error('Unable to load contributors.');
+      }
+
       const data = await response.json();
-      const contributors = (data && data.contributors) ? data.contributors : [];
-      // Ensure sorted descending by totalPosts just in case
-      contributors.sort((a, b) => (b.totalPosts || 0) - (a.totalPosts || 0));
-      setTopContributors(contributors);
-    } catch (error) {
-      setTopContributors([]);
+      setTopContributors(Array.isArray(data.contributors) ? data.contributors : []);
+    } catch (fetchError) {
+      console.error(fetchError);
+    } finally {
+      setLoadingContributors(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
-    // Fire initial requests in parallel for better TTFB
-    fetchCurrentUser();
-    fetchTopContributors();
     fetchPosts(1, false);
-  }, []);
+    fetchTopContributors();
+  }, [fetchPosts, fetchTopContributors]);
 
-  // Keep top contributors dynamic with a light polling interval
-  useEffect(() => {
-    const id = setInterval(() => {
-      fetchTopContributors();
-    }, 60000); // 60s
-    return () => clearInterval(id);
-  }, []);
+  const categories = useMemo(() => {
+    const counts = new Map();
+    allPosts.forEach((post) => {
+      const category = post.category || 'General Discussion';
+      counts.set(category, (counts.get(category) || 0) + 1);
+    });
 
-  // NEW useEffect for filtering posts when selectedCategory or allPosts changes
-  useEffect(() => {
-    if (selectedCategory === 'All Posts') {
-      setFilteredPosts(allPosts);
-    } else {
-      setFilteredPosts(allPosts.filter(post => post.category === selectedCategory));
-    }
-  }, [selectedCategory, allPosts]);
+    return [
+      { name: 'All', count: allPosts.length },
+      ...CATEGORY_OPTIONS.map((category) => ({
+        name: category,
+        count: counts.get(category) || 0,
+      })),
+    ];
+  }, [allPosts]);
 
-  const handleAddPost = async (newPostData) => {
-    try {
-      const response = await fetch(`${API_URL}/api/posts`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newPostData),
+  const trendingTags = useMemo(() => {
+    const counts = new Map();
+    allPosts.forEach((post) => {
+      (post.tags || []).forEach((tag) => {
+        counts.set(tag, (counts.get(tag) || 0) + 1);
       });
-      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-      fetchPosts(1, false);
-      fetchTopContributors();
-      setIsModalOpen(false);
-    } catch (error) {
-      alert("Failed to add post. Please try again.");
-    }
-  };
+    });
 
-  const handleDeletePost = async (postId) => {
-    if (window.confirm('Are you sure you want to delete this post? This action cannot be undone.')) {
+    return [...counts.entries()]
+      .sort((left, right) => right[1] - left[1])
+      .slice(0, 6);
+  }, [allPosts]);
+
+  const filteredPosts = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
+
+    const posts = allPosts.filter((post) => {
+      const matchesCategory =
+        selectedCategory === 'All' || (post.category || 'General Discussion') === selectedCategory;
+      const matchesView =
+        activeView === 'all' ||
+        (activeView === 'mine' && getCurrentUserId(post) === String(currentUserId)) ||
+        (activeView === 'hot' && (post.isHot || postScore(post) > 12)) ||
+        (activeView === 'unanswered' && (post?.stats?.comments || 0) === 0);
+
+      if (!matchesCategory || !matchesView) {
+        return false;
+      }
+
+      if (!query) {
+        return true;
+      }
+
+      const haystack = [
+        post.title,
+        post.excerpt,
+        post.author,
+        post.category,
+        ...(post.tags || []),
+      ]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase();
+
+      return haystack.includes(query);
+    });
+
+    const sorted = [...posts];
+    if (sortBy === 'popular') {
+      sorted.sort((left, right) => postScore(right) - postScore(left));
+    } else if (sortBy === 'liked') {
+      sorted.sort((left, right) => (right?.stats?.likes || 0) - (left?.stats?.likes || 0));
+    } else {
+      sorted.sort((left, right) => new Date(right.timestamp) - new Date(left.timestamp));
+    }
+
+    return sorted;
+  }, [activeView, allPosts, currentUserId, searchQuery, selectedCategory, sortBy]);
+
+  const metrics = useMemo(
+    () => ({
+      total: allPosts.length,
+      trending: allPosts.filter((post) => post.isHot || postScore(post) > 12).length,
+      unanswered: allPosts.filter((post) => (post?.stats?.comments || 0) === 0).length,
+      contributors: topContributors.length,
+    }),
+    [allPosts, topContributors],
+  );
+
+  const featuredPost = useMemo(() => {
+    if (!filteredPosts.length) return null;
+    return [...filteredPosts].sort((left, right) => postScore(right) - postScore(left))[0];
+  }, [filteredPosts]);
+
+  const upsertPost = useCallback((updatedPost) => {
+    setAllPosts((current) =>
+      current.map((post) => (post._id === updatedPost._id ? updatedPost : post)),
+    );
+  }, []);
+
+  const handleCreatePost = useCallback(
+    async ({ category, excerpt, tags, title }) => {
+      if (!currentUserId) {
+        setError('Sign in to publish a discussion.');
+        return;
+      }
+
+      try {
+        setIsSubmitting(true);
+        const response = await fetch(`${API_URL}/api/posts`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            author: currentUserName,
+            authorRole: currentUserRole,
+            category,
+            excerpt,
+            tags,
+            title,
+            userId: currentUserId,
+          }),
+        });
+
+        if (!response.ok) {
+          throw new Error('Unable to publish discussion.');
+        }
+
+        const newPost = await response.json();
+        setAllPosts((current) => [newPost, ...current]);
+        setIsComposerOpen(false);
+        fetchTopContributors();
+      } catch (submitError) {
+        console.error(submitError);
+        setError(submitError.message || 'Unable to publish discussion.');
+      } finally {
+        setIsSubmitting(false);
+      }
+    },
+    [currentUserId, currentUserName, currentUserRole, fetchTopContributors],
+  );
+
+  const handleDeletePost = useCallback(
+    async (postId) => {
       try {
         const response = await fetch(`${API_URL}/api/posts/${postId}`, {
           method: 'DELETE',
           headers: {
             'Content-Type': 'application/json',
-            'user-id': currentUser?.id || ''
-          }
+            'user-id': currentUserId,
+          },
         });
 
         if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+          throw new Error('Unable to delete discussion.');
         }
 
-        // Show success message
-        const result = await response.json();
-
-        // Refresh posts
-        fetchPosts(1, false);
-        // Refresh top contributors dynamically
+        setAllPosts((current) => current.filter((post) => post._id !== postId));
         fetchTopContributors();
-      } catch (error) {
-        alert(`Failed to delete post: ${error.message}. Please try again.`);
+      } catch (deleteError) {
+        console.error(deleteError);
+        setError(deleteError.message || 'Unable to delete discussion.');
       }
+    },
+    [currentUserId, fetchTopContributors],
+  );
+
+  const handleToggleLike = useCallback(
+    async (postId) => {
+      if (!currentUserId) {
+        setError('Sign in to react to discussions.');
+        return;
+      }
+
+      try {
+        const response = await fetch(`${API_URL}/api/posts/${postId}/like`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId: currentUserId }),
+        });
+
+        if (!response.ok) {
+          throw new Error('Unable to update reaction.');
+        }
+
+        const updatedPost = await response.json();
+        upsertPost(updatedPost);
+      } catch (likeError) {
+        console.error(likeError);
+        setError(likeError.message || 'Unable to update reaction.');
+      }
+    },
+    [currentUserId, upsertPost],
+  );
+
+  const handleAddComment = useCallback(
+    async (postId, commentText) => {
+      if (!currentUserId) {
+        setError('Sign in to reply.');
+        return false;
+      }
+
+      try {
+        const response = await fetch(`${API_URL}/api/posts/${postId}/comment`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            userId: currentUserId,
+            author: currentUserName,
+            text: commentText,
+          }),
+        });
+
+        if (!response.ok) {
+          throw new Error('Unable to add reply.');
+        }
+
+        const updatedPost = await response.json();
+        upsertPost(updatedPost);
+        return true;
+      } catch (commentError) {
+        console.error(commentError);
+        setError(commentError.message || 'Unable to add reply.');
+        return false;
+      }
+    },
+    [currentUserId, currentUserName, upsertPost],
+  );
+
+  const handleSharePost = useCallback(async (post) => {
+    const shareUrl = `${window.location.origin}/post/${post._id}`;
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+    } catch (shareError) {
+      console.error(shareError);
     }
-  };
+  }, []);
 
   return (
-    <>
-      {/* Add animation styles */}
-      <style>{`
-        @keyframes fade-in-up {
-          0% {
-            opacity: 0;
-            transform: translateY(20px);
-          }
-          100% {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-        .animate-fade-in-up {
-          animation: fade-in-up 0.5s ease-out forwards;
-        }
-      `}</style>
-
+    <div className="glass-page min-h-screen text-zinc-100">
       <MainNavbar />
-      <div className="bg-black min-h-screen font-sans pt-17">
-        <div className="container mx-auto px-4 py-8">
 
-          <header className="mb-6">
-            <h1 className="text-3xl font-bold text-white">Community Forum</h1>
-          </header>
+      <main className="mx-auto max-w-7xl px-4 pb-12 pt-28 sm:px-6">
+        <section className="surface-card surface-card-shimmer relative overflow-hidden p-7 md:p-8">
+          <div className="ambient-grid pointer-events-none absolute inset-0 opacity-20" />
+          <div className="pointer-events-none absolute left-[-4%] top-10 h-52 w-52 rounded-full bg-red-500/15 blur-[120px]" />
+          <div className="pointer-events-none absolute right-[-5%] top-4 h-60 w-60 rounded-full bg-blue-500/12 blur-[130px]" />
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <main className="lg:col-span-2">
-              <div className="flex flex-col sm:flex-row items-center justify-between mb-4 gap-4">
-                <div className="relative w-full sm:w-auto flex-grow">
-                  <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                  <input type="text" placeholder="Search discussions..." className="w-full pl-10 pr-4 py-2 bg-black border border-white text-white rounded-lg focus:ring-2 focus:ring-red-500 placeholder-gray-500" />
-                </div>
-                <div className="flex items-center space-x-2 w-full sm:w-auto">
-                  {/* <button className="flex items-center justify-center w-1/2 sm:w-auto space-x-2 px-4 py-2 border rounded-lg bg-white hover:bg-gray-50 transition">
-                    <FiFilter className="text-gray-600" />
-                    <span className="text-gray-700 font-medium">Filter</span>
-                  </button> */}
-                  <button onClick={() => setIsModalOpen(true)} className="flex items-center justify-center w-1/2 sm:w-auto space-x-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition shadow-sm border border-white">
-                    <FiPlus />
-                    <span className="font-medium">New Post</span>
-                  </button>
-                </div>
+          <div className="relative grid gap-6 xl:grid-cols-[1.05fr_0.95fr]">
+            <div className="reveal-up">
+              <div className="eyebrow">
+                <Compass size={14} className="text-red-300" />
+                Community operating layer
               </div>
+              <h1 className="mt-6 max-w-4xl text-4xl font-black tracking-tight text-white md:text-5xl">
+                Turn scattered questions into visible momentum across the community.
+              </h1>
+              <p className="mt-4 max-w-3xl text-base leading-7 text-zinc-300 md:text-lg">
+                The community feed now acts like a real collaboration surface: trending threads,
+                category browsing, fast replies, and sharper prompts that make discussions useful
+                instead of noisy.
+              </p>
 
-              {/* Tabs removed: showing all posts by default */}
-
-              <div className="space-y-6">
-                {/* Skeletons while loading first page */}
-                {loadingPosts && allPosts.length === 0 && (
-                  Array.from({ length: 3 }).map((_, idx) => (
-                    <div key={idx} className="bg-white p-6 rounded-lg shadow-sm animate-pulse">
-                      <div className="flex items-start space-x-4">
-                        <div className="w-11 h-11 bg-gray-200 rounded-full"></div>
-                        <div className="flex-1 space-y-3">
-                          <div className="w-1/3 h-4 bg-gray-200 rounded"></div>
-                          <div className="w-2/3 h-4 bg-gray-200 rounded"></div>
-                          <div className="w-full h-4 bg-gray-200 rounded"></div>
-                          <div className="w-5/6 h-4 bg-gray-200 rounded"></div>
-                        </div>
-                      </div>
-                    </div>
-                  ))
-                )}
-
-                {currentUser && filteredPosts.map((post) => (
-                  <PostCard key={post._id} post={post} handleDeletePost={handleDeletePost} currentUserId={currentUser.id} fetchPosts={(...args) => fetchPosts(1, false)} currentUser={currentUser} />
-                ))}
-
-                {/* Load more */}
-                {hasMorePosts && (
-                  <div className="flex justify-center mt-4">
-                    <button
-                      onClick={() => fetchPosts(postsPage + 1, true)}
-                      disabled={loadingPosts}
-                      className={`px-4 py-2 rounded-lg border border-white ${loadingPosts ? 'bg-gray-800 text-gray-400' : 'bg-black hover:bg-red-600 hover:text-white text-white'} `}
-                    >
-                      {loadingPosts ? 'Loading...' : 'Load more'}
-                    </button>
-                  </div>
-                )}
+              <div className="mt-7 flex flex-col gap-3 sm:flex-row">
+                <button type="button" onClick={() => setIsComposerOpen(true)} className="glass-cta">
+                  <Plus size={18} />
+                  Start a discussion
+                </button>
+                <button
+                  type="button"
+                  onClick={() => fetchPosts(1, false)}
+                  className="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/15 px-5 py-3 text-sm font-semibold text-zinc-100 transition-colors hover:border-blue-400/45 hover:bg-blue-500/12"
+                >
+                  <RefreshCcw size={16} />
+                  Refresh feed
+                </button>
               </div>
-            </main>
+            </div>
 
-            <aside className="space-y-6">
-              <SidebarCard title="Categories">
-                {categoriesForFilter.map(cat => (
-                  <button
-                    key={cat.name}
-                    onClick={() => setSelectedCategory(cat.name)}
-                    className={`w-full flex justify-between items-center text-sm p-2 rounded-md transition-all duration-200 ${selectedCategory === cat.name ? 'bg-red-900 border border-red-500 text-white shadow-sm' : 'text-gray-400 hover:bg-gray-800'}`}
-                  >
-                    <div className="flex items-center">
-                      <span className={`w-2 h-2 rounded-full mr-3 ${cat.color}`}></span>
-                      <span className={`${selectedCategory === cat.name ? 'font-semibold' : 'font-normal'}`}>{cat.name}</span>
-                    </div>
-                    <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${selectedCategory === cat.name ? 'bg-red-800 text-white' : 'bg-gray-800 text-gray-400'}`}>
-                      {cat.name === 'All Posts' ? allPosts.length : allPosts.filter(p => p.category === cat.name).length}
-                    </span>
-                  </button>
-                ))}
-              </SidebarCard>
-
-              <SidebarCard title="Top Contributors">
-                {topContributors.length === 0 && (
-                  <div className="text-sm text-gray-500">No contributors yet</div>
-                )}
-                {topContributors.slice(0, 3).map((user, idx) => {
-                  const avatarProps = getAvatarDisplayProps({ name: user.name, avatar: user.avatar, avatarUrl: user.avatarUrl }, 36);
-                  return (
-                    <div key={user.userId || idx} className="flex items-center justify-between">
-                      <div className="flex items-center space-x-3">
-                        <div className="w-9 h-9 rounded-full overflow-hidden flex-shrink-0">
-                          {avatarProps.hasCustom && avatarProps.avatarUrl ? (
-                            <img
-                              src={avatarProps.avatarUrl}
-                              alt={user.name}
-                              className="w-full h-full object-cover"
-                              loading="lazy"
-                              onError={(e) => {
-                                e.target.style.display = 'none';
-                                e.target.nextSibling.style.display = 'flex';
-                              }}
-                            />
-                          ) : null}
-                          <div
-                            className={`w-full h-full bg-red-600 rounded-full flex items-center justify-center text-white font-semibold text-xs ${avatarProps.hasCustom && avatarProps.avatarUrl ? 'hidden' : 'flex'}`}
-                            style={{ backgroundColor: avatarProps.hasCustom ? avatarProps.initialsColor : undefined }}
-                          >
-                            {avatarProps.initials}
-                          </div>
-                        </div>
-                        <div>
-                          <p className="font-medium text-white">{user.name}</p>
-                        </div>
-                      </div>
-                      <span className="text-sm font-semibold text-red-500">{user.totalPosts}</span>
-                    </div>
-                  );
-                })}
-              </SidebarCard>
-
-            </aside>
+            <div className="grid gap-4 sm:grid-cols-2 reveal-up">
+              <div className="rounded-[24px] border border-white/10 bg-white/[0.05] p-5">
+                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">
+                  Discussions loaded
+                </p>
+                <p className="mt-3 text-3xl font-black text-white">{metrics.total}</p>
+                <p className="mt-2 text-sm leading-6 text-zinc-300">
+                  Available in the live feed for browsing and search.
+                </p>
+              </div>
+              <div className="rounded-[24px] border border-white/10 bg-white/[0.05] p-5">
+                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">
+                  Trending threads
+                </p>
+                <p className="mt-3 text-3xl font-black text-white">{metrics.trending}</p>
+                <p className="mt-2 text-sm leading-6 text-zinc-300">
+                  Posts with enough activity to deserve more visibility.
+                </p>
+              </div>
+              <div className="rounded-[24px] border border-white/10 bg-white/[0.05] p-5">
+                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">
+                  Open questions
+                </p>
+                <p className="mt-3 text-3xl font-black text-white">{metrics.unanswered}</p>
+                <p className="mt-2 text-sm leading-6 text-zinc-300">
+                  Easy starting point for anyone looking to contribute.
+                </p>
+              </div>
+              <div className="rounded-[24px] border border-white/10 bg-white/[0.05] p-5">
+                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">
+                  Active contributors
+                </p>
+                <p className="mt-3 text-3xl font-black text-white">{metrics.contributors}</p>
+                <p className="mt-2 text-sm leading-6 text-zinc-300">
+                  Pulled from the most active community voices.
+                </p>
+              </div>
+            </div>
           </div>
-        </div>
-      </div>
+        </section>
 
-      {isModalOpen && currentUser && (
+        <section className="mt-6 grid gap-6 xl:grid-cols-[0.32fr_0.68fr]">
+          <div className="space-y-6">
+            <SidebarPanel icon={Hash} title="Browse by category">
+              {categories.map((category) => (
+                <button
+                  key={category.name}
+                  type="button"
+                  onClick={() => setSelectedCategory(category.name)}
+                  className={`flex w-full items-center justify-between rounded-2xl border px-3 py-3 text-left transition-colors ${
+                    selectedCategory === category.name
+                      ? 'border-red-400/35 bg-red-500/10 text-white'
+                      : 'border-white/8 bg-white/[0.03] text-zinc-300 hover:border-white/15 hover:text-white'
+                  }`}
+                >
+                  <span className="font-medium">{category.name}</span>
+                  <span className="rounded-full border border-white/10 px-2 py-0.5 text-xs">
+                    {category.count}
+                  </span>
+                </button>
+              ))}
+            </SidebarPanel>
+
+            <SidebarPanel icon={TrendingUp} title="Trending tags">
+              <div className="flex flex-wrap gap-2">
+                {trendingTags.length ? (
+                  trendingTags.map(([tag, count]) => (
+                    <button
+                      key={tag}
+                      type="button"
+                      onClick={() => setSearchQuery(tag)}
+                      className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-2 text-xs font-medium text-zinc-300 transition-colors hover:border-blue-400/35 hover:text-white"
+                    >
+                      #{tag} <span className="text-zinc-500">({count})</span>
+                    </button>
+                  ))
+                ) : (
+                  <p className="text-sm text-zinc-400">
+                    Tags will appear here as new discussions are published.
+                  </p>
+                )}
+              </div>
+            </SidebarPanel>
+
+            <SidebarPanel icon={Users} title="Top contributors">
+              {loadingContributors ? (
+                <p className="text-sm text-zinc-400">Loading contributors...</p>
+              ) : topContributors.length ? (
+                topContributors.map((contributor) => (
+                  <div
+                    key={String(contributor.userId)}
+                    className="flex items-center justify-between rounded-2xl border border-white/8 bg-white/[0.03] px-3 py-3"
+                  >
+                    <div className="flex items-center gap-3">
+                      <AvatarBadge
+                        user={{
+                          name: contributor.name,
+                          avatarUrl: contributor.avatarUrl,
+                          avatar: contributor.avatar,
+                        }}
+                        size={40}
+                      />
+                      <div>
+                        <p className="text-sm font-semibold text-white">{contributor.name}</p>
+                        <p className="text-xs text-zinc-400">
+                          {contributor.totalPosts} discussions started
+                        </p>
+                      </div>
+                    </div>
+                    <Pin size={16} className="text-zinc-500" />
+                  </div>
+                ))
+              ) : (
+                <p className="text-sm text-zinc-400">No contributor data available yet.</p>
+              )}
+            </SidebarPanel>
+          </div>
+
+          <div className="space-y-6">
+            <div className="glass-panel p-5">
+              <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+                <div className="relative flex-1">
+                  <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(event) => setSearchQuery(event.target.value)}
+                    className="glass-input pl-9"
+                    placeholder="Search by topic, title, author, or tag"
+                  />
+                </div>
+
+                <div className="grid gap-3 sm:grid-cols-2 xl:w-[340px]">
+                  <select
+                    value={sortBy}
+                    onChange={(event) => setSortBy(event.target.value)}
+                    className="glass-input"
+                  >
+                    {SORT_OPTIONS.map((option) => (
+                      <option key={option.key} value={option.key}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                  <button type="button" onClick={() => setIsComposerOpen(true)} className="glass-cta">
+                    <Plus size={16} />
+                    New post
+                  </button>
+                </div>
+              </div>
+
+              <div className="mt-4 flex flex-wrap gap-2">
+                {VIEW_OPTIONS.map((option) => (
+                  <button
+                    key={option.key}
+                    type="button"
+                    onClick={() => setActiveView(option.key)}
+                    className={`rounded-full border px-3 py-2 text-sm font-medium transition-colors ${
+                      activeView === option.key
+                        ? 'border-red-400/35 bg-red-500/10 text-white'
+                        : 'border-white/10 bg-white/[0.04] text-zinc-300 hover:text-white'
+                    }`}
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {error && (
+              <div className="rounded-[24px] border border-red-400/25 bg-red-500/10 px-4 py-3 text-sm text-red-100">
+                {error}
+              </div>
+            )}
+
+            {featuredPost && (
+              <div className="surface-card card-spotlight overflow-hidden p-6">
+                <div className="flex flex-wrap items-center gap-2 text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">
+                  <Sparkles size={14} className="text-red-300" />
+                  Featured discussion
+                </div>
+                <div className="mt-5 grid gap-5 lg:grid-cols-[1fr_auto] lg:items-end">
+                  <div>
+                    <h2 className="text-3xl font-black tracking-tight text-white">
+                      {featuredPost.title}
+                    </h2>
+                    <p className="mt-3 max-w-3xl text-sm leading-7 text-zinc-300">
+                      {featuredPost.excerpt}
+                    </p>
+                    <div className="mt-4 flex flex-wrap gap-2">
+                      {(featuredPost.tags || []).slice(0, 4).map((tag) => (
+                        <span
+                          key={`${featuredPost._id}-featured-${tag}`}
+                          className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs text-zinc-300"
+                        >
+                          #{tag}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                  <Link
+                    to={`/post/${featuredPost._id}`}
+                    className="glass-cta justify-self-start lg:justify-self-end"
+                  >
+                    Open thread
+                  </Link>
+                </div>
+              </div>
+            )}
+
+            {loadingPosts ? (
+              <div className="glass-panel p-6 text-sm text-zinc-400">Loading discussions...</div>
+            ) : filteredPosts.length ? (
+              <div className="space-y-4">
+                {filteredPosts.map((post) => (
+                  <CommunityPostCard
+                    key={post._id}
+                    currentUserId={currentUserId}
+                    onAddComment={handleAddComment}
+                    onDelete={handleDeletePost}
+                    onShare={handleSharePost}
+                    onToggleLike={handleToggleLike}
+                    post={post}
+                  />
+                ))}
+              </div>
+            ) : (
+              <div className="glass-panel p-8 text-center">
+                <p className="text-lg font-semibold text-white">No discussions match this view.</p>
+                <p className="mt-2 text-sm text-zinc-400">
+                  Try another category, clear the search, or start a new thread.
+                </p>
+              </div>
+            )}
+
+            {hasMorePosts && (
+              <div className="flex justify-center">
+                <button
+                  type="button"
+                  onClick={() => fetchPosts(page + 1, true)}
+                  disabled={loadingMore}
+                  className="inline-flex items-center gap-2 rounded-2xl border border-white/12 bg-white/[0.04] px-5 py-3 text-sm font-semibold text-zinc-100 transition-colors hover:border-blue-400/35 hover:bg-blue-500/10 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  <RefreshCcw size={16} className={loadingMore ? 'animate-spin' : ''} />
+                  {loadingMore ? 'Loading more' : 'Load more discussions'}
+                </button>
+              </div>
+            )}
+          </div>
+        </section>
+      </main>
+
+      {isComposerOpen && (
         <NewPostModal
-          onAddPost={handleAddPost}
-          onClose={() => setIsModalOpen(false)}
-          currentUser={currentUser}
+          onClose={() => setIsComposerOpen(false)}
+          onCreate={handleCreatePost}
+          submitting={isSubmitting}
         />
       )}
-    </>
+    </div>
   );
-};
-
-export default CommunityPage;
+}

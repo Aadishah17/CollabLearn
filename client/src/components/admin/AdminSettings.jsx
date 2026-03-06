@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { createElement, useState, useEffect } from 'react';
 import { Settings, Lock, Database, Globe, RefreshCw, AlertTriangle, Save, Loader, CheckCircle, XCircle, Sparkles } from 'lucide-react';
 import AdminNavbar from '../../navbar/adminNavbar.jsx';
 import { API_URL } from '../../config';
@@ -85,10 +85,10 @@ export default function AdminSettings() {
         alert(`Simulating '${actionName}'. In a real app, this would trigger a secure backend process.`);
     };
 
-    const SettingsSection = ({ icon: Icon, title, description, children }) => (
+    const SettingsSection = ({ icon, title, description, children }) => (
         <div className="mb-8 p-6 bg-white border border-gray-200 rounded-xl shadow-lg">
             <div className="flex items-center mb-4 border-b pb-3">
-                <Icon size={24} className={`mr-3 ${primaryText}`} />
+                {createElement(icon, { size: 24, className: `mr-3 ${primaryText}` })}
                 <h2 className="text-xl font-bold">{title}</h2>
             </div>
             <p className={`mb-6 text-sm ${subtleText}`}>{description}</p>

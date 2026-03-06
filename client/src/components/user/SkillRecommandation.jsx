@@ -301,8 +301,8 @@ const SkillRecommendations = () => {
                         {skill.scoreBreakdown && (
                           <div className="mt-1 text-xs text-gray-400">
                             Based on: {Object.entries(skill.scoreBreakdown)
-                              .filter(([_, score]) => score > 0)
-                              .map(([key, _]) => key.replace(/([A-Z])/g, ' $1').toLowerCase())
+                              .filter(([, score]) => score > 0)
+                              .map(([key]) => key.replace(/([A-Z])/g, ' $1').toLowerCase())
                               .join(', ')}
                           </div>
                         )}
