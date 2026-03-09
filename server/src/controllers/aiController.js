@@ -1235,19 +1235,23 @@ const generateRoadmap = async (req, res) => {
     let savedPlanId = null;
 
     if (shouldSave && optionalUserId) {
-      const planDoc = await LearningPlan.create({
-        user: optionalUserId,
-        skill: input.skill,
-        learnerLevel: input.learnerLevel,
-        weeklyHours: input.weeklyHours,
-        targetWeeks: input.targetWeeks,
-        focusAreas: input.focusAreas,
-        plan: roadmap,
-        completedStepIndexes: [],
-        progressPercentage: 0,
-        source
-      });
-      savedPlanId = planDoc._id;
+      try {
+        const planDoc = await LearningPlan.create({
+          user: optionalUserId,
+          skill: input.skill,
+          learnerLevel: input.learnerLevel,
+          weeklyHours: input.weeklyHours,
+          targetWeeks: input.targetWeeks,
+          focusAreas: input.focusAreas,
+          plan: roadmap,
+          completedStepIndexes: [],
+          progressPercentage: 0,
+          source
+        });
+        savedPlanId = planDoc._id;
+      } catch (saveError) {
+        console.warn('Could not save learning plan to database:', saveError.message);
+      }
     }
 
     return res.json({
