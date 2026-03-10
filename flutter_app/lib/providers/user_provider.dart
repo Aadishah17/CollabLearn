@@ -15,9 +15,9 @@ class UserProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> loadProfile() async {
+  Future<bool> loadProfile() async {
     final userId = await _apiService.getSavedUserId();
-    if (userId == null) return;
+    if (userId == null) return false;
 
     _isLoading = true;
     notifyListeners();
@@ -26,13 +26,19 @@ class UserProvider extends ChangeNotifier {
       final response = await _apiService.getProfile(userId);
       if (response['success'] == true) {
         _user = response['user'];
+        return true;
       }
+
+      await logout();
     } catch (e) {
       debugPrint('Error loading profile: $e');
+      await logout();
     } finally {
       _isLoading = false;
       notifyListeners();
     }
+
+    return false;
   }
 
   Future<void> logout() async {

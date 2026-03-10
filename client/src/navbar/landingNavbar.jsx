@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Menu, Moon, Sparkles, Sun, X } from 'lucide-react';
 import { useTheme } from '../components/user/useTheme.js';
-import logo from '../assets/Collablearn Logo.png';
+import logo from '../assets/collablearn-logo.svg';
 import { hasStoredSession } from '../utils/session.js';
 
 export default function LandingNavbar() {
@@ -51,7 +51,7 @@ export default function LandingNavbar() {
 
           <div className="hidden xl:flex items-center gap-2 rounded-xl border border-white/15 bg-white/5 px-3 py-1.5 text-xs text-zinc-200">
             <Sparkles size={14} className="text-red-300" />
-            AI learning roadmaps + mentor sessions
+            Guided roadmaps + mentor sessions
           </div>
 
           <div className="flex items-center gap-2">

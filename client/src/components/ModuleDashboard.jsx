@@ -198,7 +198,7 @@ export default function ModuleDashboard() {
                   to="/ai-learning"
                   className="inline-flex items-center justify-center rounded-2xl border border-white/15 px-5 py-3 text-sm font-semibold text-zinc-100 transition-colors hover:border-blue-400/45 hover:bg-blue-500/12"
                 >
-                  Open AI learning
+                  Open learning workspace
                 </Link>
               </div>
             </div>

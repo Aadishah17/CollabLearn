@@ -1376,10 +1376,10 @@ const getStudioStatus = async (_req, res) => {
       ready: publicConfig.configured && publicConfig.modelCandidates.length > 0
     });
   } catch (error) {
-    console.error('AI studio status error:', error);
+    console.error('Learning engine status error:', error);
     return res.status(500).json({
       success: false,
-      message: 'Failed to fetch AI Studio status'
+      message: 'Failed to fetch learning engine status'
     });
   }
 };

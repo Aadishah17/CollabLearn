@@ -429,7 +429,7 @@ function NewPostModal({ onClose, onCreate, submitting }) {
 export default function CommunityPage() {
   const currentUserId = localStorage.getItem('userId') || '';
   const currentUserName = localStorage.getItem('username') || 'Community member';
-  const currentUserRole = localStorage.getItem('role') || 'Learner';
+      const currentUserRole = localStorage.getItem('userRole') || 'Learner';
 
   const [allPosts, setAllPosts] = useState([]);
   const [topContributors, setTopContributors] = useState([]);

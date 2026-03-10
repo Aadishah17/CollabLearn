@@ -16,7 +16,6 @@ class _LoginPageState extends State<LoginPage> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _nameController = TextEditingController();
-  String _role = 'user';
   bool _isSignup = false;
   bool _isLoading = false;
   String _statusMessage = '';
@@ -45,9 +44,9 @@ class _LoginPageState extends State<LoginPage> {
     try {
       AuthResponse response;
       if (_isSignup) {
-        response = await _apiService.signup(name, email, password, _role);
+        response = await _apiService.signup(name, email, password);
       } else {
-        response = await _apiService.login(email, password, _role);
+        response = await _apiService.login(email, password);
       }
 
       setState(() {
@@ -125,8 +124,6 @@ class _LoginPageState extends State<LoginPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _buildRolePicker(),
-                    const SizedBox(height: 24),
                     if (_isSignup) ...[
                       _buildTextField(
                           label: 'Full Name',
@@ -186,45 +183,6 @@ class _LoginPageState extends State<LoginPage> {
                 ),
               ),
             ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildRolePicker() {
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColors.zinc800.withOpacity(0.5),
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: Row(
-        children: [
-          Expanded(child: _roleOption('Student', 'user')),
-          Expanded(child: _roleOption('Admin', 'admin')),
-        ],
-      ),
-    );
-  }
-
-  Widget _roleOption(String label, String value) {
-    final isSelected = _role == value;
-    return GestureDetector(
-      onTap: () => setState(() => _role = value),
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 10),
-        decoration: BoxDecoration(
-          color: isSelected ? AppColors.brandRed : Colors.transparent,
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Center(
-          child: Text(
-            label,
-            style: TextStyle(
-              color: isSelected ? Colors.white : Colors.white.withOpacity(0.5),
-              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-              fontSize: 13,
-            ),
           ),
         ),
       ),

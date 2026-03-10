@@ -112,10 +112,6 @@ export default function ManageUsers() {
         setActionLoading(selectedUser.id);
         try {
             const token = localStorage.getItem('token');
-            console.log('Updating subscription for user:', selectedUser.id);
-            console.log('New subscription:', newSubscription);
-            console.log('Sending isPremium:', newSubscription === 'premium');
-
             const response = await fetch(`${API_URL}/api/admin/users/${selectedUser.id}/subscription`, {
                 method: 'PUT',
                 headers: {
@@ -126,7 +122,6 @@ export default function ManageUsers() {
             });
 
             const result = await response.json();
-            console.log('Update response:', result);
 
             if (result.success) {
                 // Update state locally for instant UI feedback
@@ -206,7 +201,7 @@ export default function ManageUsers() {
                         <table className="min-w-full divide-y divide-gray-200">
                             <thead>
                                 <tr>
-                                    {['Name', 'Email', 'Role', 'Subscription', 'Registered', 'Status', 'Actions'].map(header => (
+                                    {['Name', 'Email', 'Role', 'Access', 'Subscription', 'Registered', 'Status', 'Actions'].map(header => (
                                         <th key={header} className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${subtleText}`}>
                                             {header}
                                         </th>
@@ -221,6 +216,17 @@ export default function ManageUsers() {
                                         <td className="px-6 py-4 whitespace-nowrap text-sm">
                                             <span className={`inline-flex px-2 text-xs font-semibold leading-5 rounded-full ${user.role === 'Instructor' ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'}`}>
                                                 {user.role}
+                                            </span>
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm">
+                                            <span className={`inline-flex items-center px-3 py-1 text-xs font-semibold leading-5 rounded-full ${
+                                                user.isSuperAdmin
+                                                    ? 'bg-emerald-100 text-emerald-800'
+                                                    : user.accessRole === 'admin'
+                                                        ? 'bg-purple-100 text-purple-800'
+                                                        : 'bg-gray-100 text-gray-700'
+                                            }`}>
+                                                {user.isSuperAdmin ? 'SUPER ADMIN' : String(user.accessLevel || 'user').toUpperCase()}
                                             </span>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm">
@@ -247,7 +253,9 @@ export default function ManageUsers() {
                                             </span>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                            {user.status === 'Blocked' ? (
+                                            {user.isSuperAdmin ? (
+                                                <span className="text-emerald-700 font-semibold">Protected</span>
+                                            ) : user.status === 'Blocked' ? (
                                                 <button
                                                     onClick={() => unblockUser(user.id)}
                                                     disabled={actionLoading === user.id}

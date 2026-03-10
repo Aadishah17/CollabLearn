@@ -3,6 +3,7 @@ const Post = require('../models/Post');
 const Booking = require('../models/Booking');
 const Skill = require('../models/Skill');
 const Setting = require('../models/Setting'); // Import the new Setting model
+const { getAccessProfile, isSuperAdminEmail } = require('../config/access');
 
 const adminController = {
   // --- SETTINGS FUNCTIONS ---
@@ -119,15 +120,22 @@ const adminController = {
         const skills = await Skill.find({ isOffering: true }).select('user');
         const instructorIds = new Set(skills.map(skill => skill.user.toString()));
 
-        const formattedUsers = users.map(user => ({
+        const formattedUsers = users.map(user => {
+            const accessProfile = getAccessProfile(user.email, 'user');
+
+            return {
             id: user._id,
             name: user.name,
             email: user.email,
             role: instructorIds.has(user._id.toString()) ? 'Instructor' : 'Learner',
+            accessLevel: accessProfile.accessLevel,
+            accessRole: accessProfile.role,
+            isSuperAdmin: accessProfile.isSuperAdmin,
             registered: user.createdAt,
             status: user.isActive ? 'Active' : 'Blocked',
             isPremium: user.isPremium || false,
-        }));
+            };
+        });
 
         res.json({ success: true, data: formattedUsers });
     } catch (error) {
@@ -138,6 +146,16 @@ const adminController = {
   blockUser: async (req, res) => {
     try {
         const { userId } = req.params;
+        const user = await User.findById(userId);
+
+        if (!user) {
+            return res.status(404).json({ success: false, message: 'User not found' });
+        }
+
+        if (isSuperAdminEmail(user.email)) {
+            return res.status(403).json({ success: false, message: 'Super admins cannot be blocked.' });
+        }
+
         await User.findByIdAndUpdate(userId, { isActive: false });
         res.json({ success: true, message: 'User blocked' });
     } catch (error) {

@@ -1,4 +1,5 @@
 const jwt = require('jsonwebtoken');
+const { resolveJwtSecret } = require('../config/auth');
 
 // ============= AUTHENTICATION MIDDLEWARE =============
 const auth = (req, res, next) => {
@@ -19,17 +20,27 @@ const auth = (req, res, next) => {
     }
 
     // 3. VERIFY TOKEN
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key-change-this');
+    const decoded = jwt.verify(token, resolveJwtSecret());
     
     // 4. ADD USER INFO TO REQUEST OBJECT
     // Now all protected routes can access req.userId and req.userEmail
     req.userId = decoded.userId;
     req.userEmail = decoded.email;
+    req.userRole = decoded.role || (decoded.isSuperAdmin ? 'admin' : 'user');
+    req.isSuperAdmin = Boolean(decoded.isSuperAdmin);
+    req.auth = decoded;
     
     // 5. CONTINUE TO NEXT MIDDLEWARE/ROUTE HANDLER
     next();
 
   } catch (error) {
+    if (error.code === 'JWT_SECRET_MISSING') {
+      return res.status(500).json({
+        success: false,
+        message: 'Server authentication is not configured.'
+      });
+    }
+
     // Handle different JWT errors
     if (error.name === 'TokenExpiredError') {
       return res.status(401).json({ 

@@ -13,26 +13,22 @@ import {
   Target,
 } from 'lucide-react';
 import { GoogleLogin } from '@react-oauth/google';
-import CollabLearnLogo from '../assets/Collablearn Logo.png';
+import CollabLearnLogo from '../assets/collablearn-logo.svg';
 import AuthShowcase from '../components/auth/AuthShowcase.jsx';
 import { API_URL, GOOGLE_AUTH_ENABLED } from '../config';
+import { resolveNextRoute } from './access.js';
 import { emitProfileUpdated, persistSession } from '../utils/session.js';
 
 const rememberedEmail = localStorage.getItem('rememberedEmail') || '';
-
-function resolveNextRoute(fromPathname, userRole) {
-  if (fromPathname && !['/login', '/signup'].includes(fromPathname)) {
-    return fromPathname;
-  }
-
-  return userRole === 'admin' ? '/admin' : '/dashboard';
-}
 
 export default function LoginPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const redirectPath = location.state?.from?.pathname;
 
+  const [selectedRole, setSelectedRole] = useState(
+    redirectPath?.startsWith('/admin') ? 'admin' : 'user',
+  );
   const [email, setEmail] = useState(rememberedEmail);
   const [password, setPassword] = useState('');
   const [rememberEmail, setRememberEmail] = useState(Boolean(rememberedEmail));
@@ -47,6 +43,12 @@ export default function LoginPage() {
       navigate(resolveNextRoute(redirectPath, storedRole), { replace: true });
     }
   }, [navigate, redirectPath]);
+
+  useEffect(() => {
+    if (redirectPath?.startsWith('/admin')) {
+      setSelectedRole('admin');
+    }
+  }, [redirectPath]);
 
   const showcaseContent = useMemo(
     () => ({
@@ -90,6 +92,8 @@ export default function LoginPage() {
       name: responseData.user?.name || 'Learner',
       email: responseData.user?.email || '',
       isPremium: Boolean(responseData.user?.isPremium),
+      role: responseData.user?.role || 'user',
+      isSuperAdmin: Boolean(responseData.user?.isSuperAdmin),
     });
 
     if (rememberEmail) {
@@ -98,7 +102,13 @@ export default function LoginPage() {
       localStorage.removeItem('rememberedEmail');
     }
 
-    toast.success('Welcome back.');
+    toast.success(
+      responseData.user?.isSuperAdmin
+        ? 'Super access granted.'
+        : responseData.user?.role === 'admin'
+          ? 'Admin access granted.'
+          : 'Welcome back.'
+    );
     navigate(resolveNextRoute(redirectPath, responseData.user?.role), { replace: true });
   };
 
@@ -115,7 +125,7 @@ export default function LoginPage() {
         body: JSON.stringify({
           email: email.trim().toLowerCase(),
           password,
-          role: 'user',
+          role: selectedRole,
         }),
       });
 
@@ -189,17 +199,49 @@ export default function LoginPage() {
             </div>
 
             <h1 className="mt-6 text-4xl font-black tracking-tight text-white sm:text-5xl">
-              Resume your learning rhythm.
+              {selectedRole === 'admin' ? 'Resume admin oversight.' : 'Resume your learning rhythm.'}
             </h1>
             <p className="mt-4 text-base leading-7 text-zinc-300">
-              Sign in to reopen your roadmap, upcoming sessions, and the conversations
-              keeping your progress moving.
+              {selectedRole === 'admin'
+                ? 'Sign in with an admin account to manage users, moderation, analytics, and platform settings.'
+                : 'Sign in to reopen your roadmap, upcoming sessions, and the conversations keeping your progress moving.'}
             </p>
 
             <form onSubmit={handleLogin} className="mt-8 space-y-5">
               <div>
-                <label className="mb-2 block text-sm font-medium text-zinc-200">Email</label>
+                <span className="mb-2 block text-sm font-medium text-zinc-200">Account type</span>
+                <div className="grid grid-cols-2 gap-3 rounded-2xl border border-white/10 bg-white/[0.03] p-2">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedRole('user')}
+                    className={`rounded-xl px-4 py-3 text-sm font-semibold transition ${
+                      selectedRole === 'user'
+                        ? 'bg-red-500/20 text-white ring-1 ring-red-400/40'
+                        : 'text-zinc-400 hover:bg-white/[0.04] hover:text-zinc-200'
+                    }`}
+                  >
+                    Learner
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedRole('admin')}
+                    className={`rounded-xl px-4 py-3 text-sm font-semibold transition ${
+                      selectedRole === 'admin'
+                        ? 'bg-red-500/20 text-white ring-1 ring-red-400/40'
+                        : 'text-zinc-400 hover:bg-white/[0.04] hover:text-zinc-200'
+                    }`}
+                  >
+                    Admin
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label htmlFor="login-email" className="mb-2 block text-sm font-medium text-zinc-200">
+                  Email
+                </label>
                 <input
+                  id="login-email"
                   type="email"
                   value={email}
                   onChange={(event) => setEmail(event.target.value)}
@@ -211,9 +253,12 @@ export default function LoginPage() {
               </div>
 
               <div>
-                <label className="mb-2 block text-sm font-medium text-zinc-200">Password</label>
+                <label htmlFor="login-password" className="mb-2 block text-sm font-medium text-zinc-200">
+                  Password
+                </label>
                 <div className="relative">
                   <input
+                    id="login-password"
                     type={showPassword ? 'text' : 'password'}
                     value={password}
                     onChange={(event) => setPassword(event.target.value)}
@@ -260,13 +305,13 @@ export default function LoginPage() {
                   </>
                 ) : (
                   <>
-                    Sign in
+                    {selectedRole === 'admin' ? 'Enter admin workspace' : 'Sign in'}
                     <ArrowRight size={20} />
                   </>
                 )}
               </button>
 
-              {GOOGLE_AUTH_ENABLED ? (
+              {selectedRole === 'user' && GOOGLE_AUTH_ENABLED ? (
                 <>
                   <div className="relative py-2">
                     <div className="absolute inset-0 flex items-center">
@@ -290,6 +335,10 @@ export default function LoginPage() {
                     />
                   </div>
                 </>
+              ) : selectedRole === 'admin' ? (
+                <div className="rounded-2xl border border-amber-400/20 bg-amber-500/10 px-4 py-4 text-sm leading-7 text-amber-100">
+                  Admin accounts use email and password only. Google sign-in is available for learner accounts.
+                </div>
               ) : (
                 <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-4 text-sm leading-7 text-zinc-300">
                   Google sign-in is hidden until `VITE_GOOGLE_CLIENT_ID` is configured for this

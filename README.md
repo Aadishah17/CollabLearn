@@ -1,24 +1,24 @@
 # CollabLearn
 
-CollabLearn is a full-stack skill-learning platform where users can learn any skill with AI guidance, personalized roadmaps, curated resources, mentor sessions, and community support.
+CollabLearn is a skill-learning platform centered on the web experience. The active product surface is the React website, backed by an Express and MongoDB API for roadmaps, mentor workflows, community features, and admin tooling.
 
 ## Project Architecture
 
-The project is divided into three main components:
+The repository contains:
 
 - **`client/`**: React-based web frontend.
 - **`server/`**: Node.js & Express backend API.
-- **`flutter_app/`**: Cross-platform mobile application built with Flutter.
+- **`flutter_app/`**: Secondary mobile codebase that is not the current product priority.
 
 ## Core Experience
 
 - **AI Learning Roadmaps**: Personalized generation based on skill, level, and timeline.
 - **Progress Tracking**: Persistent learning plans to monitor your growth.
-- **AI Mentor Chat**: Real-time study guidance and next-step recommendations via Gemini AI.
+- **AI Mentor Chat**: Built-in guidance for next-step recommendations and study-session planning.
 - **Skill Marketplace**: Platform for users to teach and learn from each other.
 - **Session Booking**: 1v1 booking system with calendar management.
 - **Community Engagement**: Posting, commenting, and real-time messaging with Socket.IO.
-- **Rating & Feedback**: Continuous improvement through peer reviews.
+- **Admin Console**: Protected moderation, analytics, user management, and settings.
 
 ## Tech Stack
 
@@ -27,7 +27,7 @@ The project is divided into three main components:
 - **Frontend**: React + Vite + Tailwind CSS
 - **Backend**: Node.js + Express + MongoDB + Mongoose
 - **Real-time**: Socket.IO
-- **AI**: Google Generative AI (Gemini 2.5 Flash)
+- **Planning Engine**: Local roadmap and study-session engine with optional external resource enrichment
 
 ### Mobile
 
@@ -45,7 +45,8 @@ The project is divided into three main components:
    cp client/.env.example client/.env
    ```
 
-   Set your `GEMINI_API_KEY` and `MONGODB_URI` in `server/.env`.
+   Set your `JWT_SECRET` and `MONGODB_URI` in `server/.env`.
+   `SUPER_ADMIN_EMAILS` is optional; the default super-admin allow list already includes `shahaadi285@gmail.com`.
 
 2. **Install Dependencies**:
 
@@ -62,17 +63,6 @@ The project is divided into three main components:
    - Frontend: `http://localhost:5173`
    - Backend: `http://localhost:5001`
 
-## Mobile App Setup (Flutter)
-
-1. Ensure Flutter SDK is installed.
-2. Navigate to `flutter_app/`:
-
-   ```bash
-   cd flutter_app
-   flutter pub get
-   flutter run
-   ```
-
 ## Utility Scripts
 
 The project includes several root-level scripts for development and maintenance:
@@ -85,17 +75,17 @@ The project includes several root-level scripts for development and maintenance:
 | `clean.js` | Utility to clean up temporary files and caches. |
 | `fix_deps.bat` | Resolves common dependency issues. |
 | `debug_*.bat` | Various scripts for debugging client, server, and environment. |
-| `run_flutter.bat` | Helper to launch the Flutter application. |
+| `run_flutter.bat` | Helper for the secondary Flutter codebase. |
 
 ## AI Integration
 
-Google AI Studio integration is pre-configured. To verify:
+The website currently uses the local learning engine exposed by the API. To verify engine status:
 
 ```bash
 curl http://localhost:5001/api/ai/studio-status
 ```
 
-For more details, see the [AI Endpoints](#ai-api-endpoints) section.
+The status route returns the active provider and model metadata used by the web roadmap flow.
 
 ## Module APIs
 
@@ -109,5 +99,12 @@ For more details, see the [AI Endpoints](#ai-api-endpoints) section.
 
 - `POST /api/ai/chat`: Interactive mentor chat.
 - `POST /api/ai/roadmap`: Generate personalized learning paths.
+- `POST /api/ai/study-session`: Generate a focused next study session from the active plan.
 - `GET /api/ai/plans`: Retrieve saved learning plans.
 - `PATCH /api/ai/plans/:planId/progress`: Update learning progress.
+
+## Admin Access
+
+- Admin website routes are protected server-side as well as in the client router.
+- The server supports a super-admin email allow list.
+- By default, `shahaadi285@gmail.com` is treated as a protected super-admin account.

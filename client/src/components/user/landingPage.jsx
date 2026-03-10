@@ -17,7 +17,7 @@ import LandingNavbar from '../../navbar/landingNavbar';
 
 const quickSignals = [
   {
-    title: 'AI roadmaps',
+    title: 'Guided roadmaps',
     value: 'Personalized',
     detail: 'Build a weekly learning plan from your goal, timeline, and level.',
   },
@@ -41,7 +41,7 @@ const quickSignals = [
 const featureCards = [
   {
     icon: Sparkles,
-    title: 'AI learning studio',
+    title: 'Learning workspace',
     copy: 'Generate a roadmap, weekly objectives, and curated resources for any skill you want to learn.',
   },
   {
@@ -121,7 +121,7 @@ export default function CollabLearnLanding() {
           <div className="relative z-10">
             <div className="eyebrow">
               <Sparkles size={14} className="text-red-300" />
-              AI roadmaps, mentor sessions, and community learning
+              Guided roadmaps, mentor sessions, and community learning
             </div>
 
             <h1 className="mt-8 max-w-4xl text-5xl font-black leading-[0.95] tracking-tight text-white md:text-7xl">
@@ -148,7 +148,7 @@ export default function CollabLearnLanding() {
                   onClick={() => navigate('/ai-learning')}
                   className="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/15 px-5 py-3 text-sm font-semibold text-zinc-100 transition-colors hover:border-blue-400/45 hover:bg-blue-500/12"
                 >
-                  Open AI learning
+                  Open learning workspace
                 </button>
               ) : (
                 <a
@@ -333,7 +333,7 @@ export default function CollabLearnLanding() {
             </div>
             <h2 className="section-title mt-6">From vague ambition to a plan you can actually follow.</h2>
             <p className="section-copy mt-5 max-w-xl">
-              The value is not just AI output. The value is staying in motion after the first burst of motivation fades.
+              The value is not just the plan. The value is staying in motion after the first burst of motivation fades.
             </p>
           </div>
 
@@ -434,7 +434,7 @@ export default function CollabLearnLanding() {
                 <span className="block text-red-400">that survives past week one.</span>
               </h2>
               <p className="mx-auto mt-5 max-w-2xl text-base leading-7 text-zinc-300 md:text-lg">
-                Start with an AI roadmap, add mentor sessions when needed, and keep the feedback loop active through community and messaging.
+                Start with a guided roadmap, add mentor sessions when needed, and keep the feedback loop active through community and messaging.
               </p>
               <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
                 <button
@@ -451,7 +451,7 @@ export default function CollabLearnLanding() {
                     onClick={() => navigate('/ai-learning')}
                     className="inline-flex items-center justify-center rounded-2xl border border-white/15 px-5 py-3 text-sm font-semibold text-zinc-100 transition-colors hover:border-blue-400/45 hover:bg-blue-500/12"
                   >
-                    Open AI learning
+                    Open learning workspace
                   </button>
                 ) : (
                   <Link
@@ -472,7 +472,7 @@ export default function CollabLearnLanding() {
           <div>
             <p className="text-lg font-bold text-white">CollabLearn</p>
             <p className="mt-2 text-sm text-zinc-400">
-              AI-guided skill learning, mentor sessions, and community accountability in one product.
+              Structured skill learning, mentor sessions, and community accountability in one product.
             </p>
           </div>
           <div className="flex flex-wrap gap-5 text-sm font-semibold text-zinc-300">

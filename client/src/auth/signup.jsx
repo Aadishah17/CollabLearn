@@ -14,9 +14,10 @@ import {
   XCircle,
 } from 'lucide-react';
 import { GoogleLogin } from '@react-oauth/google';
-import CollabLearnLogo from '../assets/Collablearn Logo.png';
+import CollabLearnLogo from '../assets/collablearn-logo.svg';
 import AuthShowcase from '../components/auth/AuthShowcase.jsx';
 import { API_URL, GOOGLE_AUTH_ENABLED } from '../config';
+import { resolveNextRoute } from './access.js';
 import { emitProfileUpdated, persistSession } from '../utils/session.js';
 
 export default function SignupPage() {
@@ -36,7 +37,7 @@ export default function SignupPage() {
     const storedRole = localStorage.getItem('userRole');
 
     if (token) {
-      navigate(storedRole === 'admin' ? '/admin' : '/dashboard', { replace: true });
+      navigate(resolveNextRoute(null, storedRole), { replace: true });
     }
   }, [navigate]);
 
@@ -85,9 +86,11 @@ export default function SignupPage() {
       name: responseData.user?.name || username.trim(),
       email: responseData.user?.email || email.trim().toLowerCase(),
       isPremium: Boolean(responseData.user?.isPremium),
+      role: responseData.user?.role || 'user',
+      isSuperAdmin: Boolean(responseData.user?.isSuperAdmin),
     });
     toast.success(successMessage);
-    navigate('/dashboard', { replace: true });
+    navigate(resolveNextRoute(null, responseData.user?.role), { replace: true });
   };
 
   const handleSignup = async (event) => {
@@ -191,14 +194,17 @@ export default function SignupPage() {
               Build a learning system that lasts.
             </h1>
             <p className="mt-4 text-base leading-7 text-zinc-300">
-              Create an account to start with an AI roadmap, make time for mentor
+              Create an account to start with a guided roadmap, make time for mentor
               sessions, and keep progress visible from week one.
             </p>
 
             <form onSubmit={handleSignup} className="mt-8 space-y-5">
               <div>
-                <label className="mb-2 block text-sm font-medium text-zinc-200">Full name</label>
+                <label htmlFor="signup-name" className="mb-2 block text-sm font-medium text-zinc-200">
+                  Full name
+                </label>
                 <input
+                  id="signup-name"
                   type="text"
                   value={username}
                   onChange={(event) => setUsername(event.target.value)}
@@ -210,8 +216,11 @@ export default function SignupPage() {
               </div>
 
               <div>
-                <label className="mb-2 block text-sm font-medium text-zinc-200">Email</label>
+                <label htmlFor="signup-email" className="mb-2 block text-sm font-medium text-zinc-200">
+                  Email
+                </label>
                 <input
+                  id="signup-email"
                   type="email"
                   value={email}
                   onChange={(event) => setEmail(event.target.value)}
@@ -224,9 +233,12 @@ export default function SignupPage() {
 
               <div className="grid gap-4 md:grid-cols-2">
                 <div>
-                  <label className="mb-2 block text-sm font-medium text-zinc-200">Password</label>
+                  <label htmlFor="signup-password" className="mb-2 block text-sm font-medium text-zinc-200">
+                    Password
+                  </label>
                   <div className="relative">
                     <input
+                      id="signup-password"
                       type={showPassword ? 'text' : 'password'}
                       value={password}
                       onChange={(event) => setPassword(event.target.value)}
@@ -248,11 +260,12 @@ export default function SignupPage() {
                 </div>
 
                 <div>
-                  <label className="mb-2 block text-sm font-medium text-zinc-200">
+                  <label htmlFor="signup-confirm-password" className="mb-2 block text-sm font-medium text-zinc-200">
                     Confirm password
                   </label>
                   <div className="relative">
                     <input
+                      id="signup-confirm-password"
                       type={showPassword ? 'text' : 'password'}
                       value={confirmPassword}
                       onChange={(event) => setConfirmPassword(event.target.value)}
@@ -276,12 +289,17 @@ export default function SignupPage() {
                 </div>
               </div>
 
-              <label className="flex items-start gap-3 rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-sm leading-7 text-zinc-300">
+              <label
+                htmlFor="signup-accepted-terms"
+                className="flex cursor-pointer items-start gap-3 rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-sm leading-7 text-zinc-300"
+              >
                 <input
+                  id="signup-accepted-terms"
+                  name="acceptedTerms"
                   type="checkbox"
                   checked={acceptedTerms}
                   onChange={(event) => setAcceptedTerms(event.target.checked)}
-                  className="mt-1 h-4 w-4 rounded border-zinc-700 bg-zinc-900 text-red-600 focus:ring-red-500"
+                  className="mt-1 h-4 w-4 shrink-0 rounded border-zinc-700 bg-zinc-900 text-red-600 focus:ring-red-500"
                   required
                 />
                 <span>

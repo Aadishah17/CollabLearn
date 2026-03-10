@@ -6,12 +6,107 @@ const jwt = require('jsonwebtoken');
 const fs = require('fs');
 const path = require('path');
 const { OAuth2Client } = require('google-auth-library');
+const Setting = require('../models/Setting');
+const { getAccessProfile, normalizeEmail } = require('../config/access');
+const { resolveJwtSecret } = require('../config/auth');
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID || 'YOUR_GOOGLE_CLIENT_ID');
+
+const getMinimumPasswordLength = async () => {
+  try {
+    const settings = await Setting.findOne({ key: 'main_settings' })
+      .select('minPasswordLength')
+      .lean();
+    const configuredLength = Number(settings?.minPasswordLength);
+
+    if (Number.isInteger(configuredLength) && configuredLength >= 6) {
+      return configuredLength;
+    }
+  } catch (_error) {
+    // Fall back to the schema minimum if settings lookup fails.
+  }
+
+  return 6;
+};
+
+const createSessionToken = ({ userId, email, role, isSuperAdmin }) =>
+  jwt.sign(
+    {
+      userId,
+      email,
+      role,
+      isSuperAdmin: Boolean(isSuperAdmin)
+    },
+    resolveJwtSecret(),
+    { expiresIn: '7d' }
+  );
+
+const buildSessionUser = ({ account, accountType, role, isSuperAdmin }) => {
+  const baseUser = {
+    id: account._id,
+    email: account.email,
+    role,
+    isSuperAdmin: Boolean(isSuperAdmin)
+  };
+
+  if (accountType === 'admin') {
+    return {
+      ...baseUser,
+      name: isSuperAdmin ? 'Super Admin' : 'Admin',
+      avatar: null,
+      avatarType: 'default',
+      isPremium: false,
+      createdAt: account.createdAt
+    };
+  }
+
+  return {
+    ...baseUser,
+    name: account.name,
+    avatar: account.getAvatarUrl(),
+    avatarType: account.avatar?.type,
+    isPremium: account.isPremium || false,
+    createdAt: account.createdAt
+  };
+};
+
+const findLoginAccount = async (email, requestedRole, isSuperAdmin) => {
+  const lookupOrder = [];
+
+  if (requestedRole === 'admin') {
+    lookupOrder.push({ accountType: 'admin', model: Admin });
+    if (isSuperAdmin) {
+      lookupOrder.push({ accountType: 'user', model: User });
+    }
+  } else {
+    lookupOrder.push({ accountType: 'user', model: User });
+    if (isSuperAdmin) {
+      lookupOrder.push({ accountType: 'admin', model: Admin });
+    }
+  }
+
+  for (const lookup of lookupOrder) {
+    const account = await lookup.model.findOne({ email });
+    if (account) {
+      return {
+        account,
+        accountType: lookup.accountType
+      };
+    }
+  }
+
+  return {
+    account: null,
+    accountType: null
+  };
+};
 
 const authController = {
   register: async (req, res) => {
     try {
       const { name, email, password } = req.body;
+      const minimumPasswordLength = await getMinimumPasswordLength();
+      const normalizedEmail = normalizeEmail(email);
+      const accessProfile = getAccessProfile(normalizedEmail, 'user');
 
       if (!name || !email || !password) {
         return res.status(400).json({
@@ -20,14 +115,14 @@ const authController = {
         });
       }
 
-      if (password.length < 6) {
+      if (password.length < minimumPasswordLength) {
         return res.status(400).json({
           success: false,
-          message: 'Password must be at least 6 characters long'
+          message: `Password must be at least ${minimumPasswordLength} characters long`
         });
       }
 
-      const existingUser = await User.findOne({ email: email.toLowerCase() });
+      const existingUser = await User.findOne({ email: normalizedEmail });
       if (existingUser) {
         return res.status(400).json({
           success: false,
@@ -40,33 +135,29 @@ const authController = {
 
       const user = new User({
         name: name.trim(),
-        email: email.toLowerCase(),
+        email: normalizedEmail,
         password: hashedPassword
       });
 
       await user.save();
 
-      const token = jwt.sign(
-        {
-          userId: user._id,
-          email: user.email
-        },
-        process.env.JWT_SECRET || 'your-secret-key-change-this',
-        { expiresIn: '7d' }
-      );
+      const token = createSessionToken({
+        userId: user._id,
+        email: user.email,
+        role: accessProfile.role,
+        isSuperAdmin: accessProfile.isSuperAdmin
+      });
 
       res.status(201).json({
         success: true,
         message: 'User registered successfully',
         token,
-        user: {
-          id: user._id,
-          name: user.name,
-          email: user.email,
-          avatar: user.getAvatarUrl(),
-          avatarType: user.avatar?.type,
-          createdAt: user.createdAt
-        }
+        user: buildSessionUser({
+          account: user,
+          accountType: 'user',
+          role: accessProfile.role,
+          isSuperAdmin: accessProfile.isSuperAdmin
+        })
       });
 
     } catch (error) {
@@ -90,6 +181,9 @@ const authController = {
   login: async (req, res) => {
     try {
       const { email, password, role = 'user' } = req.body;
+      const requestedRole = role === 'admin' ? 'admin' : 'user';
+      const normalizedEmail = normalizeEmail(email);
+      const accessProfile = getAccessProfile(normalizedEmail, requestedRole);
 
       if (!email || !password) {
         return res.status(400).json({
@@ -98,90 +192,56 @@ const authController = {
         });
       }
 
-      let user;
-      let userRole;
+      const { account, accountType } = await findLoginAccount(
+        normalizedEmail,
+        requestedRole,
+        accessProfile.isSuperAdmin
+      );
 
-      if (role === 'admin') {
-        // Authenticate against Admin model
-        user = await Admin.findOne({ email: email.toLowerCase() });
-        userRole = 'admin';
-
-        if (!user) {
-          return res.status(401).json({
-            success: false,
-            message: 'Invalid admin credentials'
-          });
-        }
-
-        if (!user.isActive) {
-          return res.status(401).json({
-            success: false,
-            message: 'Admin account is deactivated. Please contact support.'
-          });
-        }
-      } else {
-        // Authenticate against User model
-        user = await User.findOne({ email: email.toLowerCase() });
-        userRole = 'user';
-
-        if (!user) {
-          return res.status(401).json({
-            success: false,
-            message: 'Invalid email or password'
-          });
-        }
-
-        if (!user.isActive) {
-          return res.status(401).json({
-            success: false,
-            message: 'Account is deactivated. Please contact support.'
-          });
-        }
-      }
-
-      const isPasswordValid = await bcrypt.compare(password, user.password);
-      if (!isPasswordValid) {
+      if (!account) {
         return res.status(401).json({
           success: false,
-          message: role === 'admin' ? 'Invalid admin credentials' : 'Invalid email or password'
+          message: requestedRole === 'admin' ? 'Invalid admin credentials' : 'Invalid email or password'
         });
       }
 
-      const token = jwt.sign(
-        {
-          userId: user._id,
-          email: user.email,
-          role: userRole
-        },
-        process.env.JWT_SECRET || 'your-secret-key-change-this',
-        { expiresIn: '7d' }
-      );
+      const sessionRole = accountType === 'admin' ? 'admin' : accessProfile.role;
 
-      const responseUser = {
-        id: user._id,
-        email: user.email,
-        role: userRole
-      };
-
-      // Add additional fields for regular users
-      if (role === 'user') {
-        responseUser.name = user.name;
-        responseUser.avatar = user.getAvatarUrl();
-        responseUser.avatarType = user.avatar?.type;
-        responseUser.createdAt = user.createdAt;
-      } else {
-        // For admin, set a default name
-        responseUser.name = 'Admin';
-        responseUser.avatar = null;
-        responseUser.avatarType = 'default';
-        responseUser.createdAt = user.createdAt;
+      if (!account.isActive) {
+        return res.status(401).json({
+          success: false,
+          message:
+            sessionRole === 'admin'
+              ? 'Admin account is deactivated. Please contact support.'
+              : 'Account is deactivated. Please contact support.'
+        });
       }
+
+      const isPasswordValid = await bcrypt.compare(password, account.password);
+      if (!isPasswordValid) {
+        return res.status(401).json({
+          success: false,
+          message: requestedRole === 'admin' ? 'Invalid admin credentials' : 'Invalid email or password'
+        });
+      }
+
+      const token = createSessionToken({
+        userId: account._id,
+        email: account.email,
+        role: sessionRole,
+        isSuperAdmin: accessProfile.isSuperAdmin
+      });
 
       res.json({
         success: true,
         message: 'Login successful',
         token,
-        user: responseUser
+        user: buildSessionUser({
+          account,
+          accountType,
+          role: sessionRole,
+          isSuperAdmin: accessProfile.isSuperAdmin
+        })
       });
 
     } catch (error) {
@@ -204,8 +264,10 @@ const authController = {
       });
 
       const { name, email, picture } = ticket.getPayload();
+      const normalizedEmail = normalizeEmail(email);
+      const accessProfile = getAccessProfile(normalizedEmail, 'user');
 
-      let user = await User.findOne({ email });
+      let user = await User.findOne({ email: normalizedEmail });
       let isNewUser = false;
 
       if (!user) {
@@ -213,7 +275,7 @@ const authController = {
         isNewUser = true;
         user = new User({
           name,
-          email,
+          email: normalizedEmail,
           password: await bcrypt.hash(Math.random().toString(36).slice(-8), 12), // Dummy password
           avatar: {
             type: 'url',
@@ -226,23 +288,23 @@ const authController = {
         await user.save();
       }
 
-      const jwtToken = jwt.sign(
-        { userId: user._id, email: user.email, role: 'user' },
-        process.env.JWT_SECRET || 'your-secret-key-change-this',
-        { expiresIn: '7d' }
-      );
+      const jwtToken = createSessionToken({
+        userId: user._id,
+        email: user.email,
+        role: accessProfile.role,
+        isSuperAdmin: accessProfile.isSuperAdmin
+      });
 
       res.status(isNewUser ? 201 : 200).json({
         success: true,
         message: 'Google login successful',
         token: jwtToken,
-        user: {
-          id: user._id,
-          name: user.name,
-          email: user.email,
-          isPremium: user.isPremium,
-          avatar: user.getAvatarUrl()
-        }
+        user: buildSessionUser({
+          account: user,
+          accountType: 'user',
+          role: accessProfile.role,
+          isSuperAdmin: accessProfile.isSuperAdmin
+        })
       });
     } catch (error) {
       console.error('Google login error:', error);
@@ -252,12 +314,48 @@ const authController = {
 
   getCurrentUser: async (req, res) => {
     try {
-      const user = await User.findById(req.userId)
+      let user = await User.findById(req.userId)
         .select('-password')
         .populate('skillsOffering')
         .populate('skillsSeeking');
 
       if (!user) {
+        if (req.userRole === 'admin') {
+          const admin = await Admin.findById(req.userId).select('-password');
+
+          if (!admin) {
+            return res.status(404).json({
+              success: false,
+              message: 'User not found'
+            });
+          }
+
+          const adminAccess = getAccessProfile(admin.email, 'admin');
+
+          return res.json({
+            success: true,
+            user: {
+              id: admin._id,
+              name: adminAccess.isSuperAdmin ? 'Super Admin' : 'Admin',
+              email: admin.email,
+              role: 'admin',
+              isSuperAdmin: adminAccess.isSuperAdmin,
+              avatar: null,
+              avatarType: 'default',
+              bio: '',
+              isPremium: false,
+              skillsOffering: [],
+              skillsSeeking: [],
+              availability: null,
+              rating: { average: 0, count: 0 },
+              totalSessions: 0,
+              badges: [],
+              joinDate: admin.createdAt,
+              createdAt: admin.createdAt
+            }
+          });
+        }
+
         return res.status(404).json({
           success: false,
           message: 'User not found'
@@ -265,6 +363,7 @@ const authController = {
       }
 
       const availability = await Availability.getUserAvailability(req.userId);
+      const accessProfile = getAccessProfile(user.email, req.userRole || 'user');
 
       res.json({
         success: true,
@@ -272,6 +371,8 @@ const authController = {
           id: user._id,
           name: user.name,
           email: user.email,
+          role: accessProfile.role,
+          isSuperAdmin: accessProfile.isSuperAdmin,
           avatar: user.getAvatarUrl(),
           avatarType: user.avatar?.type,
           bio: user.bio,
@@ -471,12 +572,16 @@ const authController = {
         });
       }
 
+      const accessProfile = getAccessProfile(user.email, 'user');
+
       res.json({
         success: true,
         user: {
           id: user._id,
           name: user.name,
           email: user.email,
+          role: accessProfile.role,
+          isSuperAdmin: accessProfile.isSuperAdmin,
           avatar: user.avatar,
           avatarUrl: user.getAvatarUrl(),
           avatarType: user.avatar?.type,

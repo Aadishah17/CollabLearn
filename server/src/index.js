@@ -6,6 +6,9 @@ const compression = require('compression');
 const cors = require('cors');
 require('dotenv').config();
 const { connectDB, resolveMongoUri } = require('./db');
+const { assertJwtSecretConfigured } = require('./config/auth');
+
+assertJwtSecretConfigured();
 
 const app = express();
 const http = require('http');
@@ -49,7 +52,7 @@ if (!fs.existsSync(sessionDocumentUploadsPath)) {
 console.log('-----------------------------------------');
 console.log('DEBUG: SERVER STARTUP');
 console.log('DEBUG: Loaded .env via dotenv');
-console.log('DEBUG: GEMINI_API_KEY Present?', !!process.env.GEMINI_API_KEY);
+console.log('DEBUG: External AI provider key present?', !!process.env.GEMINI_API_KEY);
 console.log('DEBUG: CORS_ORIGINS:', allowedOrigins.join(', '));
 console.log('-----------------------------------------');
 

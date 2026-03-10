@@ -173,11 +173,11 @@ export default function AdminSettings() {
 
                     <SettingsSection
                         icon={Sparkles}
-                        title="AI Configuration (Gemini)"
-                        description="Manage your Google AI Studio API key for powered learning features."
+                        title="Planning Engine Configuration"
+                        description="The website currently runs on the local learning engine. Keep an external provider key here only if you plan to add a hosted AI integration later."
                     >
                         <div className="mb-4">
-                            <label htmlFor="geminiApiKey" className="block text-sm font-medium text-gray-700 mb-1">Gemini API Key</label>
+                            <label htmlFor="geminiApiKey" className="block text-sm font-medium text-gray-700 mb-1">External provider key (optional)</label>
                             <div className="relative max-w-xl">
                                 <input
                                     type="password"
@@ -191,7 +191,7 @@ export default function AdminSettings() {
                                 <Sparkles className="absolute right-3 top-2.5 text-indigo-400" size={18} />
                             </div>
                             <p className="mt-2 text-xs text-gray-500">
-                                Get your key from the <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" className="text-indigo-600 hover:underline">Google AI Studio</a>.
+                                This value is stored for future provider integrations. The current website roadmap flow does not require it.
                             </p>
                         </div>
                     </SettingsSection>

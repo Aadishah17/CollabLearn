@@ -16,12 +16,14 @@ import {
   Sun,
   Play,
   Sparkles,
+  ShieldCheck,
   Book,
   Menu,
   X,
   GraduationCap
 } from 'lucide-react';
-import CollabLearnLogo from '../assets/Collablearn Logo.png';
+import CollabLearnLogo from '../assets/collablearn-logo.svg';
+import { formatAccessLabel, isAdminRole, normalizeStoredRole } from '../auth/access.js';
 import Notification from '../components/Notification';
 import { useTheme } from '../components/user/useTheme.js';
 import { API_URL } from '../config';
@@ -35,6 +37,8 @@ export default function MainNavbar() {
   const [username, setUsername] = useState('Guest');
   const [email, setEmail] = useState('');
   const [isPremium, setIsPremium] = useState(null);
+  const [userRole, setUserRole] = useState('user');
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -50,7 +54,7 @@ export default function MainNavbar() {
   const navLinks = useMemo(() => {
     const links = [
       { path: '/dashboard', label: 'Dashboard', icon: Home },
-      { path: '/ai-learning', label: 'AI Learning', icon: Sparkles, featured: true },
+      { path: '/ai-learning', label: 'Learning Workspace', icon: Sparkles, featured: true },
       { path: '/modules', label: 'Modules', icon: Book },
       { path: '/browse-skills', label: 'Skills', icon: Search },
       { path: '/courses', label: 'Courses', icon: Play },
@@ -64,8 +68,17 @@ export default function MainNavbar() {
       links.push({ path: '/get-premium', label: 'Get Premium', icon: Trophy, premium: true });
     }
 
+    if (isAdminRole(userRole)) {
+      links.push({
+        path: '/admin',
+        label: isSuperAdmin ? 'Super Access' : 'Admin Console',
+        icon: ShieldCheck,
+        admin: true
+      });
+    }
+
     return links;
-  }, [isPremium]);
+  }, [isPremium, isSuperAdmin, userRole]);
 
   const fetchUserData = async () => {
     try {
@@ -80,6 +93,8 @@ export default function MainNavbar() {
           setEmail(storedEmail || '');
         }
         setIsPremium(storedIsPremium !== null ? storedIsPremium === 'true' : false);
+        setUserRole(normalizeStoredRole(localStorage.getItem('userRole')));
+        setIsSuperAdmin(localStorage.getItem('isSuperAdmin') === 'true');
         return;
       }
 
@@ -100,10 +115,14 @@ export default function MainNavbar() {
         setUsername(data.user.name || 'Guest');
         setEmail(data.user.email || '');
         setIsPremium(Boolean(data.user.isPremium));
+        setUserRole(normalizeStoredRole(data.user.role));
+        setIsSuperAdmin(Boolean(data.user.isSuperAdmin));
 
         localStorage.setItem('username', data.user.name || 'Guest');
         localStorage.setItem('email', data.user.email || '');
         localStorage.setItem('isPremium', String(Boolean(data.user.isPremium)));
+        localStorage.setItem('userRole', normalizeStoredRole(data.user.role));
+        localStorage.setItem('isSuperAdmin', String(Boolean(data.user.isSuperAdmin)));
       }
     } catch (error) {
       const storedUsername = localStorage.getItem('username');
@@ -117,6 +136,8 @@ export default function MainNavbar() {
       if (storedIsPremium !== null) {
         setIsPremium(storedIsPremium === 'true');
       }
+      setUserRole(normalizeStoredRole(localStorage.getItem('userRole')));
+      setIsSuperAdmin(localStorage.getItem('isSuperAdmin') === 'true');
       console.error('MainNavbar: Error fetching user data:', error);
     } finally {
       setLoading(false);
@@ -130,6 +151,8 @@ export default function MainNavbar() {
       setUsername(storedUsername);
       setEmail(storedEmail || '');
     }
+    setUserRole(normalizeStoredRole(localStorage.getItem('userRole')));
+    setIsSuperAdmin(localStorage.getItem('isSuperAdmin') === 'true');
 
     fetchUserData();
 
@@ -194,10 +217,18 @@ export default function MainNavbar() {
       if (Object.prototype.hasOwnProperty.call(detail, 'isPremium')) {
         setIsPremium(Boolean(detail.isPremium));
       }
+      if (Object.prototype.hasOwnProperty.call(detail, 'role')) {
+        setUserRole(normalizeStoredRole(detail.role));
+      }
+      if (Object.prototype.hasOwnProperty.call(detail, 'isSuperAdmin')) {
+        setIsSuperAdmin(Boolean(detail.isSuperAdmin));
+      }
       if (!localStorage.getItem('token')) {
         setUsername('Guest');
         setEmail('');
         setIsPremium(false);
+        setUserRole('user');
+        setIsSuperAdmin(false);
       }
     };
 
@@ -238,10 +269,12 @@ export default function MainNavbar() {
 
   const handleLogout = () => {
     clearSession();
-    emitProfileUpdated({ name: 'Guest', email: '', isPremium: false });
+    emitProfileUpdated({ name: 'Guest', email: '', isPremium: false, role: 'user', isSuperAdmin: false });
     setUsername('Guest');
     setEmail('');
     setIsPremium(false);
+    setUserRole('user');
+    setIsSuperAdmin(false);
     setIsDropdownOpen(false);
     navigate('/');
   };
@@ -272,7 +305,9 @@ export default function MainNavbar() {
                   to={link.path}
                   className={`${active ? 'glass-tab glass-tab-active' : 'glass-tab'} ${
                     link.premium && !active ? 'text-amber-200 hover:border-amber-400/40 hover:bg-amber-500/20' : ''
-                  } ${link.featured && !active ? 'hover:bg-rose-500/18' : ''}`}
+                  } ${link.featured && !active ? 'hover:bg-rose-500/18' : ''} ${
+                    link.admin && !active ? 'hover:bg-emerald-500/18 hover:border-emerald-400/40' : ''
+                  }`}
                 >
                   <Icon size={16} />
                   <span>{link.label}</span>
@@ -342,11 +377,27 @@ export default function MainNavbar() {
                           <div className="min-w-0">
                             <p className="font-semibold text-zinc-100 truncate">{loading ? 'Loading...' : username}</p>
                             <p className="text-xs text-zinc-300 truncate">{loading ? '' : email}</p>
+                            <p className="mt-1 text-[11px] font-medium text-emerald-300">
+                              {formatAccessLabel(userRole, isSuperAdmin)}
+                            </p>
                           </div>
                         </div>
                       </div>
 
                       <div className="mt-2 space-y-1">
+                        {isAdminRole(userRole) && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setIsDropdownOpen(false);
+                              navigate('/admin');
+                            }}
+                            className="w-full inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm text-emerald-100 hover:bg-emerald-500/20 transition-colors"
+                          >
+                            <ShieldCheck size={16} />
+                            {isSuperAdmin ? 'Open Super Access' : 'Open Admin Console'}
+                          </button>
+                        )}
                         <button
                           type="button"
                           onClick={() => {
@@ -410,6 +461,9 @@ export default function MainNavbar() {
               <div className="mb-3 rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3">
                 <p className="text-sm font-semibold text-white">{loading ? 'Loading...' : username}</p>
                 <p className="mt-1 text-xs text-zinc-400">{email || 'No email connected'}</p>
+                <p className="mt-2 text-[11px] font-medium text-emerald-300">
+                  {formatAccessLabel(userRole, isSuperAdmin)}
+                </p>
               </div>
             )}
 
@@ -449,6 +503,19 @@ export default function MainNavbar() {
 
             {!isGuest && (
               <div className="mt-3 grid gap-2">
+                {isAdminRole(userRole) && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsMobileMenuOpen(false);
+                      navigate('/admin');
+                    }}
+                    className="inline-flex items-center justify-center gap-2 rounded-xl border border-emerald-500/35 bg-emerald-500/10 py-3 text-sm font-semibold text-emerald-100"
+                  >
+                    <ShieldCheck size={16} />
+                    {isSuperAdmin ? 'Open Super Access' : 'Open Admin Console'}
+                  </button>
+                )}
                 <button
                   type="button"
                   onClick={() => {

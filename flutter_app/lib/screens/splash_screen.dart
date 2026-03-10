@@ -53,9 +53,9 @@ class _SplashScreenState extends State<SplashScreen>
     if (!mounted) return;
 
     if (token != null) {
-      await userProvider.loadProfile();
+      final loaded = await userProvider.loadProfile();
       if (mounted) {
-        Navigator.pushReplacementNamed(context, '/dashboard');
+        Navigator.pushReplacementNamed(context, loaded ? '/dashboard' : '/landing');
       }
     } else {
       Navigator.pushReplacementNamed(context, '/landing');

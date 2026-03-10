@@ -428,7 +428,7 @@ const Dashboard = React.memo(() => {
 
                 <div className="mt-7 flex flex-col gap-3 sm:flex-row">
                   <button onClick={() => navigate("/ai-learning")} className="glass-cta">
-                    Open AI learning
+                    Open learning workspace
                   </button>
                   <button
                     onClick={() => navigate("/browse-skills")}
@@ -567,7 +567,7 @@ const Dashboard = React.memo(() => {
                     <BookOpen size={24} />
                   </div>
                   <h3 className="text-xl font-bold text-gray-800 dark:text-white">
-                    AI Learning Studio
+                    Learning Workspace
                   </h3>
                 </div>
                 <p className="text-gray-600 dark:text-gray-300 mb-6">
@@ -578,7 +578,7 @@ const Dashboard = React.memo(() => {
                   onClick={() => navigate("/ai-learning")}
                   className="w-full py-3 bg-white/8 text-zinc-100 font-bold rounded-lg border border-white/15 hover:border-red-500/55 hover:bg-red-500/18 hover:text-red-200 transition-all flex items-center justify-center gap-2"
                 >
-                  Open AI Learning <Clock size={16} />
+                  Open learning workspace <Clock size={16} />
                 </button>
               </div>
             </div>

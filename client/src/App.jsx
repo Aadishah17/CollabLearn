@@ -58,7 +58,7 @@ function App() {
           <Route path="/" element={<CollabLearnLanding />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/signup" element={<SignupPage />} />
-          <Route path="/admin" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
+          <Route path="/admin" element={<ProtectedRoute requiredRole="admin"><AdminDashboard /></ProtectedRoute>} />
           <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
           <Route path="/modules" element={<ProtectedRoute><ModuleDashboard /></ProtectedRoute>} />
           <Route path="/modules/create" element={<ProtectedRoute><ModuleEditor /></ProtectedRoute>} />
@@ -77,10 +77,10 @@ function App() {
           <Route path="/video-call" element={<ProtectedRoute><VideoCall /></ProtectedRoute>} />
           <Route path="/video-call/:roomID" element={<ProtectedRoute><VideoCall /></ProtectedRoute>} />
           <Route path="/ai-learning" element={<ProtectedRoute><AiLearningPage /></ProtectedRoute>} />
-          <Route path="/admin/manage-users" element={<ProtectedRoute><ManageUsers /></ProtectedRoute>} />
-          <Route path="/admin/manage-posts" element={<ProtectedRoute><ManagePosts /></ProtectedRoute>} />
-          <Route path="/admin/analytics" element={<ProtectedRoute><AnalyticsDashboard /></ProtectedRoute>} />
-          <Route path="/admin/settings" element={<ProtectedRoute><AdminSettings /></ProtectedRoute>} />
+          <Route path="/admin/manage-users" element={<ProtectedRoute requiredRole="admin"><ManageUsers /></ProtectedRoute>} />
+          <Route path="/admin/manage-posts" element={<ProtectedRoute requiredRole="admin"><ManagePosts /></ProtectedRoute>} />
+          <Route path="/admin/analytics" element={<ProtectedRoute requiredRole="admin"><AnalyticsDashboard /></ProtectedRoute>} />
+          <Route path="/admin/settings" element={<ProtectedRoute requiredRole="admin"><AdminSettings /></ProtectedRoute>} />
           <Route path="/get-premium" element={<ProtectedRoute><GetPremium /></ProtectedRoute>} />
           <Route path="/payment" element={<ProtectedRoute><GooglePayExample /></ProtectedRoute>} />
           <Route path="/courses" element={<ProtectedRoute><Courses /></ProtectedRoute>} />

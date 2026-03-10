@@ -53,6 +53,15 @@ const buildAuthHeaders = () => {
   };
 };
 
+const formatProviderLabel = (provider) => {
+  if (!provider) return 'Local learning engine';
+  if (provider === 'local-basic-engine') return 'Local learning engine';
+  if (provider === 'fallback') return 'Fallback planner';
+  return String(provider).replace(/[-_]/g, ' ');
+};
+
+const formatSourceLabel = (source) => (source === 'ai' ? 'Engine-generated plan' : 'Fallback plan');
+
 const AiLearningPage = () => {
   const [formState, setFormState] = useState(defaultFormState);
   const [roadmap, setRoadmap] = useState(null);
@@ -137,15 +146,15 @@ const AiLearningPage = () => {
       const data = await response.json();
 
       if (!response.ok || !data.success) {
-        throw new Error(data.message || 'Failed to fetch AI Studio status');
+        throw new Error(data.message || 'Failed to fetch learning engine status');
       }
 
       setStudioStatus(data);
     } catch (err) {
-      console.error('AI Studio status error:', err);
+      console.error('Learning engine status error:', err);
       setStudioStatus({
         configured: false,
-        provider: 'google-ai-studio',
+        provider: 'local-basic-engine',
         modelCandidates: []
       });
     }
@@ -228,7 +237,7 @@ const AiLearningPage = () => {
     setRoadmap(plan.plan || null);
     setRoadmapMeta({
       source: plan.source || 'fallback',
-      provider: plan.source === 'ai' ? 'google-ai-studio' : 'fallback',
+      provider: plan.provider || (plan.source === 'ai' ? 'local-basic-engine' : 'fallback'),
       model: null
     });
     setSavedPlanId(plan._id || null);
@@ -321,14 +330,14 @@ const AiLearningPage = () => {
       const data = await response.json();
 
       if (!response.ok || !data.success) {
-        throw new Error(data.message || 'AI Studio verification failed');
+        throw new Error(data.message || 'Learning engine verification failed');
       }
 
-      toast.success(`AI Studio connected (${data.model || 'model selected'})`);
+      toast.success(`Learning engine ready (${data.model || 'default model'})`);
       fetchStudioStatus();
     } catch (err) {
-      console.error('AI Studio verify error:', err);
-      toast.error(err.message || 'Could not verify AI Studio connection');
+      console.error('Learning engine verify error:', err);
+      toast.error(err.message || 'Could not verify the learning engine');
     } finally {
       setCheckingStudio(false);
     }
@@ -481,7 +490,7 @@ const AiLearningPage = () => {
                 <div>
                   <p className="inline-flex items-center gap-2 text-xs uppercase tracking-wide text-red-400 font-semibold">
                     <Sparkles size={14} />
-                    AI Learning Studio
+                    AI Learning Workspace
                   </p>
                   <h1 className="text-2xl md:text-3xl font-bold mt-2">Build your personalized skill roadmap</h1>
                   <p className="text-zinc-400 mt-2 text-sm">
@@ -497,20 +506,20 @@ const AiLearningPage = () => {
                     }`}
                   >
                     {studioStatus?.configured ? <ShieldCheck size={14} /> : <CircleAlert size={14} />}
-                    {studioStatus?.configured ? 'AI Studio Connected' : 'AI Studio Not Configured'}
+                    {studioStatus?.configured ? 'Learning Engine Ready' : 'Learning Engine Offline'}
                   </span>
 
                   {studioStatus?.modelCandidates?.[0] && (
                     <span className="glass-chip border-white/20">
                       <Cpu size={14} />
-                      {studioStatus.modelCandidates[0]}
+                      {formatProviderLabel(studioStatus.provider)}: {studioStatus.modelCandidates[0]}
                     </span>
                   )}
 
                   {roadmapMeta.source && (
                     <span className="glass-chip border-white/20">
                       <Sparkles size={14} />
-                      {roadmapMeta.source === 'ai' ? 'AI-generated plan' : 'Fallback plan'}
+                      {formatSourceLabel(roadmapMeta.source)}
                     </span>
                   )}
 
@@ -520,7 +529,7 @@ const AiLearningPage = () => {
                     disabled={checkingStudio}
                     className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-white/6 border border-white/12 hover:border-red-500/65 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                   >
-                    {checkingStudio ? 'Verifying...' : 'Verify AI Studio'}
+                    {checkingStudio ? 'Verifying...' : 'Verify Learning Engine'}
                   </button>
 
                   <button
@@ -615,8 +624,8 @@ const AiLearningPage = () => {
                     disabled={loadingRoadmap}
                     className="w-full md:w-auto glass-cta px-6 py-3 disabled:opacity-60 disabled:cursor-not-allowed font-semibold"
                   >
-                    {loadingRoadmap ? 'Generating plan...' : 'Generate AI roadmap'}
-                  </button>
+                     {loadingRoadmap ? 'Generating plan...' : 'Generate roadmap'}
+                   </button>
                 </div>
               </form>
 

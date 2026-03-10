@@ -6,6 +6,7 @@ const SESSION_KEYS = [
   'email',
   'isPremium',
   'userRole',
+  'isSuperAdmin',
 ];
 
 export function persistSession({ token, user }) {
@@ -23,6 +24,7 @@ export function persistSession({ token, user }) {
   localStorage.setItem('email', user.email || '');
   localStorage.setItem('isPremium', String(Boolean(user.isPremium)));
   localStorage.setItem('userRole', user.role || 'user');
+  localStorage.setItem('isSuperAdmin', String(Boolean(user.isSuperAdmin)));
 }
 
 export function clearSession() {
