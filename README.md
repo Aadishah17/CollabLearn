@@ -63,6 +63,15 @@ The repository contains:
    - Frontend: `http://localhost:5173`
    - Backend: `http://localhost:5001`
 
+## GitHub Update Workflow
+
+If you want to publish updates from this repository, use a short commit + PR flow:
+
+1. Create a branch for your change.
+2. Run `git status` to verify only intended files are modified.
+3. Commit with a clear message (for example: `docs: refresh README workflow notes`).
+4. Open a pull request to merge your branch into the target branch.
+
 ## Utility Scripts
 
 The project includes several root-level scripts for development and maintenance:
