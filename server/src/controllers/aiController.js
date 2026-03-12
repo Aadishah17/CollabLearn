@@ -1,5 +1,32 @@
 const jwt = require('jsonwebtoken');
 const LearningPlan = require('../models/LearningPlan');
+const { GoogleGenerativeAI } = require('@google/generative-ai');
+
+// --- Gemini SDK Initialization ---
+const GEMINI_API_KEY = (process.env.GEMINI_API_KEY || '').trim();
+let genAI = null;
+let geminiModel = null;
+
+const GEMINI_MODEL_NAME = 'gemini-2.0-flash';
+
+if (GEMINI_API_KEY && !isPlaceholderApiKeyRaw(GEMINI_API_KEY)) {
+  genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
+  geminiModel = genAI.getGenerativeModel({ model: GEMINI_MODEL_NAME });
+  console.log(`[AI] Gemini API initialized with model: ${GEMINI_MODEL_NAME}`);
+} else {
+  console.warn('[AI] No valid GEMINI_API_KEY found. AI features will use fallback engine.');
+}
+
+function isPlaceholderApiKeyRaw(key) {
+  const normalized = String(key || '').trim().toLowerCase();
+  if (!normalized) return true;
+  const knownPlaceholders = [
+    'your_gemini_api_key', 'your_gemini_api_key_here',
+    'replace_with_gemini_api_key', 'replace-with-gemini-api-key',
+    'your-google-ai-studio-api-key'
+  ];
+  return knownPlaceholders.includes(normalized);
+}
 
 let customTrainingData = null;
 try {
@@ -73,6 +100,14 @@ const isPlaceholderApiKey = (apiKey) => {
 };
 
 const buildAiStudioConfig = async () => {
+  if (geminiModel) {
+    return {
+      provider: 'gemini',
+      configured: true,
+      modelCandidates: [GEMINI_MODEL_NAME],
+      generationConfig: { temperature: 0.7, maxOutputTokens: 4096 }
+    };
+  }
   return {
     provider: 'local-basic-engine',
     configured: true,
@@ -82,10 +117,10 @@ const buildAiStudioConfig = async () => {
 };
 
 let AI_STUDIO_CONFIG = {
-  provider: 'local-basic-engine',
+  provider: geminiModel ? 'gemini' : 'local-basic-engine',
   configured: true,
-  modelCandidates: ['local-basic-engine'],
-  generationConfig: {}
+  modelCandidates: geminiModel ? [GEMINI_MODEL_NAME] : ['local-basic-engine'],
+  generationConfig: geminiModel ? { temperature: 0.7, maxOutputTokens: 4096 } : {}
 };
 
 const refreshAiStudioConfig = async () => {
@@ -938,9 +973,40 @@ Rules:
 `.trim();
 };
 
-// Independent internal engine functions (no external fetch calls needed)
+// --- AI Generation Functions (Gemini API with fallback) ---
+
+const callGemini = async (prompt) => {
+  if (!geminiModel) {
+    throw new Error('Gemini model not initialized');
+  }
+  const result = await geminiModel.generateContent(prompt);
+  const response = result.response;
+  return response.text();
+};
 
 const createRoadmap = async (input) => {
+  // Try Gemini API first
+  if (geminiModel) {
+    try {
+      const prompt = buildRoadmapPrompt(input);
+      console.log('[AI] Calling Gemini API for roadmap generation...');
+      const responseText = await callGemini(prompt);
+      const parsedRoadmap = parseJsonWithCleanup(responseText);
+      const normalizedRoadmap = normalizeRoadmap(parsedRoadmap, input);
+      const enriched = await applyBestVideoGuidance(normalizedRoadmap, input);
+      console.log('[AI] Gemini roadmap generated successfully.');
+      return {
+        roadmap: enriched.roadmap,
+        source: 'ai',
+        model: GEMINI_MODEL_NAME,
+        videoGuidance: enriched.videoGuidance
+      };
+    } catch (error) {
+      console.error('[AI] Gemini roadmap generation failed, using fallback:', error.message);
+    }
+  }
+
+  // Fallback to local engine
   try {
     const fallbackRoadmap = buildFallbackRoadmap(input);
     const enrichedFallback = await applyBestVideoGuidance(fallbackRoadmap, input);
@@ -951,7 +1017,7 @@ const createRoadmap = async (input) => {
       videoGuidance: enrichedFallback.videoGuidance
     };
   } catch (error) {
-    console.error('Basic Engine roadmap generation failed:', error.message);
+    console.error('Fallback roadmap generation failed:', error.message);
     const fallbackRoadmap = buildFallbackRoadmap(input);
     return {
       roadmap: fallbackRoadmap,
@@ -1030,25 +1096,34 @@ const chat = async (req, res) => {
 
     const chatPrompt = buildChatPrompt({ message, skillContext, learnerLevel, context });
 
-    try {
-      await refreshAiStudioConfig();
-      return res.json({
-        success: true,
-        response: buildFallbackChatResponse({ message, skillContext, learnerLevel, context }),
-        source: 'basic-engine',
-        provider: AI_STUDIO_CONFIG.provider,
-        model: 'local-basic-engine'
-      });
-    } catch (error) {
-      console.error('Basic Engine chat failed:', error.message);
-      return res.json({
-        success: true,
-        response: buildFallbackChatResponse({ message, skillContext, learnerLevel, context }),
-        source: 'basic-engine',
-        provider: AI_STUDIO_CONFIG.provider,
-        model: 'local-basic-engine'
-      });
+    // Try Gemini API first
+    if (geminiModel) {
+      try {
+        await refreshAiStudioConfig();
+        console.log('[AI] Calling Gemini API for chat...');
+        const responseText = await callGemini(chatPrompt);
+        console.log('[AI] Gemini chat response received.');
+        return res.json({
+          success: true,
+          response: responseText,
+          source: 'ai',
+          provider: 'gemini',
+          model: GEMINI_MODEL_NAME
+        });
+      } catch (error) {
+        console.error('[AI] Gemini chat failed, using fallback:', error.message);
+      }
     }
+
+    // Fallback
+    await refreshAiStudioConfig();
+    return res.json({
+      success: true,
+      response: buildFallbackChatResponse({ message, skillContext, learnerLevel, context }),
+      source: 'basic-engine',
+      provider: AI_STUDIO_CONFIG.provider,
+      model: 'local-basic-engine'
+    });
   } catch (error) {
     console.error('AI Chat error:', error);
     return res.status(500).json({
@@ -1181,10 +1256,26 @@ Rules:
 };
 
 const createStudySession = async (input) => {
+  // Try Gemini API first
+  if (geminiModel) {
+    try {
+      const prompt = buildStudySessionPrompt(input);
+      console.log('[AI] Calling Gemini API for study session...');
+      const responseText = await callGemini(prompt);
+      const parsedSession = parseJsonWithCleanup(responseText);
+      const normalizedSession = normalizeStudySession(parsedSession, input);
+      console.log('[AI] Gemini study session generated successfully.');
+      return { session: normalizedSession, source: 'ai', model: GEMINI_MODEL_NAME };
+    } catch (error) {
+      console.error('[AI] Gemini study session failed, using fallback:', error.message);
+    }
+  }
+
+  // Fallback
   try {
     return { session: buildFallbackStudySession(input), source: 'basic-engine', model: 'local-basic-engine' };
   } catch (error) {
-    console.error('Basic Engine study session generation failed:', error.message);
+    console.error('Fallback study session generation failed:', error.message);
     return { session: buildFallbackStudySession(input), source: 'basic-engine', model: 'local-basic-engine' };
   }
 };
@@ -1386,14 +1477,39 @@ const getStudioStatus = async (_req, res) => {
 
 const testStudioConnection = async (req, res) => {
   const startedAt = Date.now();
-  
+
+  if (geminiModel) {
+    try {
+      const result = await geminiModel.generateContent('Say "Gemini is connected to CollabLearn" in exactly those words.');
+      const preview = result.response.text().slice(0, 200);
+      return res.json({
+        success: true,
+        provider: 'gemini',
+        configured: true,
+        model: GEMINI_MODEL_NAME,
+        latencyMs: Date.now() - startedAt,
+        preview
+      });
+    } catch (error) {
+      return res.json({
+        success: false,
+        provider: 'gemini',
+        configured: true,
+        model: GEMINI_MODEL_NAME,
+        latencyMs: Date.now() - startedAt,
+        preview: `Gemini connection failed: ${error.message}`,
+        error: error.message
+      });
+    }
+  }
+
   return res.json({
     success: true,
-    provider: AI_STUDIO_CONFIG.provider,
+    provider: 'local-basic-engine',
     configured: true,
     model: 'local-basic-engine',
     latencyMs: Date.now() - startedAt,
-    preview: "CollabLearn Local Engine connection is working."
+    preview: 'CollabLearn Local Engine connection is working. Set GEMINI_API_KEY for AI-powered responses.'
   });
 };
 

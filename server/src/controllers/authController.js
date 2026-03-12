@@ -170,6 +170,16 @@ const authController = {
         });
       }
 
+      if (error.name === 'ValidationError') {
+        const messages = Object.values(error.errors || {})
+          .map((detail) => detail && detail.message)
+          .filter(Boolean);
+        return res.status(400).json({
+          success: false,
+          message: messages[0] || 'Invalid registration details'
+        });
+      }
+
       res.status(500).json({
         success: false,
         message: 'Server error during registration',
