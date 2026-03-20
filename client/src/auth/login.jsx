@@ -35,6 +35,28 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
+  const roleSummary = {
+    user: 'Resume your roadmap, sessions, and community threads from the same workspace.',
+    admin: 'Use the admin console to manage users, moderation, analytics, and platform settings.',
+  };
+
+  const nextStepCards = [
+    {
+      title: 'Sign in once',
+      copy: 'Your session is restored on this device and your profile stays in sync.',
+    },
+    {
+      title: 'Pick a lane',
+      copy: selectedRole === 'admin'
+        ? 'Admin access opens the protected management dashboard.'
+        : 'Learner access opens your dashboard, roadmap, and study flow.',
+    },
+    {
+      title: 'Continue cleanly',
+      copy: 'Pick up where you left off without rebuilding your account state.',
+    },
+  ];
+
   useEffect(() => {
     const token = localStorage.getItem('token');
     const storedRole = localStorage.getItem('userRole');
@@ -81,6 +103,17 @@ export default function LoginPage() {
         { value: '4x', label: 'weekly accountability loops' },
         { value: '1', label: 'workspace for learning' },
       ],
+      workspacePreview: {
+        eyebrow: 'What opens after sign in',
+        title: 'Pick up the next meaningful step.',
+        items: [
+          'Resume the current roadmap step without rebuilding context.',
+          'Check upcoming mentor sessions and calendar commitments in one place.',
+          'Re-enter community and direct messages with your progress already synced.',
+        ],
+        footer:
+          'The login flow should drop you back into motion, not make you reconstruct the plan from memory.',
+      },
     }),
     [],
   );
@@ -177,7 +210,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="glass-page relative flex min-h-screen overflow-x-hidden">
+    <div className="glass-page relative flex min-h-screen flex-col overflow-x-hidden lg:flex-row">
       <div className="pointer-events-none absolute left-[-10%] top-20 h-72 w-72 rounded-full bg-red-500/12 blur-[120px]" />
       <div className="pointer-events-none absolute bottom-[-12%] right-[-8%] h-80 w-80 rounded-full bg-blue-500/12 blur-[140px]" />
 
@@ -207,6 +240,29 @@ export default function LoginPage() {
                 : 'Sign in to reopen your roadmap, upcoming sessions, and the conversations keeping your progress moving.'}
             </p>
 
+            <div className="mt-6 grid gap-3 sm:grid-cols-2">
+              {nextStepCards.map((card, index) => (
+                <div
+                  key={card.title}
+                  className={`rounded-[22px] border border-white/10 bg-white/[0.03] p-4 ${
+                    index === nextStepCards.length - 1 ? 'sm:col-span-2' : ''
+                  }`}
+                >
+                  <p className="text-xs font-semibold uppercase tracking-[0.24em] text-zinc-400">
+                    {card.title}
+                  </p>
+                  <p className="mt-2 text-sm leading-6 text-zinc-200">{card.copy}</p>
+                </div>
+              ))}
+            </div>
+
+            <div className="mt-5 rounded-[24px] border border-white/10 bg-white/[0.03] p-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-zinc-400">
+                Current access
+              </p>
+              <p className="mt-2 text-sm leading-7 text-zinc-200">{roleSummary[selectedRole]}</p>
+            </div>
+
             <form onSubmit={handleLogin} className="mt-8 space-y-5">
               <div>
                 <span className="mb-2 block text-sm font-medium text-zinc-200">Account type</span>
@@ -234,6 +290,11 @@ export default function LoginPage() {
                     Admin
                   </button>
                 </div>
+                <p className="mt-2 text-xs leading-6 text-zinc-400">
+                  {selectedRole === 'admin'
+                    ? 'Admin accounts are protected and stay separate from learner sign-ins.'
+                    : 'Learner accounts get Google sign-in when this deployment is configured for it.'}
+                </p>
               </div>
 
               <div>
@@ -276,6 +337,9 @@ export default function LoginPage() {
                     {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                   </button>
                 </div>
+                <p className="mt-2 text-xs leading-6 text-zinc-400">
+                  Use the password tied to this account. Password recovery is not part of this build.
+                </p>
               </div>
 
               <div className="flex flex-col gap-3 rounded-2xl border border-white/10 bg-white/[0.03] p-4 sm:flex-row sm:items-center sm:justify-between">
@@ -294,10 +358,10 @@ export default function LoginPage() {
               </div>
 
               <button
-                type="submit"
-                disabled={loading}
-                className="glass-cta w-full py-3.5 text-base disabled:cursor-not-allowed disabled:opacity-70"
-              >
+                  type="submit"
+                  disabled={loading}
+                  className="glass-cta w-full py-3.5 text-base disabled:cursor-not-allowed disabled:opacity-70"
+                >
                 {loading ? (
                   <>
                     <Loader2 size={20} className="animate-spin" />
@@ -305,7 +369,7 @@ export default function LoginPage() {
                   </>
                 ) : (
                   <>
-                    {selectedRole === 'admin' ? 'Enter admin workspace' : 'Sign in'}
+                    {selectedRole === 'admin' ? 'Open admin workspace' : 'Open learner workspace'}
                     <ArrowRight size={20} />
                   </>
                 )}
@@ -341,8 +405,7 @@ export default function LoginPage() {
                 </div>
               ) : (
                 <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-4 text-sm leading-7 text-zinc-300">
-                  Google sign-in is hidden until `VITE_GOOGLE_CLIENT_ID` is configured for this
-                  deployment.
+                  Google sign-in appears when `VITE_GOOGLE_CLIENT_ID` is configured for this deployment.
                 </div>
               )}
             </form>
@@ -365,6 +428,7 @@ export default function LoginPage() {
         title="Turn daily effort into visible weekly progress."
         description="CollabLearn gives you one place to plan, practice, ask for help, and keep the next action obvious."
         highlights={showcaseContent.highlights}
+        workspacePreview={showcaseContent.workspacePreview}
         quote="The roadmap and mentor touchpoints stopped my learning from falling apart after the first week."
         quoteAttribution="Product learner feedback"
         stats={showcaseContent.stats}

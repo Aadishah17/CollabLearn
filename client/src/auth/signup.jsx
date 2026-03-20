@@ -32,6 +32,21 @@ export default function SignupPage() {
   const [passwordsMatch, setPasswordsMatch] = useState(true);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
 
+  const signupSteps = [
+    {
+      title: 'Create the account',
+      copy: 'Start with your name, email, and a password that unlocks your workspace.',
+    },
+    {
+      title: 'Set the rhythm',
+      copy: 'Your first roadmap uses the level, timeline, and weekly hours you provide next.',
+    },
+    {
+      title: 'Keep momentum',
+      copy: 'Mentor sessions, community posts, and study progress all live in the same flow.',
+    },
+  ];
+
   useEffect(() => {
     const token = localStorage.getItem('token');
     const storedRole = localStorage.getItem('userRole');
@@ -76,6 +91,17 @@ export default function SignupPage() {
         { value: '3', label: 'core workflows in one app' },
         { value: '0', label: 'extra tools required' },
       ],
+      workspacePreview: {
+        eyebrow: 'What opens immediately',
+        title: 'Start with clarity, not setup drag.',
+        items: [
+          'Generate your first roadmap from level, timeline, and weekly availability.',
+          'Turn that plan into mentor sessions, study blocks, and visible progress markers.',
+          'Keep the feedback loop active through community posts and direct support.',
+        ],
+        footer:
+          'A new account should feel like the start of a working system, not the start of more coordination overhead.',
+      },
     }),
     [],
   );
@@ -169,7 +195,7 @@ export default function SignupPage() {
   };
 
   return (
-    <div className="glass-page relative flex min-h-screen overflow-x-hidden">
+    <div className="glass-page relative flex min-h-screen flex-col overflow-x-hidden lg:flex-row">
       <div className="pointer-events-none absolute left-[-10%] top-24 h-72 w-72 rounded-full bg-red-500/12 blur-[120px]" />
       <div className="pointer-events-none absolute bottom-[-12%] right-[-8%] h-80 w-80 rounded-full bg-blue-500/12 blur-[140px]" />
 
@@ -197,6 +223,31 @@ export default function SignupPage() {
               Create an account to start with a guided roadmap, make time for mentor
               sessions, and keep progress visible from week one.
             </p>
+
+            <div className="mt-6 grid gap-3 sm:grid-cols-2">
+              {signupSteps.map((step, index) => (
+                <div
+                  key={step.title}
+                  className={`rounded-[22px] border border-white/10 bg-white/[0.03] p-4 ${
+                    index === signupSteps.length - 1 ? 'sm:col-span-2' : ''
+                  }`}
+                >
+                  <p className="text-xs font-semibold uppercase tracking-[0.24em] text-zinc-400">
+                    {step.title}
+                  </p>
+                  <p className="mt-2 text-sm leading-6 text-zinc-200">{step.copy}</p>
+                </div>
+              ))}
+            </div>
+
+            <div className="mt-5 rounded-[24px] border border-white/10 bg-white/[0.03] p-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-zinc-400">
+                What you unlock
+              </p>
+              <p className="mt-2 text-sm leading-7 text-zinc-200">
+                Roadmaps, mentor booking, community feedback, and saved progress across sessions.
+              </p>
+            </div>
 
             <form onSubmit={handleSignup} className="mt-8 space-y-5">
               <div>
@@ -236,7 +287,7 @@ export default function SignupPage() {
                   <label htmlFor="signup-password" className="mb-2 block text-sm font-medium text-zinc-200">
                     Password
                   </label>
-                  <div className="relative">
+                <div className="relative">
                     <input
                       id="signup-password"
                       type={showPassword ? 'text' : 'password'}
@@ -257,6 +308,9 @@ export default function SignupPage() {
                       {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                     </button>
                   </div>
+                  <p className="mt-2 text-xs leading-6 text-zinc-400">
+                    Use at least 6 characters. Stronger passwords make your workspace easier to keep secure.
+                  </p>
                 </div>
 
                 <div>
@@ -320,7 +374,7 @@ export default function SignupPage() {
                   </>
                 ) : (
                   <>
-                    Create account
+                    Create my workspace
                     <ArrowRight size={20} />
                   </>
                 )}
@@ -352,8 +406,7 @@ export default function SignupPage() {
                 </>
               ) : (
                 <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-4 text-sm leading-7 text-zinc-300">
-                  Google sign-up is hidden until `VITE_GOOGLE_CLIENT_ID` is configured for this
-                  deployment.
+                  Google sign-up appears when `VITE_GOOGLE_CLIENT_ID` is configured for this deployment.
                 </div>
               )}
             </form>
@@ -376,6 +429,7 @@ export default function SignupPage() {
         title="Start with clarity instead of collecting random resources."
         description="CollabLearn gives new users a cleaner starting point: define the goal, map the work, and keep accountability nearby."
         highlights={showcaseContent.highlights}
+        workspacePreview={showcaseContent.workspacePreview}
         quote="I stopped restarting from scratch every Sunday because the next step was already planned."
         quoteAttribution="New learner feedback"
         stats={showcaseContent.stats}
