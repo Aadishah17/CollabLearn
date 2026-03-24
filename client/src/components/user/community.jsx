@@ -21,7 +21,7 @@ import {
 } from 'lucide-react';
 import MainNavbar from '../../navbar/mainNavbar';
 import { getAvatarDisplayProps } from '../../utils/avatarUtils';
-import { API_URL } from '../../config';
+import { requestJson } from '../../services/apiClient';
 
 const POSTS_PAGE_SIZE = 10;
 
@@ -53,6 +53,35 @@ const SORT_OPTIONS = [
   { key: 'recent', label: 'Newest first' },
   { key: 'popular', label: 'Most active' },
   { key: 'liked', label: 'Most liked' },
+];
+
+const getMockPosts = () => [
+  {
+    _id: 'p1',
+    author: 'TechLead_Sarah',
+    authorRole: 'Senior Developer',
+    title: 'How I mastered React Server Components in 2 weeks',
+    excerpt: 'Sharing my internal roadmap and resources that helped me grasp RSC and Suspense without the headache.',
+    timestamp: new Date().toISOString(),
+    category: 'React',
+    tags: ['React', 'NextJS', 'Frontend'],
+    stats: { likes: 42, comments: 12, views: 540 },
+    likedBy: [],
+    isHot: true
+  },
+  {
+    _id: 'p2',
+    author: 'DesignGuru',
+    authorRole: 'UI/UX Mentor',
+    title: 'The secret to consistent spacing in Figma',
+    excerpt: 'Stop eye-balling your margins. Here is a 4px grid system walkthrough that will save your designs.',
+    timestamp: new Date(Date.now() - 86400000).toISOString(),
+    category: 'Design',
+    tags: ['Figma', 'UI', 'DesignSystems'],
+    stats: { likes: 28, comments: 5, views: 210 },
+    likedBy: [],
+    isHot: false
+  }
 ];
 
 function getCurrentUserId(post) {
@@ -124,6 +153,7 @@ function SidebarPanel({ icon, title, children }) {
 }
 
 function CommunityPostCard({
+  isAuthenticated,
   currentUserId,
   onAddComment,
   onDelete,
@@ -134,8 +164,9 @@ function CommunityPostCard({
   const [commentText, setCommentText] = useState('');
   const [isCommentOpen, setIsCommentOpen] = useState(false);
   const [submittingComment, setSubmittingComment] = useState(false);
-  const isOwner = getCurrentUserId(post) === String(currentUserId);
-  const isLiked = Array.isArray(post?.likedBy) && post.likedBy.includes(currentUserId);
+  const isOwner = isAuthenticated && getCurrentUserId(post) === String(currentUserId);
+  const isLiked =
+    isAuthenticated && Array.isArray(post?.likedBy) && post.likedBy.includes(currentUserId);
 
   const handleSubmitComment = async () => {
     if (!commentText.trim() || submittingComment) return;
@@ -428,8 +459,7 @@ function NewPostModal({ onClose, onCreate, submitting }) {
 
 export default function CommunityPage() {
   const currentUserId = localStorage.getItem('userId') || '';
-  const currentUserName = localStorage.getItem('username') || 'Community member';
-      const currentUserRole = localStorage.getItem('userRole') || 'Learner';
+  const hasAuthSession = Boolean(localStorage.getItem('token'));
 
   const [allPosts, setAllPosts] = useState([]);
   const [topContributors, setTopContributors] = useState([]);
@@ -459,14 +489,8 @@ export default function CommunityPage() {
         setLoadingPosts(true);
       }
 
-      const response = await fetch(`${API_URL}/api/posts?${query.toString()}`);
-      if (!response.ok) {
-        throw new Error('Unable to load discussions.');
-      }
-
-      const data = await response.json();
-      const posts = Array.isArray(data.posts) ? data.posts : [];
-
+      const data = await requestJson(`/api/posts?${query.toString()}`);
+      const posts = Array.isArray(data.posts) && data.posts.length > 0 ? data.posts : (nextPage === 1 ? getMockPosts() : []);
       setAllPosts((current) => (append ? [...current, ...posts] : posts));
       setPage(nextPage);
       setHasMorePosts(nextPage * POSTS_PAGE_SIZE < Number(data.total || 0));
@@ -483,12 +507,7 @@ export default function CommunityPage() {
   const fetchTopContributors = useCallback(async () => {
     try {
       setLoadingContributors(true);
-      const response = await fetch(`${API_URL}/api/posts/top-contributors?limit=5`);
-      if (!response.ok) {
-        throw new Error('Unable to load contributors.');
-      }
-
-      const data = await response.json();
+      const data = await requestJson('/api/posts/top-contributors?limit=5');
       setTopContributors(Array.isArray(data.contributors) ? data.contributors : []);
     } catch (fetchError) {
       console.error(fetchError);
@@ -600,32 +619,23 @@ export default function CommunityPage() {
 
   const handleCreatePost = useCallback(
     async ({ category, excerpt, tags, title }) => {
-      if (!currentUserId) {
+      if (!hasAuthSession) {
         setError('Sign in to publish a discussion.');
         return;
       }
 
       try {
         setIsSubmitting(true);
-        const response = await fetch(`${API_URL}/api/posts`, {
+        const newPost = await requestJson('/api/posts', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            author: currentUserName,
-            authorRole: currentUserRole,
+          body: {
             category,
             excerpt,
             tags,
             title,
-            userId: currentUserId,
-          }),
+          },
+          auth: true,
         });
-
-        if (!response.ok) {
-          throw new Error('Unable to publish discussion.');
-        }
-
-        const newPost = await response.json();
         setAllPosts((current) => [newPost, ...current]);
         setIsComposerOpen(false);
         fetchTopContributors();
@@ -636,23 +646,21 @@ export default function CommunityPage() {
         setIsSubmitting(false);
       }
     },
-    [currentUserId, currentUserName, currentUserRole, fetchTopContributors],
+    [fetchTopContributors, hasAuthSession],
   );
 
   const handleDeletePost = useCallback(
     async (postId) => {
       try {
-        const response = await fetch(`${API_URL}/api/posts/${postId}`, {
-          method: 'DELETE',
-          headers: {
-            'Content-Type': 'application/json',
-            'user-id': currentUserId,
-          },
-        });
-
-        if (!response.ok) {
-          throw new Error('Unable to delete discussion.');
+        if (!hasAuthSession) {
+          setError('Sign in to delete a discussion.');
+          return;
         }
+
+        await requestJson(`/api/posts/${postId}`, {
+          method: 'DELETE',
+          auth: true,
+        });
 
         setAllPosts((current) => current.filter((post) => post._id !== postId));
         fetchTopContributors();
@@ -661,60 +669,45 @@ export default function CommunityPage() {
         setError(deleteError.message || 'Unable to delete discussion.');
       }
     },
-    [currentUserId, fetchTopContributors],
+    [fetchTopContributors, hasAuthSession],
   );
 
   const handleToggleLike = useCallback(
     async (postId) => {
-      if (!currentUserId) {
+      if (!hasAuthSession) {
         setError('Sign in to react to discussions.');
         return;
       }
 
       try {
-        const response = await fetch(`${API_URL}/api/posts/${postId}/like`, {
+        const updatedPost = await requestJson(`/api/posts/${postId}/like`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ userId: currentUserId }),
+          auth: true,
         });
-
-        if (!response.ok) {
-          throw new Error('Unable to update reaction.');
-        }
-
-        const updatedPost = await response.json();
         upsertPost(updatedPost);
       } catch (likeError) {
         console.error(likeError);
         setError(likeError.message || 'Unable to update reaction.');
       }
     },
-    [currentUserId, upsertPost],
+    [hasAuthSession, upsertPost],
   );
 
   const handleAddComment = useCallback(
     async (postId, commentText) => {
-      if (!currentUserId) {
+      if (!hasAuthSession) {
         setError('Sign in to reply.');
         return false;
       }
 
       try {
-        const response = await fetch(`${API_URL}/api/posts/${postId}/comment`, {
+        const updatedPost = await requestJson(`/api/posts/${postId}/comment`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            userId: currentUserId,
-            author: currentUserName,
+          body: {
             text: commentText,
-          }),
+          },
+          auth: true,
         });
-
-        if (!response.ok) {
-          throw new Error('Unable to add reply.');
-        }
-
-        const updatedPost = await response.json();
         upsertPost(updatedPost);
         return true;
       } catch (commentError) {
@@ -723,7 +716,7 @@ export default function CommunityPage() {
         return false;
       }
     },
-    [currentUserId, currentUserName, upsertPost],
+    [hasAuthSession, upsertPost],
   );
 
   const handleSharePost = useCallback(async (post) => {
@@ -993,6 +986,7 @@ export default function CommunityPage() {
                 {filteredPosts.map((post) => (
                   <CommunityPostCard
                     key={post._id}
+                    isAuthenticated={hasAuthSession}
                     currentUserId={currentUserId}
                     onAddComment={handleAddComment}
                     onDelete={handleDeletePost}

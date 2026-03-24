@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import {
   Sparkles,
   Target,
@@ -16,7 +17,14 @@ import {
 import toast from 'react-hot-toast';
 import MainNavbar from '../../navbar/mainNavbar';
 import AiChatbot from './AiChatbot';
-import { API_URL } from '../../config';
+import { requestJson } from '../../services/apiClient';
+import {
+  formatProviderLabel,
+  formatStatusTimestamp,
+  getAiStatusMeta,
+  getStudioModelLabel,
+  getToneClasses
+} from '../../utils/status';
 
 const levelOptions = ['Beginner', 'Intermediate', 'Advanced'];
 
@@ -41,24 +49,6 @@ const sanitizeCoachNote = (note) =>
     .replace(/[ \t]+\n/g, '\n')
     .replace(/\n{3,}/g, '\n\n')
     .trim();
-
-const buildAuthHeaders = () => {
-  const token = localStorage.getItem('token');
-  if (!token) {
-    return { 'Content-Type': 'application/json' };
-  }
-  return {
-    'Content-Type': 'application/json',
-    Authorization: `Bearer ${token}`
-  };
-};
-
-const formatProviderLabel = (provider) => {
-  if (!provider) return 'Local learning engine';
-  if (provider === 'local-basic-engine') return 'Local learning engine';
-  if (provider === 'fallback') return 'Fallback planner';
-  return String(provider).replace(/[-_]/g, ' ');
-};
 
 const formatSourceLabel = (source) => (source === 'ai' ? 'Engine-generated plan' : 'Fallback plan');
 
@@ -115,6 +105,11 @@ const AiLearningPage = () => {
     [formState, progressPercentage, roadmap, nextStep]
   );
 
+  const studioMeta = getAiStatusMeta(studioStatus);
+  const studioToneClasses = getToneClasses(studioMeta.tone);
+  const studioModelLabel = getStudioModelLabel(studioStatus);
+  const studioCheckedAt = formatStatusTimestamp(studioStatus?.lastCheckedAt || studioStatus?.diagnostics?.checkedAt);
+
   const topVideoResource = useMemo(() => {
     if (!Array.isArray(roadmap?.resources)) return null;
     return roadmap.resources.find((resource) => String(resource?.type || '').toLowerCase() === 'video') || null;
@@ -123,15 +118,7 @@ const AiLearningPage = () => {
   const fetchSavedPlans = async () => {
     setLoadingSavedPlans(true);
     try {
-      const response = await fetch(`${API_URL}/api/ai/plans`, {
-        headers: buildAuthHeaders()
-      });
-      const data = await response.json();
-
-      if (!response.ok || !data.success) {
-        throw new Error(data.message || 'Failed to fetch saved plans');
-      }
-
+      const data = await requestJson('/api/ai/plans', { auth: true });
       setSavedPlans(data.plans || []);
     } catch (err) {
       console.error('Saved plans fetch error:', err);
@@ -142,20 +129,18 @@ const AiLearningPage = () => {
 
   const fetchStudioStatus = async () => {
     try {
-      const response = await fetch(`${API_URL}/api/ai/studio-status`);
-      const data = await response.json();
-
-      if (!response.ok || !data.success) {
-        throw new Error(data.message || 'Failed to fetch learning engine status');
-      }
-
+      const data = await requestJson('/api/ai/studio-status');
       setStudioStatus(data);
     } catch (err) {
       console.error('Learning engine status error:', err);
       setStudioStatus({
         configured: false,
         provider: 'local-basic-engine',
-        modelCandidates: []
+        modelCandidates: [],
+        liveStatus: 'offline',
+        lastCheckedAt: null,
+        lastError: null,
+        quotaExceeded: false
       });
     }
   };
@@ -190,17 +175,11 @@ const AiLearningPage = () => {
         savePlan: true
       };
 
-      const response = await fetch(`${API_URL}/api/ai/roadmap`, {
+      const data = await requestJson('/api/ai/roadmap', {
         method: 'POST',
-        headers: buildAuthHeaders(),
-        body: JSON.stringify(payload)
+        body: payload,
+        auth: true
       });
-
-      const data = await response.json();
-
-      if (!response.ok || !data.success) {
-        throw new Error(data.message || 'Failed to generate roadmap');
-      }
 
       setRoadmap(data.roadmap);
       setRoadmapMeta({
@@ -253,15 +232,11 @@ const AiLearningPage = () => {
 
     setSyncingProgress(true);
     try {
-      const response = await fetch(`${API_URL}/api/ai/plans/${savedPlanId}/progress`, {
+      await requestJson(`/api/ai/plans/${savedPlanId}/progress`, {
         method: 'PATCH',
-        headers: buildAuthHeaders(),
-        body: JSON.stringify({ completedStepIndexes: nextIndexes })
+        body: { completedStepIndexes: nextIndexes },
+        auth: true
       });
-      const data = await response.json();
-      if (!response.ok || !data.success) {
-        throw new Error(data.message || 'Failed to sync progress');
-      }
       fetchSavedPlans();
     } catch (err) {
       console.error('Progress sync error:', err);
@@ -322,23 +297,12 @@ const AiLearningPage = () => {
     setCheckingStudio(true);
 
     try {
-      const response = await fetch(`${API_URL}/api/ai/studio-test`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({})
-      });
-      const data = await response.json();
-
-      if (!response.ok || !data.success) {
-        throw new Error(data.message || 'Learning engine verification failed');
-      }
-
-      toast.success(`Learning engine ready (${data.model || 'default model'})`);
-      fetchStudioStatus();
+      const data = await requestJson('/api/ai/studio-test', { method: 'POST' });
+      toast.success(`${formatProviderLabel(data.provider)} live check passed`);
     } catch (err) {
-      console.error('Learning engine verify error:', err);
       toast.error(err.message || 'Could not verify the learning engine');
     } finally {
+      await fetchStudioStatus();
       setCheckingStudio(false);
     }
   };
@@ -368,14 +332,13 @@ const AiLearningPage = () => {
         }
       };
 
-      const response = await fetch(`${API_URL}/api/ai/study-session`, {
+      const data = await requestJson('/api/ai/study-session', {
         method: 'POST',
-        headers: buildAuthHeaders(),
-        body: JSON.stringify(payload)
+        body: payload,
+        auth: true
       });
 
-      const data = await response.json();
-      if (!response.ok || !data.success || !data.session) {
+      if (!data.session) {
         throw new Error(data.message || 'Failed to generate study session');
       }
 
@@ -394,10 +357,9 @@ const AiLearningPage = () => {
 
     setLoadingStepCoachIndex(index);
     try {
-      const response = await fetch(`${API_URL}/api/ai/chat`, {
+      const data = await requestJson('/api/ai/chat', {
         method: 'POST',
-        headers: buildAuthHeaders(),
-        body: JSON.stringify({
+        body: {
           message: `Coach me for this roadmap step: ${step.title}. Give me one clear study sequence for today.`,
           skillContext: formState.skill || 'General learning',
           learnerLevel: formState.learnerLevel,
@@ -406,11 +368,11 @@ const AiLearningPage = () => {
             currentStepTitle: step.title,
             currentStepDescription: step.description
           }
-        })
+        },
+        auth: true
       });
 
-      const data = await response.json();
-      if (!response.ok || !data.success || !data.response) {
+      if (!data.response) {
         throw new Error(data.message || 'Failed to fetch step guidance');
       }
 
@@ -498,21 +460,15 @@ const AiLearningPage = () => {
                   </p>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
-                  <span
-                    className={`glass-chip ${
-                      studioStatus?.configured
-                        ? 'border-emerald-500/45 text-emerald-200 bg-emerald-900/25'
-                        : 'border-amber-500/45 text-amber-200 bg-amber-900/25'
-                    }`}
-                  >
-                    {studioStatus?.configured ? <ShieldCheck size={14} /> : <CircleAlert size={14} />}
-                    {studioStatus?.configured ? 'Learning Engine Ready' : 'Learning Engine Offline'}
+                  <span className={`glass-chip ${studioToneClasses}`}>
+                    {studioMeta.tone === 'emerald' ? <ShieldCheck size={14} /> : <CircleAlert size={14} />}
+                    {studioMeta.label}
                   </span>
 
-                  {studioStatus?.modelCandidates?.[0] && (
+                  {studioModelLabel && (
                     <span className="glass-chip border-white/20">
                       <Cpu size={14} />
-                      {formatProviderLabel(studioStatus.provider)}: {studioStatus.modelCandidates[0]}
+                      {formatProviderLabel(studioStatus?.provider)}: {studioModelLabel}
                     </span>
                   )}
 
@@ -529,7 +485,7 @@ const AiLearningPage = () => {
                     disabled={checkingStudio}
                     className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-white/6 border border-white/12 hover:border-red-500/65 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                   >
-                    {checkingStudio ? 'Verifying...' : 'Verify Learning Engine'}
+                    {checkingStudio ? 'Running live check...' : 'Run Live AI Check'}
                   </button>
 
                   <button
@@ -552,6 +508,34 @@ const AiLearningPage = () => {
                   </button>
                 </div>
               </div>
+
+              <div className="mb-6 grid gap-3 xl:grid-cols-[1fr_auto]">
+                <div className="rounded-[24px] border border-white/10 bg-black/20 p-4">
+                  <p className="text-sm leading-6 text-zinc-200">{studioMeta.detail}</p>
+                  <div className="mt-3 flex flex-wrap gap-3 text-xs text-zinc-400">
+                    <span className="inline-flex items-center gap-2">
+                      <Clock3 size={14} />
+                      Last live check: {studioCheckedAt}
+                    </span>
+                    {studioStatus?.lastError ? (
+                      <span className="inline-flex items-center gap-2 text-amber-200">
+                        <CircleAlert size={14} />
+                        {studioStatus.lastError}
+                      </span>
+                    ) : null}
+                  </div>
+                </div>
+
+                <Link to="/status" className="glass-outline-btn">
+                  Open public status
+                </Link>
+              </div>
+
+              {studioStatus?.quotaExceeded ? (
+                <div className="mb-6 rounded-[24px] border border-amber-500/35 bg-amber-500/10 p-4 text-sm leading-6 text-amber-100">
+                  Gemini is configured, but the latest live check hit provider quota. Roadmaps can still fall back to the local planner until quota or billing is restored.
+                </div>
+              ) : null}
 
               <form onSubmit={handleGenerateRoadmap} className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="md:col-span-2">

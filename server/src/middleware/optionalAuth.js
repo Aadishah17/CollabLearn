@@ -1,4 +1,5 @@
 const jwt = require('jsonwebtoken');
+const { resolveJwtSecret } = require('../config/auth');
 
 const optionalAuth = (req, _res, next) => {
   try {
@@ -8,7 +9,7 @@ const optionalAuth = (req, _res, next) => {
     }
 
     const token = authHeader.slice(7);
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key-change-this');
+    const decoded = jwt.verify(token, resolveJwtSecret());
     req.userId = decoded.userId;
     req.userEmail = decoded.email;
     return next();

@@ -1,21 +1,36 @@
 const jwt = require('jsonwebtoken');
 const LearningPlan = require('../models/LearningPlan');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
+const { resolveJwtSecret } = require('../config/auth');
+const {
+  buildStudioStatusPayload,
+  createStudioDiagnostics,
+  resolveStudioHttpStatus
+} = require('../utils/aiStatus');
 
-// --- Gemini SDK Initialization ---
+// --- AI SDK Initialization ---
+const { OpenAI } = require('openai');
+
+const NVIDIA_API_KEY = (process.env.NVIDIA_API_KEY || '').trim();
+const NVIDIA_MODEL_NAME = String(process.env.NVIDIA_MODEL || '').trim() || 'meta/llama-3.1-8b-instruct';
+let openaiClient = null;
+
 const GEMINI_API_KEY = (process.env.GEMINI_API_KEY || '').trim();
 let genAI = null;
 let geminiModel = null;
+const GEMINI_MODEL_NAME = String(process.env.GEMINI_MODEL || '').trim() || 'gemini-1.5-flash';
 
-const GEMINI_MODEL_NAME = 'gemini-2.0-flash';
-
-if (GEMINI_API_KEY && !isPlaceholderApiKeyRaw(GEMINI_API_KEY)) {
-  genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
-  geminiModel = genAI.getGenerativeModel({ model: GEMINI_MODEL_NAME });
-  console.log(`[AI] Gemini API initialized with model: ${GEMINI_MODEL_NAME}`);
-} else {
-  console.warn('[AI] No valid GEMINI_API_KEY found. AI features will use fallback engine.');
-}
+const isQuotaError = (error) => {
+  const message = String(error?.message || '').toLowerCase();
+  return (
+    message.includes('quota') ||
+    message.includes('429') ||
+    message.includes('resource_exhausted') ||
+    message.includes('limit') ||
+    message.includes('404') ||
+    message.includes('not found')
+  );
+};
 
 function isPlaceholderApiKeyRaw(key) {
   const normalized = String(key || '').trim().toLowerCase();
@@ -23,9 +38,23 @@ function isPlaceholderApiKeyRaw(key) {
   const knownPlaceholders = [
     'your_gemini_api_key', 'your_gemini_api_key_here',
     'replace_with_gemini_api_key', 'replace-with-gemini-api-key',
-    'your-google-ai-studio-api-key'
+    'your-google-ai-studio-api-key', 'your_nvidia_api_key'
   ];
   return knownPlaceholders.includes(normalized);
+}
+
+if (NVIDIA_API_KEY && !isPlaceholderApiKeyRaw(NVIDIA_API_KEY)) {
+  openaiClient = new OpenAI({
+    apiKey: NVIDIA_API_KEY,
+    baseURL: 'https://integrate.api.nvidia.com/v1',
+  });
+  console.log(`[AI] NVIDIA API initialized with model: ${NVIDIA_MODEL_NAME}`);
+} else if (GEMINI_API_KEY && !isPlaceholderApiKeyRaw(GEMINI_API_KEY)) {
+  genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
+  geminiModel = genAI.getGenerativeModel({ model: GEMINI_MODEL_NAME });
+  console.log(`[AI] Gemini API initialized with model: ${GEMINI_MODEL_NAME}`);
+} else {
+  console.warn('[AI] No valid API keys found. AI features will use fallback engine.');
 }
 
 let customTrainingData = null;
@@ -100,6 +129,14 @@ const isPlaceholderApiKey = (apiKey) => {
 };
 
 const buildAiStudioConfig = async () => {
+  if (openaiClient) {
+    return {
+      provider: 'nvidia',
+      configured: true,
+      modelCandidates: [NVIDIA_MODEL_NAME],
+      generationConfig: { temperature: 0.7, maxOutputTokens: 2048 }
+    };
+  }
   if (geminiModel) {
     return {
       provider: 'gemini',
@@ -117,11 +154,22 @@ const buildAiStudioConfig = async () => {
 };
 
 let AI_STUDIO_CONFIG = {
-  provider: geminiModel ? 'gemini' : 'local-basic-engine',
+  provider: openaiClient ? 'nvidia' : (geminiModel ? 'gemini' : 'local-basic-engine'),
   configured: true,
-  modelCandidates: geminiModel ? [GEMINI_MODEL_NAME] : ['local-basic-engine'],
-  generationConfig: geminiModel ? { temperature: 0.7, maxOutputTokens: 4096 } : {}
+  modelCandidates: openaiClient ? [NVIDIA_MODEL_NAME] : (geminiModel ? [GEMINI_MODEL_NAME] : ['local-basic-engine']),
+  generationConfig: openaiClient ? { temperature: 0.7, maxOutputTokens: 2048 } : (geminiModel ? { temperature: 0.7, maxOutputTokens: 4096 } : {})
 };
+
+let lastStudioDiagnostics = (openaiClient || geminiModel)
+  ? null
+  : createStudioDiagnostics({
+      success: true,
+      provider: 'local-basic-engine',
+      configured: true,
+      model: 'local-basic-engine',
+      latencyMs: 0,
+      preview: 'CollabLearn local engine is active.'
+    });
 
 const refreshAiStudioConfig = async () => {
   AI_STUDIO_CONFIG = await buildAiStudioConfig();
@@ -292,7 +340,7 @@ const getOptionalUserIdFromToken = (req) => {
     if (!token) {
       return null;
     }
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key-change-this');
+    const decoded = jwt.verify(token, resolveJwtSecret());
     return decoded.userId || null;
   } catch (_error) {
     return null;
@@ -973,11 +1021,20 @@ Rules:
 `.trim();
 };
 
-// --- AI Generation Functions (Gemini API with fallback) ---
+// --- AI Generation Functions (NVIDIA / Gemini API with fallback) ---
 
-const callGemini = async (prompt) => {
+const callAI = async (prompt) => {
+  if (openaiClient) {
+    const response = await openaiClient.chat.completions.create({
+      model: NVIDIA_MODEL_NAME,
+      messages: [{ role: 'user', content: prompt }],
+      max_tokens: 3000,
+      temperature: 0.7,
+    });
+    return response.choices[0].message.content;
+  }
   if (!geminiModel) {
-    throw new Error('Gemini model not initialized');
+    throw new Error('AI model not initialized');
   }
   const result = await geminiModel.generateContent(prompt);
   const response = result.response;
@@ -985,24 +1042,28 @@ const callGemini = async (prompt) => {
 };
 
 const createRoadmap = async (input) => {
-  // Try Gemini API first
-  if (geminiModel) {
+  // Try generative AI API first
+  if (openaiClient || geminiModel) {
     try {
       const prompt = buildRoadmapPrompt(input);
-      console.log('[AI] Calling Gemini API for roadmap generation...');
-      const responseText = await callGemini(prompt);
+      console.log(`[AI] Calling AI API (${AI_STUDIO_CONFIG.provider}) for roadmap generation...`);
+      const responseText = await callAI(prompt);
       const parsedRoadmap = parseJsonWithCleanup(responseText);
       const normalizedRoadmap = normalizeRoadmap(parsedRoadmap, input);
       const enriched = await applyBestVideoGuidance(normalizedRoadmap, input);
-      console.log('[AI] Gemini roadmap generated successfully.');
+      console.log('[AI] Roadmap generated successfully.');
       return {
         roadmap: enriched.roadmap,
         source: 'ai',
-        model: GEMINI_MODEL_NAME,
+        model: AI_STUDIO_CONFIG.modelCandidates[0],
         videoGuidance: enriched.videoGuidance
       };
     } catch (error) {
-      console.error('[AI] Gemini roadmap generation failed, using fallback:', error.message);
+      if (isQuotaError(error)) {
+        console.warn('[AI] Quota exceeded, switching to fallback.');
+      } else {
+        console.error('[AI] Roadmap generation failed:', error.message);
+      }
     }
   }
 
@@ -1096,22 +1157,26 @@ const chat = async (req, res) => {
 
     const chatPrompt = buildChatPrompt({ message, skillContext, learnerLevel, context });
 
-    // Try Gemini API first
-    if (geminiModel) {
+    // Try generative AI API first
+    if (openaiClient || geminiModel) {
       try {
         await refreshAiStudioConfig();
-        console.log('[AI] Calling Gemini API for chat...');
-        const responseText = await callGemini(chatPrompt);
-        console.log('[AI] Gemini chat response received.');
+        console.log(`[AI] Calling AI API (${AI_STUDIO_CONFIG.provider}) for chat...`);
+        const responseText = await callAI(chatPrompt);
+        console.log('[AI] Chat response received.');
         return res.json({
           success: true,
           response: responseText,
           source: 'ai',
-          provider: 'gemini',
-          model: GEMINI_MODEL_NAME
+          provider: AI_STUDIO_CONFIG.provider,
+          model: AI_STUDIO_CONFIG.modelCandidates[0]
         });
       } catch (error) {
-        console.error('[AI] Gemini chat failed, using fallback:', error.message);
+        if (isQuotaError(error)) {
+          console.warn('[AI] Chat quota exceeded, using fallback.');
+        } else {
+          console.error('[AI] Chat failed:', error.message);
+        }
       }
     }
 
@@ -1256,18 +1321,18 @@ Rules:
 };
 
 const createStudySession = async (input) => {
-  // Try Gemini API first
-  if (geminiModel) {
+  // Try generative AI API first
+  if (openaiClient || geminiModel) {
     try {
       const prompt = buildStudySessionPrompt(input);
-      console.log('[AI] Calling Gemini API for study session...');
-      const responseText = await callGemini(prompt);
+      console.log(`[AI] Calling AI API (${AI_STUDIO_CONFIG.provider}) for study session...`);
+      const responseText = await callAI(prompt);
       const parsedSession = parseJsonWithCleanup(responseText);
       const normalizedSession = normalizeStudySession(parsedSession, input);
-      console.log('[AI] Gemini study session generated successfully.');
-      return { session: normalizedSession, source: 'ai', model: GEMINI_MODEL_NAME };
+      console.log('[AI] Study session generated successfully.');
+      return { session: normalizedSession, source: 'ai', model: AI_STUDIO_CONFIG.modelCandidates[0] };
     } catch (error) {
-      console.error('[AI] Gemini study session failed, using fallback:', error.message);
+      console.error('[AI] Study session failed, using fallback:', error.message);
     }
   }
 
@@ -1461,11 +1526,12 @@ const getStudioStatus = async (_req, res) => {
   try {
     const publicConfig = getPublicAiStudioConfig();
 
-    return res.json({
-      success: true,
-      ...publicConfig,
-      ready: publicConfig.configured && publicConfig.modelCandidates.length > 0
-    });
+    return res.json(
+      buildStudioStatusPayload({
+        publicConfig,
+        diagnostics: lastStudioDiagnostics
+      })
+    );
   } catch (error) {
     console.error('Learning engine status error:', error);
     return res.status(500).json({
@@ -1475,41 +1541,91 @@ const getStudioStatus = async (_req, res) => {
   }
 };
 
-const testStudioConnection = async (req, res) => {
+const runStudioConnectionCheck = async () => {
   const startedAt = Date.now();
 
-  if (geminiModel) {
+  if (openaiClient || geminiModel) {
     try {
-      const result = await geminiModel.generateContent('Say "Gemini is connected to CollabLearn" in exactly those words.');
-      const preview = result.response.text().slice(0, 200);
-      return res.json({
+      const resultText = await callAI('Say "AI is connected to CollabLearn" in exactly those words.');
+      const preview = resultText.slice(0, 200);
+      const payload = {
         success: true,
-        provider: 'gemini',
+        provider: AI_STUDIO_CONFIG.provider,
         configured: true,
-        model: GEMINI_MODEL_NAME,
+        model: AI_STUDIO_CONFIG.modelCandidates[0],
         latencyMs: Date.now() - startedAt,
         preview
-      });
+      };
+
+      const diagnostics = createStudioDiagnostics(payload);
+      lastStudioDiagnostics = diagnostics;
+
+      return {
+        ...payload,
+        liveStatus: diagnostics.liveStatus,
+        liveReady: diagnostics.available,
+        lastCheckedAt: diagnostics.checkedAt,
+        quotaExceeded: diagnostics.quotaExceeded,
+        diagnostics
+      };
     } catch (error) {
-      return res.json({
+      const isQuota = isQuotaError(error);
+      const friendlyError = isQuota 
+        ? 'AI Quota Exceeded. Please try again in 1-2 minutes or check your billing account.'
+        : error.message;
+
+      const payload = {
         success: false,
-        provider: 'gemini',
+        provider: AI_STUDIO_CONFIG.provider,
         configured: true,
-        model: GEMINI_MODEL_NAME,
+        model: AI_STUDIO_CONFIG.modelCandidates[0],
         latencyMs: Date.now() - startedAt,
-        preview: `Gemini connection failed: ${error.message}`,
-        error: error.message
-      });
+        preview: `AI connection failed: ${friendlyError}`,
+        error: friendlyError
+      };
+
+      const diagnostics = createStudioDiagnostics(payload);
+      lastStudioDiagnostics = diagnostics;
+
+      return {
+        ...payload,
+        liveStatus: diagnostics.liveStatus,
+        liveReady: diagnostics.available,
+        lastCheckedAt: diagnostics.checkedAt,
+        quotaExceeded: diagnostics.quotaExceeded,
+        diagnostics
+      };
     }
   }
 
-  return res.json({
+  const payload = {
     success: true,
     provider: 'local-basic-engine',
     configured: true,
     model: 'local-basic-engine',
     latencyMs: Date.now() - startedAt,
     preview: 'CollabLearn Local Engine connection is working. Set GEMINI_API_KEY for AI-powered responses.'
+  };
+
+  const diagnostics = createStudioDiagnostics(payload);
+  lastStudioDiagnostics = diagnostics;
+
+  return {
+    ...payload,
+    liveStatus: diagnostics.liveStatus,
+    liveReady: diagnostics.available,
+    lastCheckedAt: diagnostics.checkedAt,
+    quotaExceeded: diagnostics.quotaExceeded,
+    diagnostics
+  };
+};
+
+const testStudioConnection = async (_req, res) => {
+  const result = await runStudioConnectionCheck();
+  const httpStatus = resolveStudioHttpStatus(result.diagnostics);
+  return res.json({
+    ...result,
+    httpStatus
   });
 };
 

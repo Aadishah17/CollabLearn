@@ -15,6 +15,7 @@ import {
   Video,
 } from 'lucide-react';
 import MainNavbar from '../../navbar/mainNavbar';
+import LandingNavbar from '../../navbar/landingNavbar';
 
 const PROGRAM_BENEFITS = [
   {
@@ -96,7 +97,7 @@ export default function Teach() {
 
   return (
     <div className="glass-page min-h-screen text-zinc-100">
-      <MainNavbar />
+      {isSignedIn ? <MainNavbar /> : <LandingNavbar />}
 
       <main className="mx-auto max-w-7xl px-4 pb-16 pt-28 sm:px-6">
         <section className="surface-card surface-card-shimmer relative overflow-hidden p-7 md:p-8">
@@ -125,10 +126,10 @@ export default function Teach() {
                   <ArrowRight size={16} />
                 </Link>
                 <Link
-                  to="/community"
+                  to={isSignedIn ? '/community' : '/signup'}
                   className="inline-flex items-center justify-center rounded-2xl border border-white/15 px-5 py-3 text-sm font-semibold text-zinc-100 transition-colors hover:border-blue-400/45 hover:bg-blue-500/12"
                 >
-                  Explore creator discussions
+                  {isSignedIn ? 'Explore creator discussions' : 'Create a creator account'}
                 </Link>
               </div>
 
@@ -382,10 +383,10 @@ export default function Teach() {
               <ArrowRight size={16} />
             </Link>
             <Link
-              to="/modules"
+              to={isSignedIn ? '/modules' : '/signup'}
               className="inline-flex items-center justify-center rounded-2xl border border-white/15 px-5 py-3 text-sm font-semibold text-zinc-100 transition-colors hover:border-blue-400/45 hover:bg-blue-500/12"
             >
-              Explore module workspace
+              {isSignedIn ? 'Explore module workspace' : 'Open the learner signup flow'}
             </Link>
           </div>
         </section>

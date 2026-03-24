@@ -21,6 +21,8 @@ import {
 } from "lucide-react";
 import MainNavbar from "../../navbar/mainNavbar";
 import { API_URL } from "../../config";
+import { clearSession } from "../../utils/session";
+
 
 // Lazy load the StudentInfoModal for better initial load performance
 const StudentInfoModal = lazy(() => import("./StudentInfoModal"));
@@ -106,6 +108,12 @@ const Dashboard = React.memo(() => {
       });
 
       if (!dashboardResponse.ok) {
+        if (dashboardResponse.status === 401) {
+          clearSession();
+          navigate("/login");
+          return;
+        }
+
         const errorText = await dashboardResponse.text();
         console.error("Dashboard API error:", errorText);
         throw new Error(
@@ -187,7 +195,6 @@ const Dashboard = React.memo(() => {
       setLoading(false);
     }
   }, [fetchDashboardData, token]);
-
   const fetchFallbackData = async (token) => {
     // Fetch user profile
     const userResponse = await fetch(`${API_URL}/api/auth/me`, {
@@ -198,6 +205,11 @@ const Dashboard = React.memo(() => {
     });
 
     if (!userResponse.ok) {
+      if (userResponse.status === 401) {
+        clearSession();
+        navigate("/login");
+        return;
+      }
       throw new Error("Failed to fetch user data");
     }
 

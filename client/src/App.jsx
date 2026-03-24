@@ -37,6 +37,7 @@ const Courses = lazy(() => import('./components/user/Courses'));
 const CoursePlayer = lazy(() => import('./components/user/CoursePlayer'));
 const Teach = lazy(() => import('./components/user/Teach'));
 const AiLearningPage = lazy(() => import('./components/user/AiLearningPage'));
+const StatusPage = lazy(() => import('./components/user/StatusPage'));
 const NotFoundPage = lazy(() => import('./components/user/NotFoundPage'));
 
 function App() {
@@ -58,6 +59,7 @@ function App() {
           <Route path="/" element={<CollabLearnLanding />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/signup" element={<SignupPage />} />
+          <Route path="/status" element={<StatusPage />} />
           <Route path="/admin" element={<ProtectedRoute requiredRole="admin"><AdminDashboard /></ProtectedRoute>} />
           <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
           <Route path="/modules" element={<ProtectedRoute><ModuleDashboard /></ProtectedRoute>} />

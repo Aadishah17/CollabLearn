@@ -15,7 +15,7 @@ import {
 } from 'lucide-react';
 import MainNavbar from '../../navbar/mainNavbar';
 import { getAvatarDisplayProps } from '../../utils/avatarUtils';
-import { API_URL } from '../../config';
+import { requestJson } from '../../services/apiClient';
 
 const SAVED_POSTS_KEY = 'collablearn-saved-posts';
 
@@ -81,11 +81,13 @@ export default function PostPage() {
     const username = localStorage.getItem('username') || 'Community member';
     const userId = localStorage.getItem('userId') || '';
     const userAvatar = localStorage.getItem('userAvatar') || '';
+    const hasAuthSession = Boolean(localStorage.getItem('token'));
 
     return {
       id: userId,
       name: username,
       avatar: userAvatar,
+      isAuthenticated: hasAuthSession,
     };
   }, []);
 
@@ -102,12 +104,7 @@ export default function PostPage() {
           setRefreshing(true);
         }
 
-        const response = await fetch(`${API_URL}/api/posts/${postId}`);
-        if (!response.ok) {
-          throw new Error('Unable to load this discussion.');
-        }
-
-        const data = await response.json();
+        const data = await requestJson(`/api/posts/${postId}`);
         setPost(data);
         setError('');
       } catch (fetchError) {
@@ -129,7 +126,7 @@ export default function PostPage() {
 
   const isSaved = Boolean(post?._id && savedPosts.includes(post._id));
   const isLiked = Boolean(
-    currentUser.id && Array.isArray(post?.likedBy) && post.likedBy.includes(currentUser.id),
+    currentUser.isAuthenticated && currentUser.id && Array.isArray(post?.likedBy) && post.likedBy.includes(currentUser.id),
   );
 
   const author = useMemo(
@@ -163,57 +160,42 @@ export default function PostPage() {
   }, [post]);
 
   const handleLike = useCallback(async () => {
-    if (!currentUser.id || !post?._id) {
+    if (!currentUser.isAuthenticated || !post?._id) {
       toast.error('Sign in to react to discussions.');
       return;
     }
 
     try {
-      const response = await fetch(`${API_URL}/api/posts/${post._id}/like`, {
+      const updatedPost = await requestJson(`/api/posts/${post._id}/like`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: currentUser.id }),
+        auth: true,
       });
-
-      if (!response.ok) {
-        throw new Error('Unable to update reaction.');
-      }
-
-      const updatedPost = await response.json();
       setPost(updatedPost);
     } catch (likeError) {
       console.error(likeError);
       toast.error(likeError.message || 'Unable to update reaction.');
     }
-  }, [currentUser.id, post?._id]);
+  }, [currentUser.isAuthenticated, post?._id]);
 
   const handleAddComment = useCallback(async () => {
     if (!commentText.trim()) {
       return;
     }
 
-    if (!currentUser.id || !post?._id) {
+    if (!currentUser.isAuthenticated || !post?._id) {
       toast.error('Sign in to reply.');
       return;
     }
 
     try {
       setSubmittingComment(true);
-      const response = await fetch(`${API_URL}/api/posts/${post._id}/comment`, {
+      const updatedPost = await requestJson(`/api/posts/${post._id}/comment`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userId: currentUser.id,
-          author: currentUser.name,
+        body: {
           text: commentText.trim(),
-        }),
+        },
+        auth: true,
       });
-
-      if (!response.ok) {
-        throw new Error('Unable to publish reply.');
-      }
-
-      const updatedPost = await response.json();
       setPost(updatedPost);
       setCommentText('');
       toast.success('Reply added.');
@@ -223,7 +205,7 @@ export default function PostPage() {
     } finally {
       setSubmittingComment(false);
     }
-  }, [commentText, currentUser.id, currentUser.name, post?._id]);
+  }, [commentText, currentUser.isAuthenticated, post?._id]);
 
   const handleShare = useCallback(async () => {
     if (!post?._id) return;

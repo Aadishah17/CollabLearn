@@ -1,7 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const Course = require('../models/Course');
-const auth = require('../middleware/auth'); // Optional: if we want to protect routes
+const auth = require('../middleware/auth');
+const requireAdmin = require('../middleware/requireAdmin');
 
 // GET /api/courses - Get all courses (optionally filter by category)
 router.get('/', async (req, res) => {
@@ -36,7 +37,7 @@ router.get('/:id', async (req, res) => {
 
 // POST /api/courses/seed - Seed database with curriculum data
 // Note: In production, you'd protect this route or run it via script
-router.post('/seed', async (req, res) => {
+router.post('/seed', auth, requireAdmin, async (req, res) => {
     try {
         await Course.deleteMany({}); // Clear existing courses
 

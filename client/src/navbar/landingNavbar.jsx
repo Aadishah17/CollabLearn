@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Menu, Moon, Sparkles, Sun, X } from 'lucide-react';
+import { ArrowRight, Menu, Moon, Sparkles, Sun, X } from 'lucide-react';
 import { useTheme } from '../components/user/useTheme.js';
 import logo from '../assets/collablearn-logo.svg';
 import { hasStoredSession } from '../utils/session.js';
@@ -10,9 +10,10 @@ export default function LandingNavbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [hasSession, setHasSession] = useState(hasStoredSession);
   const links = [
+    { href: '#how-it-works', label: 'Learning Loop' },
     { href: '#features', label: 'Features' },
-    { href: '#how-it-works', label: 'How It Works' },
     { href: '#teach', label: 'Teach' },
+    { to: '/status', label: 'Status' },
   ];
 
   useEffect(() => {
@@ -37,21 +38,31 @@ export default function LandingNavbar() {
             <span className="text-xl md:text-2xl font-bold text-white tracking-tight">CollabLearn</span>
           </Link>
 
-          <div className="hidden lg:flex items-center gap-6">
+          <div className="hidden lg:flex items-center gap-2">
             {links.map((item) => (
-              <a
-                key={item.href}
-                href={item.href}
-                className="text-sm font-semibold text-zinc-300 transition-colors hover:text-white"
-              >
-                {item.label}
-              </a>
+              item.to ? (
+                <Link
+                  key={item.to}
+                  to={item.to}
+                  className="rounded-full border border-white/10 bg-white/[0.025] px-4 py-2 text-sm font-semibold text-zinc-300 transition-all hover:-translate-y-0.5 hover:border-red-400/30 hover:bg-red-500/[0.08] hover:text-white"
+                >
+                  {item.label}
+                </Link>
+              ) : (
+                <a
+                  key={item.href}
+                  href={item.href}
+                  className="rounded-full border border-white/10 bg-white/[0.025] px-4 py-2 text-sm font-semibold text-zinc-300 transition-all hover:-translate-y-0.5 hover:border-red-400/30 hover:bg-red-500/[0.08] hover:text-white"
+                >
+                  {item.label}
+                </a>
+              )
             ))}
           </div>
 
-          <div className="hidden xl:flex items-center gap-2 rounded-xl border border-white/15 bg-white/5 px-3 py-1.5 text-xs text-zinc-200">
+          <div className="hidden xl:flex items-center gap-2 rounded-full border border-white/12 bg-white/[0.04] px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.18em] text-zinc-200">
             <Sparkles size={14} className="text-red-300" />
-            Guided roadmaps + mentor sessions
+            Web workspace active
           </div>
 
           <div className="flex items-center gap-2">
@@ -80,8 +91,9 @@ export default function LandingNavbar() {
                   >
                     Sign In
                   </Link>
-                  <Link to="/signup" className="neo-btn px-4 py-2 text-sm">
+                  <Link to="/signup" className="glass-cta px-4 py-2.5 text-sm">
                     Get Started
+                    <ArrowRight size={16} />
                   </Link>
                 </>
               )}
@@ -103,14 +115,25 @@ export default function LandingNavbar() {
           <div className="border-t border-white/10 px-4 pb-4 pt-3 md:hidden">
             <div className="grid gap-2">
               {links.map((item) => (
-                <a
-                  key={item.href}
-                  href={item.href}
-                  onClick={() => setIsMenuOpen(false)}
-                  className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm font-semibold text-zinc-100"
-                >
-                  {item.label}
-                </a>
+                item.to ? (
+                  <Link
+                    key={item.to}
+                    to={item.to}
+                    onClick={() => setIsMenuOpen(false)}
+                    className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm font-semibold text-zinc-100"
+                  >
+                    {item.label}
+                  </Link>
+                ) : (
+                  <a
+                    key={item.href}
+                    href={item.href}
+                    onClick={() => setIsMenuOpen(false)}
+                    className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm font-semibold text-zinc-100"
+                  >
+                    {item.label}
+                  </a>
+                )
               ))}
             </div>
 
@@ -135,9 +158,10 @@ export default function LandingNavbar() {
                   <Link
                     to="/signup"
                     onClick={() => setIsMenuOpen(false)}
-                    className="neo-btn w-full"
+                    className="glass-cta w-full"
                   >
                     Get Started
+                    <ArrowRight size={16} />
                   </Link>
                 </>
               )}

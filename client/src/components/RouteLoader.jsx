@@ -6,9 +6,9 @@ export default function RouteLoader() {
         <p className="text-sm font-semibold uppercase tracking-[0.3em] text-red-300/80">
           CollabLearn
         </p>
-        <h1 className="mt-3 text-2xl font-bold text-white">Loading your workspace</h1>
+        <h1 className="mt-3 text-2xl font-bold text-white">Loading CollabLearn</h1>
         <p className="mt-2 text-sm leading-6 text-zinc-300">
-          Pulling in your roadmap, sessions, and community activity.
+          Preparing the next screen, syncing your session, and warming up the interface.
         </p>
       </div>
     </div>

@@ -47,6 +47,39 @@ const TEMPLATES = [
   },
 ];
 
+const getMockModules = () => [
+  {
+    _id: 'mod-1',
+    title: 'Frontend Interview Prep',
+    description: 'A curated list of typical frontend interview questions and system design tips, along with live coding practice outlines.',
+    updatedAt: new Date().toISOString(),
+    tags: ['React', 'Interviews', 'JavaScript'],
+    isPublic: true,
+    collaborators: ['1', '2'],
+    content: 'Lorem ipsum dolor sit amet...'
+  },
+  {
+    _id: 'mod-2',
+    title: 'Guitar Chords Masterclass',
+    description: 'Learn the CAGED system and advanced chord voicings effortlessly. A step-by-step roadmap for all skill levels.',
+    updatedAt: new Date(Date.now() - 86400000).toISOString(),
+    tags: ['Music', 'Guitar', 'Theory'],
+    isPublic: true,
+    collaborators: [],
+    content: 'CAGED system intro...'
+  },
+  {
+    _id: 'mod-3',
+    title: 'Data Science Bootcamp',
+    description: 'Python code snippets, Pandas cheat sheets, and machine learning models for fast reference during analytics sprints.',
+    updatedAt: new Date(Date.now() - 345600000).toISOString(),
+    tags: ['Python', 'Data', 'ML'],
+    isPublic: true,
+    collaborators: ['1'],
+    content: 'Pandas setup...'
+  }
+];
+
 function formatUpdatedAt(dateString) {
   const date = new Date(dateString);
   if (Number.isNaN(date.getTime())) {
@@ -90,7 +123,8 @@ export default function ModuleDashboard() {
           headers: token ? { Authorization: `Bearer ${token}` } : {},
         });
 
-        setModules(Array.isArray(response.data?.data) ? response.data.data : []);
+        const apiModules = Array.isArray(response.data?.data) ? response.data.data : [];
+        setModules(apiModules.length > 0 ? apiModules : getMockModules());
       } catch (fetchError) {
         console.error('Error fetching modules:', fetchError);
         setError('Unable to load modules right now.');

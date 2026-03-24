@@ -1,5 +1,7 @@
 import React from 'react';
 
+const isProduction = import.meta.env.PROD;
+
 class ErrorBoundary extends React.Component {
   constructor(props) {
     super(props);
@@ -11,12 +13,20 @@ class ErrorBoundary extends React.Component {
   }
 
   componentDidCatch(error, errorInfo) {
-    console.error('Uncaught error:', error, errorInfo);
+    if (!isProduction) {
+      console.error('Uncaught error:', error, errorInfo);
+    }
     this.setState({ error, errorInfo });
   }
 
   render() {
     if (this.state.hasError) {
+      const errorMessage = isProduction
+        ? 'Something went wrong while loading this part of the app.'
+        : this.state.error
+          ? this.state.error.toString()
+          : 'Unknown error';
+
       return (
         <div className="glass-page flex min-h-screen items-center justify-center px-6 py-16 text-white">
           <div className="surface-card w-full max-w-3xl p-8 md:p-10">
@@ -25,8 +35,7 @@ class ErrorBoundary extends React.Component {
               The interface hit an unexpected problem.
             </h1>
             <p className="mt-4 max-w-2xl text-sm leading-7 text-zinc-300 md:text-base">
-              Reload the page to retry. If the issue keeps happening, the details below
-              will help track it down quickly.
+              Reload the page to retry. In development, the details below help track it down quickly.
             </p>
 
             <div className="mt-8 space-y-4 rounded-[26px] border border-white/10 bg-black/25 p-5 text-left">
@@ -35,11 +44,11 @@ class ErrorBoundary extends React.Component {
                   Error
                 </p>
                 <pre className="mt-3 whitespace-pre-wrap break-words font-mono text-sm text-red-200">
-                  {this.state.error ? this.state.error.toString() : 'Unknown error'}
+                  {errorMessage}
                 </pre>
               </div>
 
-              {this.state.errorInfo?.componentStack ? (
+              {!isProduction && this.state.errorInfo?.componentStack ? (
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-[0.24em] text-zinc-400">
                     Component stack

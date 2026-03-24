@@ -22,6 +22,77 @@ import MainNavbar from '../../navbar/mainNavbar.jsx';
 import { API_URL } from '../../config';
 import { getAvatarDisplayProps } from '../../utils/avatarUtils';
 
+const getMockSkills = () => [
+  {
+    _id: 'mock-1',
+    name: 'Advanced React Patterns',
+    category: 'Programming',
+    subCategory: 'Web Development',
+    offering: {
+      description: 'Master higher-order components, compound components, and custom hooks.',
+      level: 'Advanced',
+      duration: '1.5 hours',
+      price: 1200,
+      rating: 4.9,
+      sessions: 42
+    },
+    user: { name: 'Sarah Drasner', rating: { average: 4.95 } },
+    tags: ['React', 'Frontend', 'JavaScript'],
+    createdAt: new Date().toISOString()
+  },
+  {
+    _id: 'mock-2',
+    name: 'Figma UI/UX Masterclass',
+    category: 'Design',
+    subCategory: 'UI/UX',
+    offering: {
+      description: 'Learn auto-layout, components, and prototyping in Figma from scratch.',
+      level: 'Beginner',
+      duration: '2 hours',
+      price: 0,
+      rating: 4.7,
+      sessions: 128
+    },
+    user: { name: 'Gary Designer', rating: { average: 4.8 } },
+    tags: ['Figma', 'UI/UX', 'Design System'],
+    createdAt: new Date(Date.now() - 86400000).toISOString()
+  },
+  {
+    _id: 'mock-3',
+    name: 'Technical SEO Audit',
+    category: 'Marketing',
+    subCategory: 'SEO',
+    offering: {
+      description: 'Step-by-step guide to finding and fixing indexing and crawler issues on your website.',
+      level: 'Intermediate',
+      duration: '1 hour',
+      price: 800,
+      rating: 4.5,
+      sessions: 15
+    },
+    user: { name: 'Ahrefs Expert', rating: { average: 4.6 } },
+    tags: ['SEO', 'Marketing', 'Analytics'],
+    createdAt: new Date(Date.now() - 172800000).toISOString()
+  },
+  {
+    _id: 'mock-4',
+    name: 'Ethical Hacking 101',
+    category: 'Cybersecurity',
+    subCategory: 'Ethical Hacking',
+    offering: {
+      description: 'Introduction to penetration testing and network vulnerability scanning.',
+      level: 'Beginner',
+      duration: '2.5 hours',
+      price: 2000,
+      rating: 4.9,
+      sessions: 8
+    },
+    user: { name: 'Cyber Sec Pro', rating: { average: 5.0 } },
+    tags: ['Security', 'Wireshark', 'Kali'],
+    createdAt: new Date(Date.now() - 259200000).toISOString()
+  }
+];
+
 const SUB_CATEGORIES = {
   Programming: ['Web Development', 'Mobile Dev', 'Data Science', 'Game Dev', 'DevOps'],
   Design: ['UI/UX', 'Graphic Design', 'Motion Graphics', 'Logo Design'],
@@ -145,7 +216,7 @@ export default function SkillSwapBrowse() {
         throw new Error(data.message || 'Failed to fetch skills');
       }
 
-      setSkills(Array.isArray(data.data) ? data.data : []);
+      setSkills(Array.isArray(data.data) && data.data.length > 0 ? data.data : getMockSkills());
     } catch (err) {
       console.error('Fetch skills error:', err);
       setError(err.message || 'Could not load skills right now.');

@@ -10,6 +10,7 @@
     "preview": "vite preview",
     "test": "node --test"
   },
+  "license": "ISC",
   "dependencies": {
     "@google-pay/button-react": "^3.2.1",
     "@react-oauth/google": "^0.12.2",

@@ -47,6 +47,7 @@ The repository contains:
 
    Set your `JWT_SECRET` and `MONGODB_URI` in `server/.env`.
    `SUPER_ADMIN_EMAILS` is optional; the default super-admin allow list already includes `shahaadi285@gmail.com`.
+   The local default is `mongodb://127.0.0.1:27017/collablearn`, which matches the Windows MongoDB service install better than `localhost`.
 
 2. **Install Dependencies**:
 
@@ -76,6 +77,26 @@ The project includes several root-level scripts for development and maintenance:
 | `fix_deps.bat` | Resolves common dependency issues. |
 | `debug_*.bat` | Various scripts for debugging client, server, and environment. |
 | `run_flutter.bat` | Helper for the secondary Flutter codebase. |
+
+## CI / Quality
+
+Pull requests and pushes to `main` run the GitHub Actions workflow in `./.github/workflows/ci.yml`. It installs the root, server, and client dependencies, then runs `npm test --prefix server`, `npm test --prefix client`, and `npm run build --prefix client`.
+
+Keep local changes aligned with that same bar before opening a PR:
+
+- `npm test --prefix server`
+- `npm test --prefix client`
+- `npm run build --prefix client`
+- `npm run lint --prefix client`
+- `npm run db:ping --prefix server`
+
+## Production Notes
+
+- Set a strong `JWT_SECRET` in `server/.env`. The server now refuses placeholder secrets.
+- Keep `CORS_ORIGINS` restricted to trusted frontend hosts in production.
+- Set `TRUST_PROXY=1` when the API is deployed behind a reverse proxy or platform load balancer.
+- Runtime uploads are served from `server/uploads/` and should stay out of version control.
+- The AI model is configurable through `GEMINI_MODEL`; if omitted, the server falls back to `gemini-2.0-flash`.
 
 ## AI Integration
 

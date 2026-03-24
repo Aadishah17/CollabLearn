@@ -10,6 +10,7 @@
     "test:server": "npm run test --prefix server",
     "test:client": "npm run test --prefix client"
   },
+  "license": "ISC",
   "devDependencies": {
     "concurrently": "^8.2.2"
   }

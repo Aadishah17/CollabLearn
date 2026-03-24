@@ -4,9 +4,12 @@ const fs = require('fs');
 const path = require('path');
 const compression = require('compression');
 const cors = require('cors');
+const helmet = require('helmet');
 require('dotenv').config();
 const { connectDB, resolveMongoUri } = require('./db');
 const { assertJwtSecretConfigured } = require('./config/auth');
+const auth = require('./middleware/auth');
+const { createRateLimiter } = require('./middleware/rateLimit');
 
 assertJwtSecretConfigured();
 
@@ -15,18 +18,27 @@ const http = require('http');
 const { Server } = require('socket.io');
 
 const PORT = Number(process.env.PORT) || 5001;
+const isProduction = String(process.env.NODE_ENV || '').trim() === 'production';
 const uploadsPath = path.join(__dirname, '..', 'uploads');
 const avatarUploadsPath = path.join(uploadsPath, 'avatars');
 const sessionDocumentUploadsPath = path.join(uploadsPath, 'session-documents');
 
 const parseAllowedOrigins = () => {
   const defaults = [
+    'http://localhost:4173',
+    'http://127.0.0.1:4173',
     'http://localhost:5173',
+    'http://127.0.0.1:5173',
     'http://localhost:5174',
+    'http://127.0.0.1:5174',
     'http://localhost:5175',
+    'http://127.0.0.1:5175',
     'http://localhost:5176',
+    'http://127.0.0.1:5176',
     'http://localhost:5177',
-    'http://localhost:3000'
+    'http://127.0.0.1:5177',
+    'http://localhost:3000',
+    'http://127.0.0.1:3000'
   ];
 
   const configured = String(process.env.CORS_ORIGINS || '')
@@ -37,7 +49,48 @@ const parseAllowedOrigins = () => {
   return configured.length > 0 ? configured : defaults;
 };
 
+const resolveTrustProxy = () => {
+  const configured = String(process.env.TRUST_PROXY || '').trim();
+  if (!configured) {
+    return null;
+  }
+
+  if (/^(true|1)$/i.test(configured)) {
+    return 1;
+  }
+
+  if (/^(false|0)$/i.test(configured)) {
+    return false;
+  }
+
+  const numeric = Number.parseInt(configured, 10);
+  return Number.isInteger(numeric) ? numeric : configured;
+};
+
 const allowedOrigins = parseAllowedOrigins();
+const trustProxy = resolveTrustProxy();
+const corsOptions = {
+  origin(origin, callback) {
+    if (!origin || allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+
+    return callback(new Error('Origin not allowed by CORS'));
+  },
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  credentials: true,
+  optionsSuccessStatus: 204
+};
+const authRateLimiter = createRateLimiter({
+  windowMs: 15 * 60 * 1000,
+  max: 30,
+  message: 'Too many authentication requests. Please try again later.'
+});
+const aiRateLimiter = createRateLimiter({
+  windowMs: 60 * 1000,
+  max: 20,
+  message: 'Too many AI requests. Please slow down and try again shortly.'
+});
 
 if (!fs.existsSync(uploadsPath)) {
   fs.mkdirSync(uploadsPath, { recursive: true });
@@ -69,6 +122,11 @@ const User = require('./models/User');
 const Message = require('./models/Message');
 
 const onlineUsers = new Map();
+
+app.disable('x-powered-by');
+if (trustProxy !== null) {
+  app.set('trust proxy', trustProxy);
+}
 
 io.on('connection', (socket) => {
   socket.on('user_online', (userId) => {
@@ -116,17 +174,34 @@ io.on('connection', (socket) => {
 });
 
 app.use(
-  cors({
-    origin: allowedOrigins,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-    credentials: true
+  helmet({
+    contentSecurityPolicy: false,
+    crossOriginEmbedderPolicy: false,
+    crossOriginResourcePolicy: { policy: 'cross-origin' }
   })
 );
+app.use(cors(corsOptions));
+app.use((error, _req, res, next) => {
+  if (error?.message === 'Origin not allowed by CORS') {
+    return res.status(403).json({
+      success: false,
+      message: 'Origin not allowed'
+    });
+  }
+
+  return next(error);
+});
 
 app.use(compression());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ limit: '10mb', extended: true }));
-app.use('/uploads', express.static(uploadsPath));
+app.use(
+  '/uploads',
+  express.static(uploadsPath, {
+    etag: true,
+    maxAge: isProduction ? '1d' : 0
+  })
+);
 
 console.log('Attempting to connect to MongoDB:', resolveMongoUri());
 connectDB();
@@ -134,7 +209,7 @@ connectDB();
 mongoose.connection.on('error', (error) => console.error('MongoDB error:', error));
 mongoose.connection.on('disconnected', () => console.log('MongoDB disconnected'));
 
-app.get('/api/users', async (_req, res) => {
+app.get('/api/users', auth, async (_req, res) => {
   try {
     const users = await User.find({}, '_id name email');
     res.json(users);
@@ -143,7 +218,7 @@ app.get('/api/users', async (_req, res) => {
   }
 });
 
-app.get('/api/messages/:chatId', async (req, res) => {
+app.get('/api/messages/:chatId', auth, async (req, res) => {
   try {
     const messages = await Message.find({ chatId: req.params.chatId }).sort({ time: 1 });
     res.json(messages);
@@ -160,22 +235,31 @@ app.get('/api/health', (_req, res) => {
     2: 'connecting',
     3: 'disconnecting'
   };
+  const dbStatus = dbStateLabelMap[dbState] || 'unknown';
 
   res.json({
     success: true,
-    status: 'ok',
-    db: dbStateLabelMap[dbState] || 'unknown'
+    status: dbStatus === 'connected' ? 'ok' : 'degraded',
+    timestamp: new Date().toISOString(),
+    uptimeSeconds: Math.round(process.uptime()),
+    environment: process.env.NODE_ENV || 'development',
+    db: dbStatus,
+    dbStatus,
+    services: {
+      api: 'ok',
+      database: dbStatus
+    }
   });
 });
 
-app.use('/api/auth', require('./routes/auth'));
+app.use('/api/auth', authRateLimiter, require('./routes/auth'));
 app.use('/api/posts', require('./routes/posts'));
 app.use('/api/skills', require('./routes/skills'));
 app.use('/api/booking', require('./routes/booking'));
 app.use('/api/dashboard', require('./routes/dashboard'));
 app.use('/api/admin', require('./routes/admin'));
 app.use('/api/courses', require('./routes/courses'));
-app.use('/api/ai', require('./routes/ai'));
+app.use('/api/ai', aiRateLimiter, require('./routes/ai'));
 app.use('/api/modules', require('./routes/moduleRoutes'));
 
 console.log('All routes loaded');

@@ -68,6 +68,9 @@ jspm_packages/
 # Nuxt.js build / generate output
 .nuxt
 dist
+client/dist/
+server/uploads/
+uploads/
 
 # Gatsby files
 .cache/
@@ -104,3 +107,7 @@ output/playwright/
 # Android/Gradle caches
 android/.gradle/
 **/.gradle/
+android/app/build/
+flutter_app/.dart_tool/
+flutter_app/build/
+ios/Pods/
