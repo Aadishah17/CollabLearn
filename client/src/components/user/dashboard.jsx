@@ -53,6 +53,44 @@ const Dashboard = React.memo(() => {
     };
   }, [memoryCache]);
 
+  const fetchFallbackData = useCallback(async (activeToken) => {
+    // Fetch user profile
+    const userResponse = await fetch(`${API_URL}/api/auth/me`, {
+      headers: {
+        Authorization: `Bearer ${activeToken}`,
+        "Content-Type": "application/json",
+      },
+    });
+
+    if (!userResponse.ok) {
+      if (userResponse.status === 401) {
+        clearSession();
+        navigate("/login");
+        return;
+      }
+      throw new Error("Failed to fetch user data");
+    }
+
+    // Fetch user's skills
+    try {
+      const skillsResponse = await fetch(`${API_URL}/api/skills/my-skills`, {
+        headers: {
+          Authorization: `Bearer ${activeToken}`,
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (skillsResponse.ok) {
+        // Intentionally left as a compatibility fallback while the dashboard
+        // consolidates around the stats endpoint.
+      }
+    } catch (skillsErr) {
+      console.error("Skills fetch error:", skillsErr);
+    }
+
+    // Additional fallback calls omitted for brevity
+  }, [navigate]);
+
   const fetchDashboardData = useCallback(async () => {
     try {
       setLoading(true);
@@ -185,7 +223,7 @@ const Dashboard = React.memo(() => {
     } finally {
       setLoading(false);
     }
-  }, [memoryCache, token]);
+  }, [fetchFallbackData, memoryCache, navigate, token]);
 
   useEffect(() => {
     if (token) {
@@ -195,46 +233,6 @@ const Dashboard = React.memo(() => {
       setLoading(false);
     }
   }, [fetchDashboardData, token]);
-  const fetchFallbackData = async (token) => {
-    // Fetch user profile
-    const userResponse = await fetch(`${API_URL}/api/auth/me`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-    });
-
-    if (!userResponse.ok) {
-      if (userResponse.status === 401) {
-        clearSession();
-        navigate("/login");
-        return;
-      }
-      throw new Error("Failed to fetch user data");
-    }
-
-    // const userData = await userResponse.json();
-    // setUser may be defined elsewhere in your app; keep as-is if available
-
-    // Fetch user's skills
-    try {
-      const skillsResponse = await fetch(`${API_URL}/api/skills/my-skills`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-      });
-
-      if (skillsResponse.ok) {
-        // const skillsData = await skillsResponse.json();
-        // setTeachingSkills/setLearningSkills may be defined elsewhere in your app
-      }
-    } catch (skillsErr) {
-      console.error("Skills fetch error:", skillsErr);
-    }
-
-    // Additional fallback calls omitted for brevity
-  };
 
   // Memoize derived data to prevent unnecessary re-calculations
   const derivedData = useMemo(() => {

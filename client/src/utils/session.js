@@ -76,7 +76,7 @@ export async function logoutSession() {
       method: 'POST',
       credentials: 'include'
     });
-  } catch (_error) {
+  } catch {
     // Best effort: local session teardown still needs to happen even if the API is unavailable.
   } finally {
     clearSession();
