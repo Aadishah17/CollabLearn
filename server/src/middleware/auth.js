@@ -1,38 +1,62 @@
 const jwt = require('jsonwebtoken');
-const { resolveJwtSecret } = require('../config/auth');
+const {
+  applyAuthContext,
+  extractAuthTokenCandidates,
+  resolveJwtSecret
+} = require('../config/auth');
+
+const verifyCandidateToken = (token) => jwt.verify(token, resolveJwtSecret());
 
 // ============= AUTHENTICATION MIDDLEWARE =============
 const auth = (req, res, next) => {
+  const candidates = extractAuthTokenCandidates(req);
+
+  if (candidates.length === 0) {
+    return res.status(401).json({
+      success: false,
+      message: 'Access denied. No token provided.'
+    });
+  }
+
   try {
-    // 1. GET TOKEN FROM HEADER
-    // Expected format: "Authorization: Bearer your-jwt-token-here"
-    const authHeader = req.header('Authorization');
-    const token = authHeader && authHeader.startsWith('Bearer ') 
-      ? authHeader.slice(7) 
-      : null;
-    
-    // 2. CHECK IF TOKEN EXISTS
-    if (!token) {
-      return res.status(401).json({ 
+    let lastError = null;
+
+    for (const candidate of candidates) {
+      try {
+        const decoded = verifyCandidateToken(candidate.token);
+        applyAuthContext(req, decoded, candidate.source);
+        return next();
+      } catch (error) {
+        lastError = error;
+      }
+    }
+
+    if (lastError && lastError.code === 'JWT_SECRET_MISSING') {
+      return res.status(500).json({
         success: false,
-        message: 'Access denied. No token provided.' 
+        message: 'Server authentication is not configured.'
       });
     }
 
-    // 3. VERIFY TOKEN
-    const decoded = jwt.verify(token, resolveJwtSecret());
-    
-    // 4. ADD USER INFO TO REQUEST OBJECT
-    // Now all protected routes can access req.userId and req.userEmail
-    req.userId = decoded.userId;
-    req.userEmail = decoded.email;
-    req.userRole = decoded.role || (decoded.isSuperAdmin ? 'admin' : 'user');
-    req.isSuperAdmin = Boolean(decoded.isSuperAdmin);
-    req.auth = decoded;
-    
-    // 5. CONTINUE TO NEXT MIDDLEWARE/ROUTE HANDLER
-    next();
+    if (lastError && lastError.name === 'TokenExpiredError') {
+      return res.status(401).json({
+        success: false,
+        message: 'Token has expired. Please login again.'
+      });
+    }
 
+    if (lastError && lastError.name === 'JsonWebTokenError') {
+      return res.status(401).json({
+        success: false,
+        message: 'Invalid token. Please login again.'
+      });
+    }
+
+    // Fallback for malformed credentials or unexpected verification failures.
+    return res.status(401).json({
+      success: false,
+      message: 'Token verification failed.'
+    });
   } catch (error) {
     if (error.code === 'JWT_SECRET_MISSING') {
       return res.status(500).json({
@@ -41,23 +65,24 @@ const auth = (req, res, next) => {
       });
     }
 
-    // Handle different JWT errors
     if (error.name === 'TokenExpiredError') {
-      return res.status(401).json({ 
+      return res.status(401).json({
         success: false,
-        message: 'Token has expired. Please login again.' 
-      });
-    } else if (error.name === 'JsonWebTokenError') {
-      return res.status(401).json({ 
-        success: false,
-        message: 'Invalid token. Please login again.' 
-      });
-    } else {
-      return res.status(401).json({ 
-        success: false,
-        message: 'Token verification failed.' 
+        message: 'Token has expired. Please login again.'
       });
     }
+
+    if (error.name === 'JsonWebTokenError') {
+      return res.status(401).json({
+        success: false,
+        message: 'Invalid token. Please login again.'
+      });
+    }
+
+    return res.status(401).json({
+      success: false,
+      message: 'Token verification failed.'
+    });
   }
 };
 

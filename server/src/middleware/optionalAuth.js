@@ -1,21 +1,32 @@
 const jwt = require('jsonwebtoken');
-const { resolveJwtSecret } = require('../config/auth');
+const {
+  applyAuthContext,
+  extractAuthTokenCandidates,
+  resolveJwtSecret
+} = require('../config/auth');
 
 const optionalAuth = (req, _res, next) => {
-  try {
-    const authHeader = req.header('Authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return next();
-    }
+  const candidates = extractAuthTokenCandidates(req);
 
-    const token = authHeader.slice(7);
-    const decoded = jwt.verify(token, resolveJwtSecret());
-    req.userId = decoded.userId;
-    req.userEmail = decoded.email;
-    return next();
-  } catch (_error) {
+  if (candidates.length === 0) {
     return next();
   }
+
+  try {
+    for (const candidate of candidates) {
+      try {
+        const decoded = jwt.verify(candidate.token, resolveJwtSecret());
+        applyAuthContext(req, decoded, candidate.source);
+        return next();
+      } catch (_error) {
+        // Continue to the next candidate, preserving optional auth behavior.
+      }
+    }
+  } catch (_error) {
+    // Ignore optional auth failures.
+  }
+
+  return next();
 };
 
 module.exports = optionalAuth;

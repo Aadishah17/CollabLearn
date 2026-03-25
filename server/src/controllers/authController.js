@@ -8,7 +8,11 @@ const path = require('path');
 const { OAuth2Client } = require('google-auth-library');
 const Setting = require('../models/Setting');
 const { getAccessProfile, normalizeEmail } = require('../config/access');
-const { resolveJwtSecret } = require('../config/auth');
+const {
+  clearAuthCookie,
+  resolveJwtSecret,
+  setAuthCookie
+} = require('../config/auth');
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID || 'YOUR_GOOGLE_CLIENT_ID');
 
 const getMinimumPasswordLength = async () => {
@@ -39,6 +43,18 @@ const createSessionToken = ({ userId, email, role, isSuperAdmin }) =>
     resolveJwtSecret(),
     { expiresIn: '7d' }
   );
+
+const sendSessionResponse = ({ res, statusCode = 200, message, token, user, extra = {} }) => {
+  setAuthCookie(res, token);
+
+  return res.status(statusCode).json({
+    success: true,
+    message,
+    token,
+    user,
+    ...extra
+  });
+};
 
 const buildSessionUser = ({ account, accountType, role, isSuperAdmin }) => {
   const baseUser = {
@@ -148,8 +164,9 @@ const authController = {
         isSuperAdmin: accessProfile.isSuperAdmin
       });
 
-      res.status(201).json({
-        success: true,
+      return sendSessionResponse({
+        res,
+        statusCode: 201,
         message: 'User registered successfully',
         token,
         user: buildSessionUser({
@@ -242,8 +259,8 @@ const authController = {
         isSuperAdmin: accessProfile.isSuperAdmin
       });
 
-      res.json({
-        success: true,
+      return sendSessionResponse({
+        res,
         message: 'Login successful',
         token,
         user: buildSessionUser({
@@ -305,8 +322,9 @@ const authController = {
         isSuperAdmin: accessProfile.isSuperAdmin
       });
 
-      res.status(isNewUser ? 201 : 200).json({
-        success: true,
+      return sendSessionResponse({
+        res,
+        statusCode: isNewUser ? 201 : 200,
         message: 'Google login successful',
         token: jwtToken,
         user: buildSessionUser({
@@ -465,6 +483,15 @@ const authController = {
     }
   },
 
+  logout: async (_req, res) => {
+    clearAuthCookie(res);
+
+    return res.json({
+      success: true,
+      message: 'Logout successful'
+    });
+  },
+
   uploadAvatar: async (req, res) => {
     try {
       if (!req.file) {
@@ -556,6 +583,8 @@ const authController = {
 
       // Finally remove the user
       await User.findByIdAndDelete(userId);
+
+      clearAuthCookie(res);
 
       res.json({ success: true, message: 'Account and related data deleted successfully' });
 
