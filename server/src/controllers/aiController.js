@@ -1629,6 +1629,291 @@ const testStudioConnection = async (_req, res) => {
   });
 };
 
+// --- Learning Studio Tool ---
+
+const STUDIO_TOOLS = [
+  'flashcards', 'quiz', 'mind-map', 'notes', 'summary-slides',
+  'audio-script', 'report', 'infographic-data', 'data-table'
+];
+
+const normalizeStudioInput = (body = {}) => ({
+  tool: String(body.tool || '').trim().toLowerCase(),
+  skill: sanitizeText(body.skill),
+  learnerLevel: normalizeLevel(body.learnerLevel),
+  roadmapSummary: sanitizeText(body.roadmapSummary),
+  currentStepTitle: sanitizeText(body.currentStepTitle),
+  currentStepDescription: sanitizeText(body.currentStepDescription),
+  focusAreas: normalizeFocusAreas(body.focusAreas)
+});
+
+const buildStudioContext = (input) => {
+  const focusLine = input.focusAreas.length > 0 ? input.focusAreas.join(', ') : 'general mastery';
+  return `Skill: "${input.skill}"\nLevel: ${input.learnerLevel}\nFocus areas: ${focusLine}\nRoadmap summary: ${input.roadmapSummary || 'N/A'}\nCurrent step: ${input.currentStepTitle || 'N/A'} — ${input.currentStepDescription || 'N/A'}`;
+};
+
+const STUDIO_PROMPTS = {
+  flashcards: (ctx) => `You are a learning flashcard generator for CollabLearn.\n${ctx}\n\nGenerate 10 flashcards as JSON: { "cards": [{ "front": "question", "back": "answer" }] }. Cards should test key concepts, definitions, and practical knowledge. Return ONLY valid JSON.`,
+
+  quiz: (ctx) => `You are a quiz generator for CollabLearn.\n${ctx}\n\nGenerate 8 multiple-choice questions as JSON: { "questions": [{ "question": "string", "options": ["A","B","C","D"], "correctIndex": 0, "explanation": "string" }] }. Mix difficulty levels. Return ONLY valid JSON.`,
+
+  'mind-map': (ctx) => `You are a mind map generator for CollabLearn.\n${ctx}\n\nGenerate a mind map as JSON: { "root": "string", "branches": [{ "label": "string", "children": [{ "label": "string" }] }] }. Create 4-6 main branches with 2-4 children each covering the key topics. Return ONLY valid JSON.`,
+
+  notes: (ctx) => `You are a study notes generator for CollabLearn.\n${ctx}\n\nGenerate structured notes as JSON: { "title": "string", "sections": [{ "heading": "string", "bullets": ["string"] }] }. Create 4-6 sections covering key concepts, examples, and tips. Return ONLY valid JSON.`,
+
+  'summary-slides': (ctx) => `You are a slide deck generator for CollabLearn.\n${ctx}\n\nGenerate 8 presentation slides as JSON: { "slides": [{ "title": "string", "body": "string", "footer": "string" }] }. Cover key concepts progressively. Return ONLY valid JSON.`,
+
+  'audio-script': (ctx) => `You are an audio overview script writer for CollabLearn.\n${ctx}\n\nGenerate a ~3 minute audio overview script as JSON: { "title": "string", "duration": "3 min", "paragraphs": ["string"] }. Write 6-8 conversational paragraphs that explain the topic clearly. Return ONLY valid JSON.`,
+
+  report: (ctx) => `You are a learning report generator for CollabLearn.\n${ctx}\n\nGenerate a learning analysis report as JSON: { "title": "string", "executive_summary": "string", "sections": [{ "heading": "string", "content": "string" }], "recommendations": ["string"] }. Include 4-5 analytical sections. Return ONLY valid JSON.`,
+
+  'infographic-data': (ctx) => `You are an infographic data generator for CollabLearn.\n${ctx}\n\nGenerate key stats and facts for an infographic as JSON: { "title": "string", "stats": [{ "label": "string", "value": "string", "icon": "string" }], "facts": ["string"] }. Include 6-8 stats and 4-5 interesting facts. For icon use emoji. Return ONLY valid JSON.`,
+
+  'data-table': (ctx) => `You are a reference table generator for CollabLearn.\n${ctx}\n\nGenerate a comparison/reference table as JSON: { "title": "string", "columns": ["string"], "rows": [["string"]] }. Create 6-10 rows comparing key concepts, tools, or techniques. Return ONLY valid JSON.`
+};
+
+const STUDIO_FALLBACKS = {
+  flashcards: (input) => ({
+    cards: [
+      { front: `What is the primary purpose of ${input.skill}?`, back: `${input.skill} is a systematic approach to solving problems in its domain. It provides tools, patterns, and methodologies that enable practitioners to build reliable, maintainable solutions at scale.` },
+      { front: `Name three core principles of ${input.skill}.`, back: `1. Abstraction — hiding complexity behind clean interfaces.\n2. Composition — building complex systems from simple, reusable parts.\n3. Iteration — improving through continuous feedback and refinement.` },
+      { front: `What distinguishes a ${input.learnerLevel} practitioner from a beginner in ${input.skill}?`, back: `A ${input.learnerLevel} practitioner can independently apply core concepts, debug common issues without guidance, understand trade-offs between approaches, and produce work that follows established best practices.` },
+      { front: `What is the "80/20 rule" as applied to learning ${input.skill}?`, back: `About 20% of ${input.skill} concepts account for 80% of practical use cases. Focus on mastering these high-impact fundamentals before pursuing advanced or niche topics.` },
+      { front: `How do you evaluate the quality of a ${input.skill} solution?`, back: `Key criteria include: correctness (does it solve the problem?), maintainability (can others understand and modify it?), performance (does it meet efficiency requirements?), and scalability (will it handle growth?).` },
+      { front: `What is "technical debt" in the context of ${input.skill}?`, back: `Technical debt refers to shortcuts taken during development that create future work. It accumulates when quick fixes are chosen over proper solutions, leading to increased maintenance costs and reduced agility.` },
+      { front: `Explain the concept of "separation of concerns" in ${input.skill}.`, back: `Separation of concerns means organizing your work so that each component handles one specific responsibility. This makes systems easier to understand, test, modify, and debug independently.` },
+      { front: `Why is documentation important in ${input.skill}?`, back: `Documentation serves as a knowledge base for current and future team members. It reduces onboarding time by 60%, prevents knowledge silos, and provides context for decisions that code alone cannot convey.` },
+      { front: `What role does testing play in ${input.skill}?`, back: `Testing validates that solutions work correctly, catches regressions early, serves as living documentation, and gives developers confidence to refactor and improve existing work without breaking functionality.` },
+      { front: `What is the difference between "learning" and "practicing" ${input.skill}?`, back: `Learning involves consuming information (reading, watching). Practicing means actively applying knowledge — building projects, solving problems, and getting feedback. Research shows practice produces 3-5x better retention than passive learning.` },
+      { front: `How do version control systems support ${input.skill} workflows?`, back: `Version control (like Git) tracks changes over time, enables collaboration without conflicts, provides rollback capability, supports branching for parallel work, and maintains a complete audit trail of project evolution.` },
+      { front: `What is "code review" and why does it matter?`, back: `Code review is the practice of having peers examine your work before it's finalized. It catches bugs early, shares knowledge across teams, enforces coding standards, and typically improves code quality by 30-50%.` }
+    ]
+  }),
+
+  quiz: (input) => ({
+    questions: [
+      { question: `Which of the following best describes the primary goal of ${input.skill}?`, options: ['Building efficient and maintainable solutions', 'Memorizing syntax and rules', 'Using the most advanced tools available', 'Writing the shortest possible code'], correctIndex: 0, explanation: `The primary goal of ${input.skill} is to create solutions that are both efficient and maintainable. While syntax and tools are important, they serve the higher goal of building quality solutions.` },
+      { question: `In ${input.skill}, what does "DRY" stand for?`, options: ["Don't Repeat Yourself", 'Data Retrieval Yield', 'Dynamic Resource Yielding', 'Debug, Refactor, Yield'], correctIndex: 0, explanation: `DRY (Don't Repeat Yourself) is a fundamental principle that reduces duplication. When you find yourself copying code, it's a signal to abstract the repeated logic into a reusable component.` },
+      { question: `A ${input.learnerLevel}-level practitioner of ${input.skill} should be able to:`, options: ['Apply core patterns independently', 'Only follow tutorials step-by-step', 'Architect enterprise-scale systems', 'Teach advanced masterclasses'], correctIndex: 0, explanation: `At the ${input.learnerLevel} level, you should be able to apply core patterns independently, understand common pitfalls, and solve standard problems without constant guidance.` },
+      { question: `What is the most effective way to learn ${input.skill}?`, options: ['Build real projects and learn from mistakes', 'Read textbooks cover to cover', 'Watch video courses passively', 'Memorize all available documentation'], correctIndex: 0, explanation: `Research consistently shows that active practice — building real projects, making mistakes, and iterating — is 3-5x more effective than passive learning methods like reading or watching videos.` },
+      { question: 'Which approach is best for debugging a complex issue?', options: ['Isolate the problem, reproduce it, then fix systematically', 'Change random things until it works', 'Rewrite everything from scratch', 'Ignore it and hope it resolves itself'], correctIndex: 0, explanation: 'Systematic debugging involves isolating the issue, creating a minimal reproduction, understanding the root cause, and then applying a targeted fix. This approach is faster and more reliable than trial-and-error.' },
+      { question: `Why are design patterns important in ${input.skill}?`, options: ['They provide proven solutions to common problems', 'They make code look more professional', 'They are required by all employers', 'They always improve performance'], correctIndex: 0, explanation: 'Design patterns are tried-and-tested solutions to recurring problems. They provide a shared vocabulary for developers and help avoid reinventing the wheel. However, they should be applied judiciously, not forced onto every problem.' },
+      { question: 'What is the purpose of refactoring?', options: ['Improving code structure without changing behavior', 'Adding new features to existing code', 'Fixing bugs in production', 'Optimizing for maximum performance'], correctIndex: 0, explanation: 'Refactoring specifically means restructuring existing code to improve its readability, maintainability, or design — without altering its external behavior. It is a key practice for managing technical debt.' },
+      { question: `When working on a ${input.skill} project, which should you prioritize first?`, options: ['Understanding the problem clearly before coding', 'Writing code as fast as possible', 'Choosing the newest framework', 'Making the UI look perfect'], correctIndex: 0, explanation: 'Understanding the problem thoroughly before writing any code is the most important step. A well-understood problem leads to cleaner architecture, fewer rewrites, and faster overall delivery.' }
+    ]
+  }),
+
+  'mind-map': (input) => ({
+    root: input.skill,
+    branches: [
+      { label: 'Core Concepts', children: [{ label: 'Fundamental principles' }, { label: 'Key terminology' }, { label: 'Mental models' }, { label: 'Common patterns' }] },
+      { label: 'Tools & Environment', children: [{ label: 'Development setup' }, { label: 'Essential tools' }, { label: 'Version control' }, { label: 'Package management' }] },
+      { label: 'Best Practices', children: [{ label: 'Code organization' }, { label: 'Testing strategies' }, { label: 'Documentation' }, { label: 'Performance optimization' }] },
+      { label: 'Problem Solving', children: [{ label: 'Debugging techniques' }, { label: 'Error handling' }, { label: 'Edge case analysis' }, { label: 'Systematic approach' }] },
+      { label: 'Projects & Portfolio', children: [{ label: 'Starter projects' }, { label: 'Real-world applications' }, { label: 'Open source contributions' }, { label: 'Portfolio building' }] },
+      { label: 'Community & Growth', children: [{ label: 'Online communities' }, { label: 'Conferences & meetups' }, { label: 'Mentorship' }, { label: 'Continuous learning' }] }
+    ]
+  }),
+
+  notes: (input) => ({
+    title: `${input.skill} — Comprehensive Study Notes`,
+    sections: [
+      { heading: 'Key Concepts & Definitions', bullets: [
+        `${input.skill} is built on a foundation of core principles that guide all decision-making`,
+        'Abstraction: Hiding complexity behind simple interfaces to manage cognitive load',
+        'Composition: Building complex systems from smaller, well-defined, reusable components',
+        'Encapsulation: Bundling data and methods together while restricting direct access',
+        'Separation of Concerns: Each module should handle exactly one responsibility'
+      ]},
+      { heading: 'Current Learning Phase', bullets: [
+        `Currently at ${input.learnerLevel} level — focus on applying concepts independently`,
+        input.currentStepTitle ? `Active step: ${input.currentStepTitle} — ${input.currentStepDescription || 'Complete all exercises'}` : 'Follow your roadmap step-by-step for structured progress',
+        'Goal: Build proof-of-work outputs (solved exercises, mini projects, reflections)',
+        'Track your progress daily — consistency beats intensity for long-term retention'
+      ]},
+      { heading: 'Common Patterns & Anti-Patterns', bullets: [
+        '✅ DO: Write self-documenting code with clear names and logical structure',
+        '✅ DO: Test early and often — each test is an investment in future stability',
+        '✅ DO: Refactor regularly to keep code maintainable as requirements evolve',
+        '❌ AVOID: Premature optimization — make it work, then make it fast',
+        '❌ AVOID: Copy-pasting solutions you don\'t understand — always learn why it works',
+        '❌ AVOID: Skipping error handling — robust systems anticipate and handle failures gracefully'
+      ]},
+      { heading: 'Debugging Strategies', bullets: [
+        'Read the error message carefully — it usually points to the exact issue',
+        'Reproduce the bug consistently before attempting a fix',
+        'Use print/log statements or a debugger to trace execution flow',
+        'Binary search: Comment out half the code to narrow down the problem area',
+        'Rubber duck debugging: Explain the problem out loud to clarify your thinking'
+      ]},
+      { heading: 'Practice Recommendations', bullets: [
+        'Dedicate 25-minute focused sessions (Pomodoro technique) for deep practice',
+        'Build one mini-project per week that applies current concepts',
+        'Review and refactor your previous work with fresh eyes weekly',
+        'Join a study group or community for accountability and peer learning',
+        'Document your "aha moments" and common mistakes in a personal knowledge base'
+      ]},
+      { heading: 'Resources & Next Steps', bullets: [
+        'Official documentation is always the most authoritative reference',
+        'Interactive coding platforms (exercises, challenges) for hands-on practice',
+        'Video tutorials for visual/conceptual learning, then apply immediately',
+        'Open-source projects for real-world code reading and contribution practice',
+        'Set a 90-day skill milestone and review your progress at checkpoints'
+      ]}
+    ]
+  }),
+
+  'summary-slides': (input) => ({
+    slides: [
+      { title: `Mastering ${input.skill}`, body: `A ${input.learnerLevel}-level learning journey designed to build practical, demonstrable competence through structured practice and real-world application.`, footer: 'Slide 1 of 8' },
+      { title: 'Learning Philosophy', body: 'Learn by doing. Every concept should be reinforced with hands-on practice. Build small, functional projects rather than consuming passive content. Document your journey for future reference.', footer: 'Slide 2 of 8' },
+      { title: 'Core Fundamentals', body: `The foundation of ${input.skill} rests on three pillars:\n\n1. Understanding core abstractions and mental models\n2. Mastering the tools and development environment\n3. Applying best practices consistently in every project`, footer: 'Slide 3 of 8' },
+      { title: 'Current Focus Area', body: input.currentStepTitle ? `${input.currentStepTitle}\n\n${input.currentStepDescription || 'Complete all practice tasks before moving to the next phase. Quality over speed.'}` : `Focus on building strong fundamentals at the ${input.learnerLevel} level. Each concept builds on the previous one.`, footer: 'Slide 4 of 8' },
+      { title: 'Practice Strategy', body: '• Week 1-2: Follow guided tutorials and reproduce examples\n• Week 3-4: Modify examples and solve practice challenges\n• Week 5-6: Build original mini-projects from scratch\n• Week 7-8: Contribute to real projects or build portfolio pieces', footer: 'Slide 5 of 8' },
+      { title: 'Common Pitfalls to Avoid', body: '⚠️ Tutorial hell — watching without building\n⚠️ Perfectionism — shipping beats perfection\n⚠️ Isolation — learn with others for 90% better retention\n⚠️ Skipping fundamentals — shortcuts create knowledge gaps', footer: 'Slide 6 of 8' },
+      { title: 'Measuring Progress', body: 'Track your growth with tangible outputs:\n\n✅ Projects completed and deployed\n✅ Problems solved independently\n✅ Concepts you can explain to others\n✅ Code reviews given and received\n✅ Your growing portfolio', footer: 'Slide 7 of 8' },
+      { title: 'Next Steps', body: `Continue your ${input.skill} roadmap with AI-guided study sessions. Generate flashcards for retention, take quizzes to test understanding, and use the Mind Map to see the big picture.\n\nRemember: Consistency beats intensity. 30 minutes daily > 8 hours on weekends.`, footer: 'Slide 8 of 8' }
+    ]
+  }),
+
+  'audio-script': (input) => ({
+    title: `${input.skill} — Audio Learning Overview`,
+    duration: '4 min',
+    paragraphs: [
+      `Welcome to your personalized ${input.skill} audio overview. Over the next few minutes, we'll walk through what you're learning, where you currently stand, and how to get the most out of your study sessions.`,
+      `You're currently at the ${input.learnerLevel} level, which means ${input.learnerLevel === 'beginner' ? "you're building your foundational understanding. This is the most exciting phase — every concept is new, and your growth will be rapid." : input.learnerLevel === 'advanced' ? "you have a solid grasp of the fundamentals and are ready to tackle complex, real-world challenges. Focus on depth over breadth." : "you've moved past the basics and are developing practical fluency. This is where you start connecting concepts and seeing the bigger picture."}`,
+      input.currentStepTitle ? `Your current focus area is "${input.currentStepTitle}." ${input.currentStepDescription || 'This step is designed to build on your previous knowledge and introduce the next layer of complexity.'} Take your time with this — rushing through concepts creates gaps that are harder to fill later.` : `Your roadmap will guide you through a structured learning path. Each step builds on the previous one, so resist the temptation to skip ahead. The goal is deep understanding, not surface-level familiarity.`,
+      `Here's what makes learning ${input.skill} effectively different from other skills: it requires both conceptual understanding AND hands-on practice. You can't just read about it — you need to build things, break things, and fix things. Research shows that active practice is three to five times more effective than passive learning.`,
+      input.focusAreas.length > 0 ? `Your personalized focus areas are: ${input.focusAreas.join(', ')}. These were identified as the highest-impact topics for your current level. When you sit down to practice, start with these before exploring other areas.` : 'As you progress through your roadmap, pay special attention to the concepts that challenge you the most. Those difficult moments are where the deepest learning happens.',
+      `A pro tip for your study sessions: use the Pomodoro technique. Set a timer for twenty-five minutes of focused work, then take a five-minute break. After four sessions, take a longer break. This rhythm keeps your mind sharp and prevents burnout.`,
+      `One more thing — don't learn in isolation. Join communities, participate in discussions, and explain concepts to others. Teaching is one of the most powerful learning techniques. When you can explain something clearly to someone else, you truly understand it.`,
+      `That's your ${input.skill} overview. Head back to your dashboard, generate a study session, and start building. Remember — the best time to start was yesterday. The second best time is right now. Good luck on your learning journey!`
+    ]
+  }),
+
+  report: (input) => ({
+    title: `${input.skill} — Learning Progress Report`,
+    executive_summary: `This report analyzes your ${input.skill} learning trajectory at the ${input.learnerLevel} level. ${input.roadmapSummary || `The assessment covers your current standing, skill gaps, and personalized recommendations for accelerated growth.`} Your structured approach through the CollabLearn platform positions you well for measurable progress.`,
+    sections: [
+      { heading: 'Current Skill Assessment', content: `You are currently at the ${input.learnerLevel} level in ${input.skill}. ${input.currentStepTitle ? `Your active learning focus is "${input.currentStepTitle}" which involves ${input.currentStepDescription || 'building practical skills through hands-on exercises and real-world application'}.` : 'Based on your roadmap progression, you are building a solid foundation of core concepts that will support advanced learning.'} At this stage, the emphasis should be on consistent practice and building a portfolio of completed projects.` },
+      { heading: 'Strengths Identified', content: `Engaging with structured learning through CollabLearn demonstrates strong self-directed learning ability and commitment to growth. Your focus areas ${input.focusAreas.length > 0 ? '(' + input.focusAreas.join(', ') + ')' : ''} show strategic topic selection. The combination of AI-guided roadmaps and interactive study tools creates an effective multi-modal learning environment that leverages spaced repetition and active recall.` },
+      { heading: 'Areas for Improvement', content: `Based on your ${input.learnerLevel} level, key areas for growth include: deepening your understanding of core abstractions and design patterns, building confidence in debugging and problem-solving without external guidance, developing the ability to evaluate trade-offs between different approaches, and transitioning from following tutorials to independently designing and implementing solutions.` },
+      { heading: 'Learning Velocity Analysis', content: `Optimal learning at the ${input.learnerLevel} level typically requires 15-20 hours per week of focused practice. Studies show that distributed practice (daily sessions of 1-2 hours) produces 40% better retention than massed practice (weekend marathons). Track your daily practice time and aim for consistency over intensity.` },
+      { heading: 'Comparative Benchmarks', content: `Learners at the ${input.learnerLevel} level in ${input.skill} typically reach proficiency milestones within 3-6 months of consistent practice. Top performers share these habits: they build projects weekly, contribute to open source, participate in community discussions, and regularly review and refactor their previous work. Your use of AI-powered study tools gives you an advantage in efficient knowledge acquisition.` }
+    ],
+    recommendations: [
+      'Complete your current roadmap step with at least one concrete deliverable (project, exercise set, or written reflection)',
+      'Use flashcards daily for 10 minutes to reinforce key concepts through spaced repetition',
+      'Build one original mini-project per week that applies concepts from your current learning phase',
+      'Schedule a weekly "refactor session" to improve code from previous weeks — this deepens understanding significantly',
+      'Join at least one online community related to your skill and participate in discussions 2-3 times per week',
+      'Set a 30-day milestone goal and track progress with specific, measurable outcomes'
+    ]
+  }),
+
+  'infographic-data': (input) => ({
+    title: `${input.skill} — Learning Dashboard`,
+    stats: [
+      { label: 'Current Skill', value: input.skill, icon: '🎯' },
+      { label: 'Proficiency', value: toTitleCase(input.learnerLevel), icon: '📊' },
+      { label: 'Focus Areas', value: `${input.focusAreas.length || 4} topics`, icon: '🔍' },
+      { label: 'Active Phase', value: input.currentStepTitle || 'Fundamentals', icon: '📍' },
+      { label: 'Optimal Study', value: '25 min/session', icon: '⏱️' },
+      { label: 'Weekly Target', value: '5 projects', icon: '🏗️' },
+      { label: 'Retention Method', value: 'Spaced Repetition', icon: '🧠' },
+      { label: 'Practice Style', value: 'Learn → Build → Review', icon: '🔄' }
+    ],
+    facts: [
+      'Active practice produces 3-5x better retention than passive reading',
+      'The top 20% of concepts cover 80% of real-world use cases — focus there first',
+      'Teaching others what you learn improves your own retention by up to 90%',
+      'Daily 30-minute sessions outperform weekly 4-hour marathons by 40%',
+      'Developers who write tests find 60% fewer bugs in production code',
+      'Code review participation improves code quality by 30-50% on average',
+      'Building projects is the #1 way employers evaluate technical candidates'
+    ]
+  }),
+
+  'data-table': (input) => ({
+    title: `${input.skill} — Learning Reference Guide`,
+    columns: ['Topic', 'Description', 'Level', 'Priority', 'Time Estimate', 'Output'],
+    rows: [
+      ['Core Fundamentals', `Essential ${input.skill} building blocks and mental models`, 'Beginner', '🔴 Critical', '2-3 weeks', 'Notes & exercises'],
+      ['Development Environment', 'Setting up tools, IDE, and workflow', 'Beginner', '🔴 Critical', '1-2 days', 'Working setup'],
+      ['Best Practices', 'Code organization, naming, and structure', 'Beginner', '🟠 High', '1-2 weeks', 'Style guide'],
+      ['Problem Solving', 'Debugging techniques and systematic thinking', 'Intermediate', '🟠 High', '2-3 weeks', 'Solved challenges'],
+      ['Design Patterns', `Common ${input.skill} patterns and when to use them`, 'Intermediate', '🟡 Medium', '3-4 weeks', 'Pattern examples'],
+      ['Testing & QA', 'Unit tests, integration tests, and TDD basics', 'Intermediate', '🟠 High', '2-3 weeks', 'Test suite'],
+      ['Performance', 'Optimization, profiling, and efficiency', 'Advanced', '🟡 Medium', '2-3 weeks', 'Benchmarks'],
+      ['Architecture', 'System design and scalability patterns', 'Advanced', '🟡 Medium', '4-6 weeks', 'Design docs'],
+      ['Open Source', 'Reading, contributing to, and maintaining projects', 'Advanced', '🟢 Growth', 'Ongoing', 'Contributions'],
+      ['Portfolio Projects', `Real-world ${input.skill} applications for your portfolio`, 'All Levels', '🔴 Critical', 'Ongoing', 'Deployed projects']
+    ]
+  })
+};
+
+const normalizeStudioResult = (raw, tool) => {
+  const safeRaw = raw && typeof raw === 'object' ? raw : {};
+  switch (tool) {
+    case 'flashcards':
+      return { cards: Array.isArray(safeRaw.cards) ? safeRaw.cards.filter(c => c && c.front && c.back).slice(0, 15) : [] };
+    case 'quiz':
+      return { questions: Array.isArray(safeRaw.questions) ? safeRaw.questions.filter(q => q && q.question && Array.isArray(q.options)).slice(0, 12) : [] };
+    case 'mind-map':
+      return { root: sanitizeText(safeRaw.root, 'Topic'), branches: Array.isArray(safeRaw.branches) ? safeRaw.branches.slice(0, 8) : [] };
+    case 'notes':
+      return { title: sanitizeText(safeRaw.title, 'Study Notes'), sections: Array.isArray(safeRaw.sections) ? safeRaw.sections.slice(0, 8) : [] };
+    case 'summary-slides':
+      return { slides: Array.isArray(safeRaw.slides) ? safeRaw.slides.filter(s => s && s.title).slice(0, 12) : [] };
+    case 'audio-script':
+      return { title: sanitizeText(safeRaw.title, 'Audio Overview'), duration: sanitizeText(safeRaw.duration, '3 min'), paragraphs: Array.isArray(safeRaw.paragraphs) ? safeRaw.paragraphs.filter(Boolean).slice(0, 10) : [] };
+    case 'report':
+      return { title: sanitizeText(safeRaw.title, 'Report'), executive_summary: sanitizeText(safeRaw.executive_summary), sections: Array.isArray(safeRaw.sections) ? safeRaw.sections.slice(0, 8) : [], recommendations: Array.isArray(safeRaw.recommendations) ? safeRaw.recommendations.slice(0, 6) : [] };
+    case 'infographic-data':
+      return { title: sanitizeText(safeRaw.title, 'Infographic'), stats: Array.isArray(safeRaw.stats) ? safeRaw.stats.slice(0, 10) : [], facts: Array.isArray(safeRaw.facts) ? safeRaw.facts.slice(0, 8) : [] };
+    case 'data-table':
+      return { title: sanitizeText(safeRaw.title, 'Reference Table'), columns: Array.isArray(safeRaw.columns) ? safeRaw.columns : [], rows: Array.isArray(safeRaw.rows) ? safeRaw.rows.slice(0, 15) : [] };
+    default:
+      return safeRaw;
+  }
+};
+
+const generateStudioTool = async (req, res) => {
+  try {
+    const input = normalizeStudioInput(req.body || {});
+
+    if (!input.skill) {
+      return res.status(400).json({ success: false, message: 'Skill is required' });
+    }
+    if (!STUDIO_TOOLS.includes(input.tool)) {
+      return res.status(400).json({ success: false, message: `Invalid tool. Use one of: ${STUDIO_TOOLS.join(', ')}` });
+    }
+
+    const ctx = buildStudioContext(input);
+
+    // Try AI first
+    if (openaiClient || geminiModel) {
+      try {
+        const prompt = STUDIO_PROMPTS[input.tool](ctx);
+        console.log(`[AI] Studio tool "${input.tool}" — calling ${AI_STUDIO_CONFIG.provider}...`);
+        const responseText = await callAI(prompt);
+        const parsed = parseJsonWithCleanup(responseText);
+        const normalized = normalizeStudioResult(parsed, input.tool);
+        console.log(`[AI] Studio tool "${input.tool}" generated successfully.`);
+        return res.json({ success: true, tool: input.tool, result: normalized, source: 'ai', provider: AI_STUDIO_CONFIG.provider });
+      } catch (error) {
+        console.error(`[AI] Studio tool "${input.tool}" failed, using fallback:`, error.message);
+      }
+    }
+
+    // Fallback
+    const fallbackResult = STUDIO_FALLBACKS[input.tool](input);
+    return res.json({ success: true, tool: input.tool, result: fallbackResult, source: 'basic-engine', provider: 'fallback' });
+  } catch (error) {
+    console.error('Studio tool error:', error);
+    return res.status(500).json({ success: false, message: 'Failed to generate studio content' });
+  }
+};
+
 module.exports = {
   chat,
   generateStudySession,
@@ -1637,5 +1922,6 @@ module.exports = {
   getLearningPlan,
   updateLearningProgress,
   getStudioStatus,
-  testStudioConnection
+  testStudioConnection,
+  generateStudioTool
 };

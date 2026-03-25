@@ -516,6 +516,366 @@
   .signal-dot {
     @apply inline-block h-2.5 w-2.5 rounded-full;
   }
+
+  /* ───── Learning Studio ───── */
+
+  .studio-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+  }
+
+  @media (max-width: 768px) {
+    .studio-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+
+  .studio-card {
+    @apply flex items-center gap-3 rounded-xl px-4 py-3.5 text-left transition-all duration-300 cursor-pointer;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-left: 3px solid var(--studio-accent, #ef4444);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .studio-card::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.04), transparent 60%);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    pointer-events: none;
+  }
+
+  .studio-card:hover::before { opacity: 1; }
+
+  .studio-card:hover {
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(255, 255, 255, 0.12);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px -8px rgba(0, 0, 0, 0.5);
+  }
+
+  .studio-card.active {
+    border-color: var(--studio-accent, #ef4444);
+    background: rgba(239, 68, 68, 0.08);
+    box-shadow: 0 0 20px -4px rgba(239, 68, 68, 0.2);
+  }
+
+  .studio-card.disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+    pointer-events: none;
+  }
+
+  .studio-card-icon {
+    @apply flex items-center justify-center rounded-lg p-2;
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--studio-accent, #ef4444);
+  }
+
+  .studio-card-label { @apply text-sm font-semibold text-zinc-200 flex-1; }
+
+  .studio-card-arrow {
+    color: rgba(255, 255, 255, 0.25);
+    transition: transform 0.3s ease, color 0.3s ease;
+  }
+
+  .studio-card:hover .studio-card-arrow {
+    color: var(--studio-accent, #ef4444);
+    transform: translateX(3px);
+  }
+
+  .studio-result-panel {
+    @apply rounded-xl p-5;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    animation: riseIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  .studio-nav-btn {
+    @apply inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: rgb(212, 212, 216);
+  }
+
+  .studio-nav-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(239, 68, 68, 0.4);
+    color: white;
+  }
+
+  .studio-nav-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+  /* ── Audio Player ── */
+  .audio-player {
+    @apply flex items-start gap-4 p-4 rounded-xl;
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.08), rgba(20, 20, 25, 0.9));
+    border: 1px solid rgba(239, 68, 68, 0.2);
+  }
+
+  .audio-player-controls { @apply flex items-center gap-2 flex-shrink-0 pt-1; }
+
+  .audio-play-btn {
+    @apply flex items-center justify-center w-12 h-12 rounded-full transition-all duration-200;
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+    border: none;
+    box-shadow: 0 4px 15px rgba(239, 68, 68, 0.4);
+  }
+
+  .audio-play-btn:hover {
+    transform: scale(1.08);
+    box-shadow: 0 6px 20px rgba(239, 68, 68, 0.5);
+  }
+
+  .audio-progress-area { @apply flex-1 min-w-0; }
+
+  .audio-progress-bar {
+    @apply w-full h-1.5 rounded-full overflow-hidden;
+    background: rgba(255, 255, 255, 0.08);
+  }
+
+  .audio-progress-fill {
+    @apply h-full rounded-full transition-all duration-500;
+    background: linear-gradient(90deg, #ef4444, #f97316);
+  }
+
+  .audio-speed-select {
+    @apply text-xs rounded-lg px-2 py-1 font-semibold;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: rgb(212, 212, 216);
+    outline: none;
+  }
+
+  /* ── Slide Presentation ── */
+  .slide-presentation {
+    @apply rounded-xl relative overflow-hidden;
+    min-height: 340px;
+    display: flex;
+    flex-direction: column;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .slide-fullscreen-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    background: black;
+  }
+
+  .slide-fullscreen {
+    border-radius: 0;
+    min-height: 100vh;
+    border: none;
+  }
+
+  .slide-exit-fs {
+    @apply absolute top-4 right-4 flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200 z-10;
+    background: rgba(0, 0, 0, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: white;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+
+  .slide-exit-fs:hover { background: rgba(255, 255, 255, 0.15); }
+
+  .slide-number {
+    @apply absolute top-4 left-4 text-xs font-semibold px-3 py-1 rounded-full;
+    background: rgba(0, 0, 0, 0.4);
+    color: rgba(255, 255, 255, 0.6);
+  }
+
+  .slide-content-area {
+    @apply flex-1 flex flex-col justify-center items-center text-center px-12 py-16;
+  }
+
+  .slide-title {
+    @apply font-bold mb-4 leading-tight;
+    color: white;
+    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+  }
+
+  .slide-body {
+    @apply leading-relaxed max-w-2xl;
+    color: rgba(255, 255, 255, 0.75);
+  }
+
+  .slide-footer {
+    @apply mt-6;
+    color: rgba(255, 255, 255, 0.35);
+  }
+
+  .slide-nav {
+    @apply flex items-center justify-center gap-4 pb-4 px-4;
+  }
+
+  .slide-dots { @apply flex items-center gap-2; }
+
+  .slide-dot {
+    @apply w-2.5 h-2.5 rounded-full transition-all duration-300;
+    background: rgba(255, 255, 255, 0.2);
+    border: none;
+    cursor: pointer;
+  }
+
+  .slide-dot:hover { background: rgba(255, 255, 255, 0.4); }
+
+  .slide-dot.active {
+    background: white;
+    transform: scale(1.3);
+    box-shadow: 0 0 8px rgba(255, 255, 255, 0.4);
+  }
+
+  /* ── Flashcard ── */
+  .flashcard-container {
+    perspective: 900px;
+    cursor: pointer;
+    min-height: 180px;
+  }
+
+  .flashcard {
+    @apply rounded-xl relative;
+    width: 100%;
+    min-height: 180px;
+    transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+    transform-style: preserve-3d;
+  }
+
+  .flashcard.flipped { transform: rotateY(180deg); }
+
+  .flashcard-face {
+    @apply absolute inset-0 flex flex-col justify-center items-center rounded-xl p-6 text-center;
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  .flashcard-front {
+    background: linear-gradient(145deg, rgba(30, 30, 35, 0.9), rgba(15, 15, 18, 0.95));
+  }
+
+  .flashcard-back {
+    background: linear-gradient(145deg, rgba(20, 40, 30, 0.9), rgba(10, 25, 18, 0.95));
+    transform: rotateY(180deg);
+  }
+
+  /* ── Quiz ── */
+  .quiz-option {
+    @apply flex items-center gap-3 w-full text-left rounded-xl px-4 py-3 text-sm transition-all duration-200 cursor-pointer;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    color: rgb(212, 212, 216);
+  }
+
+  .quiz-option:hover {
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(255, 255, 255, 0.15);
+  }
+
+  .quiz-option.correct {
+    background: rgba(16, 185, 129, 0.15);
+    border-color: rgba(16, 185, 129, 0.5);
+    color: rgb(167, 243, 208);
+  }
+
+  .quiz-option.wrong {
+    background: rgba(239, 68, 68, 0.15);
+    border-color: rgba(239, 68, 68, 0.5);
+    color: rgb(254, 202, 202);
+  }
+
+  .quiz-option-letter {
+    @apply flex items-center justify-center w-7 h-7 rounded-lg text-xs font-bold;
+    background: rgba(255, 255, 255, 0.06);
+    flex-shrink: 0;
+  }
+
+  .quiz-progress-bar, .quiz-score-bar {
+    @apply w-full h-2 rounded-full overflow-hidden;
+    background: rgba(255, 255, 255, 0.06);
+  }
+
+  .quiz-progress-fill {
+    @apply h-full rounded-full transition-all duration-500;
+    background: linear-gradient(90deg, #ef4444, #f97316);
+  }
+
+  .quiz-score-fill {
+    @apply h-full rounded-full transition-all duration-700;
+    background: linear-gradient(90deg, #10b981, #34d399);
+  }
+
+  /* ── Mind Map SVG ── */
+  .mind-map-svg {
+    display: block;
+    margin: 0 auto;
+    max-width: 100%;
+    height: auto;
+  }
+
+  /* ── Infographic ── */
+  .infographic-header {
+    @apply p-4 rounded-xl mb-2 text-center;
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.1), rgba(249, 115, 22, 0.08));
+    border: 1px solid rgba(239, 68, 68, 0.15);
+  }
+
+  .infographic-stat-card {
+    @apply flex flex-col items-center text-center rounded-xl p-5 transition-all duration-300;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+  }
+
+  .infographic-stat-card:hover {
+    background: rgba(255, 255, 255, 0.07);
+    transform: translateY(-3px);
+    border-color: rgba(249, 115, 22, 0.3);
+    box-shadow: 0 8px 20px -6px rgba(0, 0, 0, 0.4);
+  }
+
+  .infographic-fact {
+    @apply relative rounded-lg px-4 py-2.5 overflow-hidden;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.04);
+  }
+
+  .infographic-fact-bar {
+    @apply absolute inset-y-0 left-0;
+    background: linear-gradient(90deg, rgba(239, 68, 68, 0.12), transparent);
+    pointer-events: none;
+  }
+
+  /* ── Data Table ── */
+  .studio-table {
+    @apply w-full text-sm;
+    border-collapse: separate;
+    border-spacing: 0;
+  }
+
+  .studio-table th {
+    @apply text-left text-xs font-semibold uppercase tracking-wide px-4 py-3;
+    background: rgba(255, 255, 255, 0.04);
+    color: rgb(161, 161, 170);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  .studio-table th:first-child { @apply rounded-tl-lg; }
+  .studio-table th:last-child { @apply rounded-tr-lg; }
+
+  .studio-table td {
+    @apply px-4 py-3 text-zinc-300;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  }
+
+  .studio-table tr:hover td {
+    background: rgba(255, 255, 255, 0.03);
+  }
 }
 
 @tailwind utilities;

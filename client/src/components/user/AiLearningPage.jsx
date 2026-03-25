@@ -17,6 +17,7 @@ import {
 import toast from 'react-hot-toast';
 import MainNavbar from '../../navbar/mainNavbar';
 import AiChatbot from './AiChatbot';
+import LearningStudio from './LearningStudio';
 import { requestJson } from '../../services/apiClient';
 import {
   formatProviderLabel,
@@ -675,6 +676,16 @@ const AiLearningPage = () => {
                     )}
                   </div>
                 )}
+
+                <LearningStudio
+                  skill={formState.skill}
+                  learnerLevel={formState.learnerLevel}
+                  roadmapSummary={roadmap?.summary || ''}
+                  currentStepTitle={nextStep?.title || ''}
+                  currentStepDescription={nextStep?.description || ''}
+                  focusAreas={parseFocusAreas(formState.focusAreas)}
+                  hasRoadmap={Boolean(roadmap?.steps?.length)}
+                />
 
                 {studySession && (
                   <div className="glass-panel p-6">
