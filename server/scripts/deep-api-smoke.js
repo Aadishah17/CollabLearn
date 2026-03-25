@@ -9,6 +9,9 @@ const Post = require('../src/models/Post');
 const LearningPlan = require('../src/models/LearningPlan');
 
 const API_BASE_URL = String(process.env.API_BASE_URL || 'http://127.0.0.1:5001').replace(/\/$/, '');
+const API_READY_TIMEOUT_MS = Number(process.env.API_READY_TIMEOUT_MS || 60000);
+const API_REQUEST_TIMEOUT_MS = Number(process.env.API_REQUEST_TIMEOUT_MS || 10000);
+const API_POLL_INTERVAL_MS = Number(process.env.API_POLL_INTERVAL_MS || 2000);
 const PASSWORD = 'TestPass123!';
 const RUN_ID = `deep-${Date.now()}`;
 
@@ -26,11 +29,16 @@ const log = (message) => {
   console.log(`[deep-smoke] ${message}`);
 };
 
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
 const fail = (message, details) => {
   const error = new Error(message);
   error.details = details;
   throw error;
 };
+
+const buildRequestError = (path, method, error) =>
+  new Error(`Request failed for ${method} ${path}: ${error.message}`);
 
 const request = async (path, { method = 'GET', token, body, expectedStatus, allowStatuses } = {}) => {
   const headers = {
@@ -45,11 +53,26 @@ const request = async (path, { method = 'GET', token, body, expectedStatus, allo
     headers.Authorization = `Bearer ${token}`;
   }
 
-  const response = await fetch(`${API_BASE_URL}${path}`, {
-    method,
-    headers,
-    body: body === undefined ? undefined : JSON.stringify(body)
-  });
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), API_REQUEST_TIMEOUT_MS);
+
+  let response;
+  try {
+    response = await fetch(`${API_BASE_URL}${path}`, {
+      method,
+      headers,
+      body: body === undefined ? undefined : JSON.stringify(body),
+      signal: controller.signal
+    });
+  } catch (error) {
+    clearTimeout(timeoutId);
+    if (error?.name === 'AbortError') {
+      fail(`Request timed out for ${method} ${path} after ${API_REQUEST_TIMEOUT_MS}ms`);
+    }
+    throw buildRequestError(path, method, error);
+  } finally {
+    clearTimeout(timeoutId);
+  }
 
   const text = await response.text();
   let payload = null;
@@ -71,6 +94,34 @@ const request = async (path, { method = 'GET', token, body, expectedStatus, allo
     status: response.status,
     payload
   };
+};
+
+const waitForApiReady = async () => {
+  const startedAt = Date.now();
+  let lastError = null;
+
+  while (Date.now() - startedAt < API_READY_TIMEOUT_MS) {
+    try {
+      const health = await request('/api/health', {
+        expectedStatus: 200
+      });
+
+      if (health.payload?.success === true && health.payload?.dbStatus === 'connected') {
+        return health;
+      }
+
+      lastError = health.payload;
+    } catch (error) {
+      lastError = error.message;
+    }
+
+    await sleep(API_POLL_INTERVAL_MS);
+  }
+
+  fail(`API did not become ready within ${API_READY_TIMEOUT_MS}ms`, {
+    apiBaseUrl: API_BASE_URL,
+    lastError
+  });
 };
 
 const assert = (condition, message, details) => {
@@ -120,7 +171,7 @@ async function main() {
 
   log(`Base URL: ${API_BASE_URL}`);
 
-  const health = await request('/api/health');
+  const health = await waitForApiReady();
   assert(health.payload?.success === true, 'Health endpoint did not report success', health.payload);
   assert(health.payload?.dbStatus === 'connected', 'Database is not connected', health.payload);
 
@@ -435,5 +486,13 @@ main()
     process.exitCode = 1;
   })
   .finally(async () => {
-    await cleanup();
+    try {
+      await cleanup();
+    } catch (error) {
+      console.error('[deep-smoke] Cleanup failed:', error.message);
+      if (error.details !== undefined) {
+        console.error(JSON.stringify(error.details, null, 2));
+      }
+      process.exitCode = process.exitCode || 1;
+    }
   });

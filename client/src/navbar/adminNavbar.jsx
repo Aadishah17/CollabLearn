@@ -12,7 +12,7 @@ import {
   ShieldCheck
 } from 'lucide-react';
 import CollabLearnLogo from '../assets/collablearn-logo.svg';
-import { clearSession, emitProfileUpdated } from '../utils/session.js';
+import { logoutSession } from '../utils/session.js';
 
 export default function AdminNavbar() {
   const location = useLocation();
@@ -56,9 +56,8 @@ export default function AdminNavbar() {
       : 'inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium text-zinc-300 transition-colors hover:bg-white/10 hover:text-white';
   };
 
-  const handleLogout = () => {
-    clearSession();
-    emitProfileUpdated({ name: 'Guest', email: '', isPremium: false, role: 'user', isSuperAdmin: false });
+  const handleLogout = async () => {
+    await logoutSession();
     navigate('/');
   };
 

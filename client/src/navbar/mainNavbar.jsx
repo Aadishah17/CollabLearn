@@ -27,7 +27,7 @@ import { formatAccessLabel, isAdminRole, normalizeStoredRole } from '../auth/acc
 import Notification from '../components/Notification';
 import { useTheme } from '../components/user/useTheme.js';
 import { API_URL } from '../config';
-import { clearSession, emitProfileUpdated } from '../utils/session.js';
+import { logoutSession } from '../utils/session.js';
 
 export default function MainNavbar() {
   const location = useLocation();
@@ -267,9 +267,8 @@ export default function MainNavbar() {
   const isActive = (path) =>
     location.pathname === path || location.pathname.startsWith(`${path}/`);
 
-  const handleLogout = () => {
-    clearSession();
-    emitProfileUpdated({ name: 'Guest', email: '', isPremium: false, role: 'user', isSuperAdmin: false });
+  const handleLogout = async () => {
+    await logoutSession();
     setUsername('Guest');
     setEmail('');
     setIsPremium(false);

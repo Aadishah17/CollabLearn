@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const Booking = require('../models/Booking');
 const auth = require('../middleware/auth');
+const { validateBody, validateParams, schemas } = require('../middleware/validation');
 const multer = require('multer');
 const path = require('path');
 const {
@@ -86,13 +87,9 @@ const ensureUserScopedAccess = (req, res) => {
   return true;
 };
 
-router.post('/', async (req, res) => {
+router.post('/', validateBody(schemas.booking.createBooking), async (req, res) => {
   try {
     const { instructor, student, skill, date, duration, notes } = req.body;
-
-    if (!instructor || !student || !skill || !date || !duration) {
-      return res.status(400).json({ message: 'Missing required booking fields.' });
-    }
 
     const requesterIsParticipant =
       String(req.userId) === String(instructor) ||
@@ -127,7 +124,7 @@ router.post('/', async (req, res) => {
   }
 });
 
-router.get('/student/:id', async (req, res) => {
+router.get('/student/:id', validateParams(schemas.booking.bookingIdParam), async (req, res) => {
   try {
     if (!ensureUserScopedAccess(req, res)) {
       return;
@@ -147,7 +144,7 @@ router.get('/student/:id', async (req, res) => {
   }
 });
 
-router.get('/instructor/:id', async (req, res) => {
+router.get('/instructor/:id', validateParams(schemas.booking.bookingIdParam), async (req, res) => {
   try {
     if (!ensureUserScopedAccess(req, res)) {
       return;
@@ -167,7 +164,7 @@ router.get('/instructor/:id', async (req, res) => {
   }
 });
 
-router.patch('/:id', async (req, res) => {
+router.patch('/:id', validateParams(schemas.booking.bookingIdParam), validateBody(schemas.booking.updateStatus), async (req, res) => {
   try {
     const booking = await getAuthorizedBooking(req, res);
     if (!booking) return;
@@ -189,7 +186,7 @@ router.patch('/:id', async (req, res) => {
   }
 });
 
-router.get('/session/:id', async (req, res) => {
+router.get('/session/:id', validateParams(schemas.booking.bookingIdParam), async (req, res) => {
   try {
     const booking = await getAuthorizedBooking(req, res);
     if (!booking) return;
@@ -216,7 +213,7 @@ router.get('/session/:id', async (req, res) => {
   }
 });
 
-router.post('/:id/upload-document', upload.single('document'), async (req, res) => {
+router.post('/:id/upload-document', validateParams(schemas.booking.bookingIdParam), upload.single('document'), validateBody(schemas.booking.uploadDocument), async (req, res) => {
   try {
     const booking = await getAuthorizedBooking(req, res);
     if (!booking) return;
@@ -260,7 +257,10 @@ router.post('/:id/upload-document', upload.single('document'), async (req, res) 
   }
 });
 
-router.delete('/:id/delete-document/:docId', async (req, res) => {
+router.delete('/:id/delete-document/:docId', validateParams({
+  id: schemas.booking.bookingIdParam.id,
+  docId: schemas.booking.documentIdParam.docId
+}), async (req, res) => {
   try {
     const booking = await getAuthorizedBooking(req, res);
     if (!booking) return;
@@ -285,7 +285,7 @@ router.delete('/:id/delete-document/:docId', async (req, res) => {
   }
 });
 
-router.post('/:id/complete', async (req, res) => {
+router.post('/:id/complete', validateParams(schemas.booking.bookingIdParam), validateBody(schemas.booking.completeBooking), async (req, res) => {
   try {
     const booking = await getAuthorizedBooking(req, res);
     if (!booking) return;
@@ -339,7 +339,7 @@ router.post('/:id/complete', async (req, res) => {
   }
 });
 
-router.post('/:id/complete-session', async (req, res) => {
+router.post('/:id/complete-session', validateParams(schemas.booking.bookingIdParam), validateBody(schemas.booking.completeSession), async (req, res) => {
   try {
     const booking = await getAuthorizedBooking(req, res);
     if (!booking) return;
@@ -385,7 +385,7 @@ router.post('/:id/complete-session', async (req, res) => {
   }
 });
 
-router.post('/complete-course', async (req, res) => {
+router.post('/complete-course', validateBody(schemas.booking.completeCourse), async (req, res) => {
   try {
     const { skillId, userId, rating, review } = req.body;
 
@@ -449,7 +449,7 @@ router.post('/complete-course', async (req, res) => {
   }
 });
 
-router.patch('/:id/session-count', async (req, res) => {
+router.patch('/:id/session-count', validateParams(schemas.booking.bookingIdParam), validateBody(schemas.booking.sessionCount), async (req, res) => {
   try {
     const booking = await getAuthorizedBooking(req, res);
     if (!booking) return;
@@ -474,7 +474,10 @@ router.patch('/:id/session-count', async (req, res) => {
   }
 });
 
-router.delete('/:id/document/:docIndex', async (req, res) => {
+router.delete('/:id/document/:docIndex', validateParams({
+  id: schemas.booking.bookingIdParam.id,
+  docIndex: schemas.booking.documentIndexParam.docIndex
+}), async (req, res) => {
   try {
     const booking = await getAuthorizedBooking(req, res);
     if (!booking) return;

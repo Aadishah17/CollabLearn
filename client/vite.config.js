@@ -6,6 +6,7 @@ export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, '.', '');
   const devPort = Number(env.VITE_DEV_PORT) || 5173;
   const proxyTarget = env.VITE_API_PROXY_TARGET || 'http://localhost:5001';
+  const matchesAny = (id, patterns) => patterns.some((pattern) => id.includes(pattern));
 
   return {
     plugins: [react(), tailwindcss()],
@@ -17,38 +18,44 @@ export default defineConfig(({ mode }) => {
               return;
             }
 
-            if (
-              id.includes('/react/') ||
-              id.includes('react-dom') ||
-              id.includes('scheduler') ||
-              id.includes('react-router-dom') ||
-              id.includes('@remix-run')
-            ) {
+            if (matchesAny(id, ['/react/', 'react-dom', 'scheduler', 'react-router-dom', '@remix-run'])) {
               return 'react-core';
             }
 
-            if (id.includes('chart.js') || id.includes('react-chartjs-2')) {
+            if (matchesAny(id, ['chart.js', 'react-chartjs-2'])) {
               return 'charts';
             }
 
-            if (id.includes('react-player') || id.includes('hls.js') || id.includes('dashjs')) {
+            if (matchesAny(id, ['react-player', 'hls.js', 'dashjs'])) {
               return 'media';
             }
 
-            if (id.includes('react-quill') || id.includes('/quill/')) {
+            if (matchesAny(id, ['react-quill', '/quill/'])) {
               return 'editor';
             }
 
-            if (id.includes('socket.io-client') || id.includes('zego-express-engine-webrtc')) {
+            if (matchesAny(id, ['socket.io-client', 'socket.io-parser', 'engine.io-client', 'zego-express-engine-webrtc'])) {
               return 'realtime';
             }
 
-            if (id.includes('@react-oauth') || id.includes('@google-pay')) {
+            if (matchesAny(id, ['@react-oauth', '@google-pay'])) {
               return 'payments-auth';
             }
 
-            if (id.includes('lucide-react') || id.includes('react-icons')) {
+            if (matchesAny(id, ['lucide-react', 'react-icons'])) {
               return 'icons';
+            }
+
+            if (matchesAny(id, ['date-fns'])) {
+              return 'dates';
+            }
+
+            if (matchesAny(id, ['react-hot-toast'])) {
+              return 'toast';
+            }
+
+            if (matchesAny(id, ['axios'])) {
+              return 'requests';
             }
 
             return 'vendor';

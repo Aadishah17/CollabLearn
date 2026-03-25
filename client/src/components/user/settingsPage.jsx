@@ -18,7 +18,7 @@ import {
 import MainNavbar from '../../navbar/mainNavbar.jsx';
 import { useTheme } from './useTheme.js';
 import { API_URL } from '../../config';
-import { clearSession, emitProfileUpdated } from '../../utils/session.js';
+import { clearSession, emitProfileUpdated, logoutSession } from '../../utils/session.js';
 
 export default function SettingsPage() {
   const navigate = useNavigate();
@@ -94,9 +94,8 @@ export default function SettingsPage() {
     navigate('/profile?edit=true');
   };
 
-  const handleSignOut = () => {
-    clearSession();
-    emitProfileUpdated({ name: 'Guest', email: '', isPremium: false });
+  const handleSignOut = async () => {
+    await logoutSession();
     toast.success('Signed out from this device.');
     navigate('/');
   };
@@ -131,7 +130,7 @@ export default function SettingsPage() {
       }
 
       clearSession();
-      emitProfileUpdated({ name: 'Guest', email: '', isPremium: false });
+      emitProfileUpdated({ name: 'Guest', email: '', isPremium: false, role: 'user', isSuperAdmin: false });
 
       toast.success('Account deleted.');
       navigate('/');
@@ -257,7 +256,7 @@ export default function SettingsPage() {
                   </p>
                   <h2 className="mt-2 text-2xl font-bold text-white">Session control</h2>
                   <p className="mt-3 text-sm leading-7 text-zinc-300">
-                    This build uses token-based sign-in. You can safely clear your current device session here at any time.
+                    This build now clears both the browser session snapshot and the server auth cookie when you sign out.
                   </p>
                 </div>
               </div>

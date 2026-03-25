@@ -6,7 +6,7 @@ const compression = require('compression');
 const cors = require('cors');
 const helmet = require('helmet');
 require('dotenv').config();
-const { connectDB, resolveMongoUri } = require('./db');
+const { connectDB, resolveMongoUri, getMongoConnectionState } = require('./db');
 const { assertJwtSecretConfigured } = require('./config/auth');
 const auth = require('./middleware/auth');
 const { createRateLimiter } = require('./middleware/rateLimit');
@@ -204,7 +204,7 @@ app.use(
 );
 
 console.log('Attempting to connect to MongoDB:', resolveMongoUri());
-connectDB();
+void connectDB();
 
 mongoose.connection.on('error', (error) => console.error('MongoDB error:', error));
 mongoose.connection.on('disconnected', () => console.log('MongoDB disconnected'));
@@ -228,7 +228,8 @@ app.get('/api/messages/:chatId', auth, async (req, res) => {
 });
 
 app.get('/api/health', (_req, res) => {
-  const dbState = mongoose.connection.readyState;
+  const mongoState = getMongoConnectionState();
+  const dbState = mongoState.readyState;
   const dbStateLabelMap = {
     0: 'disconnected',
     1: 'connected',
@@ -245,6 +246,7 @@ app.get('/api/health', (_req, res) => {
     environment: process.env.NODE_ENV || 'development',
     db: dbStatus,
     dbStatus,
+    mongo: mongoState,
     services: {
       api: 'ok',
       database: dbStatus

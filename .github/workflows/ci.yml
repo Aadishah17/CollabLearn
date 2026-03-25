@@ -9,6 +9,21 @@ on:
 jobs:
   test-and-build:
     runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    services:
+      mongodb:
+        image: mongo:7
+        ports:
+          - 27017:27017
+
+    env:
+      NODE_ENV: test
+      PORT: 5001
+      MONGODB_URI: mongodb://127.0.0.1:27017/collablearn-ci
+      JWT_SECRET: ci_test_secret_change_me
+      CORS_ORIGINS: http://127.0.0.1:4173,http://localhost:4173,http://127.0.0.1:5173,http://localhost:5173
+      API_BASE_URL: http://127.0.0.1:5001
 
     steps:
       - name: Checkout
@@ -41,3 +56,34 @@ jobs:
 
       - name: Build client
         run: npm run build --prefix client
+
+      - name: Start API for deep smoke
+        run: |
+          npm run start --prefix server > server-ci.log 2>&1 &
+          echo $! > server-ci.pid
+
+          for attempt in $(seq 1 60); do
+            if curl -fsS http://127.0.0.1:5001/api/health | grep -q '"dbStatus":"connected"'; then
+              echo "API is ready"
+              exit 0
+            fi
+
+            sleep 2
+          done
+
+          echo "API did not become ready in time"
+          cat server-ci.log
+          exit 1
+
+      - name: Seed mock data
+        run: npm run seed:mock --prefix server -- --reset
+
+      - name: Run deep smoke
+        run: npm run smoke:deep --prefix server
+
+      - name: Stop API
+        if: always()
+        run: |
+          if [ -f server-ci.pid ]; then
+            kill "$(cat server-ci.pid)" || true
+          fi
