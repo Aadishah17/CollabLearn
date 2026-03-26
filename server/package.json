@@ -4,7 +4,7 @@
   "main": "src/index.js",
   "scripts": {
     "start": "node src/index.js",
-    "dev": "nodemon src/index.js",
+    "dev": "node --watch src/index.js",
     "db:ping": "node scripts/ping-db.js",
     "seed:mock": "node scripts/seed-mock-data.js",
     "seed:mock:reset": "node scripts/seed-mock-data.js --reset",

@@ -69,6 +69,12 @@ const withPatched = async (target, key, replacement, fn) => {
   }
 };
 
+const createFindByIdMock = (result) => () => ({
+  select() {
+    return Promise.resolve(result);
+  }
+});
+
 const createResponse = () => {
   const state = {
     statusCode: 200,
@@ -139,7 +145,7 @@ test('auth middleware prefers cookie auth but falls back to bearer tokens', asyn
       JWT_SECRET: 'test-secret',
       AUTH_COOKIE_NAME: 'collablearn_access_token'
     },
-    () => {
+    async () => {
       const cookieToken = jwt.sign(
         { userId: 'cookie-user', email: 'cookie@example.com', role: 'user' },
         process.env.JWT_SECRET,
@@ -164,9 +170,22 @@ test('auth middleware prefers cookie auth but falls back to bearer tokens', asyn
       let nextCalled = false;
       const { res } = createResponse();
 
-      auth(req, res, () => {
-        nextCalled = true;
-      });
+      await withPatched(
+        User,
+        'findById',
+        createFindByIdMock({
+          _id: 'cookie-user',
+          email: 'cookie@example.com',
+          isActive: true
+        }),
+        async () => {
+          await withPatched(Admin, 'findById', createFindByIdMock(null), async () => {
+            await auth(req, res, () => {
+              nextCalled = true;
+            });
+          });
+        }
+      );
 
       assert.equal(nextCalled, true);
       assert.equal(req.userId, 'cookie-user');
@@ -181,7 +200,7 @@ test('auth middleware prefers cookie auth but falls back to bearer tokens', asyn
       JWT_SECRET: 'test-secret',
       AUTH_COOKIE_NAME: 'collablearn_access_token'
     },
-    () => {
+    async () => {
       const bearerToken = jwt.sign(
         { userId: 'bearer-user', email: 'bearer@example.com', role: 'admin', isSuperAdmin: true },
         process.env.JWT_SECRET,
@@ -201,8 +220,21 @@ test('auth middleware prefers cookie auth but falls back to bearer tokens', asyn
       let nextCalled = false;
       const { res } = createResponse();
 
-      auth(req, res, () => {
-        nextCalled = true;
+      await withPatched(User, 'findById', createFindByIdMock(null), async () => {
+        await withPatched(
+          Admin,
+          'findById',
+          createFindByIdMock({
+            _id: 'bearer-user',
+            email: 'bearer@example.com',
+            isActive: true
+          }),
+          async () => {
+            await auth(req, res, () => {
+              nextCalled = true;
+            });
+          }
+        );
       });
 
       assert.equal(nextCalled, true);
@@ -220,7 +252,7 @@ test('optionalAuth accepts cookie sessions without forcing an error', async () =
       JWT_SECRET: 'test-secret',
       AUTH_COOKIE_NAME: 'collablearn_access_token'
     },
-    () => {
+    async () => {
       const token = jwt.sign(
         { userId: 'opt-user', email: 'opt@example.com', role: 'user' },
         process.env.JWT_SECRET,
@@ -238,14 +270,70 @@ test('optionalAuth accepts cookie sessions without forcing an error', async () =
 
       let nextCalled = false;
 
-      optionalAuth(req, {}, () => {
-        nextCalled = true;
-      });
+      await withPatched(
+        User,
+        'findById',
+        createFindByIdMock({
+          _id: 'opt-user',
+          email: 'opt@example.com',
+          isActive: true
+        }),
+        async () => {
+          await withPatched(Admin, 'findById', createFindByIdMock(null), async () => {
+            await optionalAuth(req, {}, () => {
+              nextCalled = true;
+            });
+          });
+        }
+      );
 
       assert.equal(nextCalled, true);
       assert.equal(req.userId, 'opt-user');
       assert.equal(req.userEmail, 'opt@example.com');
       assert.equal(req.authSource, 'cookie');
+    }
+  );
+});
+
+test('auth middleware rejects tokens for deleted accounts with a 401', async () => {
+  await withEnv(
+    {
+      JWT_SECRET: 'test-secret',
+      AUTH_COOKIE_NAME: 'collablearn_access_token'
+    },
+    async () => {
+      const token = jwt.sign(
+        { userId: 'missing-user', email: 'missing@example.com', role: 'user' },
+        process.env.JWT_SECRET,
+        { expiresIn: '1h' }
+      );
+
+      const req = {
+        headers: {
+          authorization: `Bearer ${token}`
+        },
+        header(name) {
+          return this.headers[String(name).toLowerCase()];
+        }
+      };
+
+      let nextCalled = false;
+      const { res, state } = createResponse();
+
+      await withPatched(User, 'findById', createFindByIdMock(null), async () => {
+        await withPatched(Admin, 'findById', createFindByIdMock(null), async () => {
+          await auth(req, res, () => {
+            nextCalled = true;
+          });
+        });
+      });
+
+      assert.equal(nextCalled, false);
+      assert.equal(state.statusCode, 401);
+      assert.deepEqual(state.jsonBody, {
+        success: false,
+        message: 'Session is no longer valid. Please login again.'
+      });
     }
   );
 });

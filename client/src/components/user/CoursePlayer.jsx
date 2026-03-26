@@ -1,9 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import ReactPlayer from 'react-player';
 import { ChevronLeft, Share2, Bookmark, Download, ThumbsUp } from 'lucide-react';
 import { API_URL } from '../../config';
-
 
 const CoursePlayer = () => {
     const { id } = useParams();
@@ -57,14 +55,18 @@ const CoursePlayer = () => {
                 <div className="flex-grow flex flex-col overflow-y-auto lg:overflow-hidden">
                     {/* Player Container */}
                     <div className="bg-black w-full aspect-video lg:h-[70vh] relative">
-                        <ReactPlayer
-                            url={course.videoUrl}
-                            width="100%"
-                            height="100%"
-                            controls={true}
-                            playing={true}
-                            light={course.thumbnailUrl}
-                        />
+                        <video
+                            key={course.videoUrl}
+                            src={course.videoUrl}
+                            poster={course.thumbnailUrl}
+                            controls
+                            autoPlay
+                            playsInline
+                            preload="metadata"
+                            className="h-full w-full"
+                        >
+                            Your browser does not support inline course playback.
+                        </video>
                     </div>
 
                     {/* Mobile Info (visible only on small screens) */}

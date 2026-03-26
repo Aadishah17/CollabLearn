@@ -1,11 +1,14 @@
 const jwt = require('jsonwebtoken');
 const {
-  applyAuthContext,
   extractAuthTokenCandidates,
   resolveJwtSecret
 } = require('../config/auth');
+const {
+  applyResolvedAuthContext,
+  resolveAuthenticatedAccount
+} = require('./resolveAuthAccount');
 
-const optionalAuth = (req, _res, next) => {
+const optionalAuth = async (req, _res, next) => {
   const candidates = extractAuthTokenCandidates(req);
 
   if (candidates.length === 0) {
@@ -16,7 +19,12 @@ const optionalAuth = (req, _res, next) => {
     for (const candidate of candidates) {
       try {
         const decoded = jwt.verify(candidate.token, resolveJwtSecret());
-        applyAuthContext(req, decoded, candidate.source);
+        const resolvedAccount = await resolveAuthenticatedAccount(decoded);
+        if (!resolvedAccount || resolvedAccount.account.isActive === false) {
+          continue;
+        }
+
+        applyResolvedAuthContext(req, decoded, candidate.source, resolvedAccount);
         return next();
       } catch (_error) {
         // Continue to the next candidate, preserving optional auth behavior.

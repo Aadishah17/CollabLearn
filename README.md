@@ -104,6 +104,23 @@ Keep local changes aligned with that same bar before opening a PR:
 - Runtime uploads are served from `server/uploads/` and should stay out of version control.
 - The AI model is configurable through `GEMINI_MODEL`; if omitted, the server falls back to `gemini-2.0-flash`.
 
+## Render Deployment
+
+The repo now includes a root-level [render.yaml](./render.yaml) blueprint for a two-service Render setup:
+
+- `collablearn-web`: static frontend built from `client/`
+- `collablearn-api`: Node/Express API built from `server/`
+
+Before applying the blueprint, set these secret values in Render:
+
+- `MONGODB_URI`
+- `JWT_SECRET`
+- `NVIDIA_API_KEY`
+- `GEMINI_API_KEY` if you want Gemini enabled
+- `VITE_GOOGLE_CLIENT_ID` if you want Google auth enabled in the frontend
+
+The blueprint wires the frontend to the API automatically through Render service references. `VITE_API_URL` and `CORS_ORIGINS` can now consume bare Render hostnames and normalize them to HTTPS at runtime.
+
 ## Mock Data
 
 The server includes a deterministic seed script for local development and CI smoke runs:

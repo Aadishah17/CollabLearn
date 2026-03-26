@@ -1,14 +1,17 @@
 const jwt = require('jsonwebtoken');
 const {
-  applyAuthContext,
   extractAuthTokenCandidates,
   resolveJwtSecret
 } = require('../config/auth');
+const {
+  applyResolvedAuthContext,
+  resolveAuthenticatedAccount
+} = require('./resolveAuthAccount');
 
 const verifyCandidateToken = (token) => jwt.verify(token, resolveJwtSecret());
 
 // ============= AUTHENTICATION MIDDLEWARE =============
-const auth = (req, res, next) => {
+const auth = async (req, res, next) => {
   const candidates = extractAuthTokenCandidates(req);
 
   if (candidates.length === 0) {
@@ -24,7 +27,26 @@ const auth = (req, res, next) => {
     for (const candidate of candidates) {
       try {
         const decoded = verifyCandidateToken(candidate.token);
-        applyAuthContext(req, decoded, candidate.source);
+        const resolvedAccount = await resolveAuthenticatedAccount(decoded);
+
+        if (!resolvedAccount) {
+          return res.status(401).json({
+            success: false,
+            message: 'Session is no longer valid. Please login again.'
+          });
+        }
+
+        if (resolvedAccount.account.isActive === false) {
+          return res.status(401).json({
+            success: false,
+            message:
+              resolvedAccount.accountType === 'admin'
+                ? 'Admin account is deactivated. Please contact support.'
+                : 'Account is deactivated. Please contact support.'
+          });
+        }
+
+        applyResolvedAuthContext(req, decoded, candidate.source, resolvedAccount);
         return next();
       } catch (error) {
         lastError = error;

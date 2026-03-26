@@ -23,6 +23,23 @@ const uploadsPath = path.join(__dirname, '..', 'uploads');
 const avatarUploadsPath = path.join(uploadsPath, 'avatars');
 const sessionDocumentUploadsPath = path.join(uploadsPath, 'session-documents');
 
+const normalizeOriginEntry = (origin) => {
+  const trimmed = String(origin || '').trim().replace(/\/+$/, '');
+  if (!trimmed) {
+    return '';
+  }
+
+  if (/^https?:\/\//i.test(trimmed)) {
+    return trimmed;
+  }
+
+  if (trimmed.startsWith('//')) {
+    return `https:${trimmed}`;
+  }
+
+  return `https://${trimmed}`;
+};
+
 const parseAllowedOrigins = () => {
   const defaults = [
     'http://localhost:4173',
@@ -43,7 +60,7 @@ const parseAllowedOrigins = () => {
 
   const configured = String(process.env.CORS_ORIGINS || '')
     .split(',')
-    .map((origin) => origin.trim())
+    .map((origin) => normalizeOriginEntry(origin))
     .filter(Boolean);
 
   return configured.length > 0 ? configured : defaults;
