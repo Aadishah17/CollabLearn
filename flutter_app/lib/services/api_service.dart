@@ -103,9 +103,10 @@ class ApiService {
 
   Future<Map<String, dynamic>> generateRoadmap(
       Map<String, dynamic> payload) async {
+    final token = await getToken();
     final response = await http.post(
       Uri.parse('$baseUrl/api/ai/roadmap'),
-      headers: _jsonHeaders(),
+      headers: _jsonHeaders(token: token),
       body: jsonEncode(payload),
     );
     return _decodeBody(response);
@@ -113,9 +114,10 @@ class ApiService {
 
   Future<Map<String, dynamic>> generateStudySession(
       Map<String, dynamic> payload) async {
+    final token = await getToken();
     final response = await http.post(
       Uri.parse('$baseUrl/api/ai/study-session'),
-      headers: _jsonHeaders(),
+      headers: _jsonHeaders(token: token),
       body: jsonEncode(payload),
     );
     return _decodeBody(response);

@@ -137,7 +137,9 @@ struct LoginView: View {
             if response.success {
                 isError = false
                 statusMessage = "Logged in successfully!"
-                // TODO: Save token and navigate to Dashboard
+                if let token = response.token, !token.isEmpty {
+                    UserDefaults.standard.set(token, forKey: "token")
+                }
             } else {
                 isError = true
                 statusMessage = response.message ?? "Login failed."

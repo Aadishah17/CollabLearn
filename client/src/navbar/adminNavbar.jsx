@@ -12,6 +12,7 @@ import {
   ShieldCheck
 } from 'lucide-react';
 import CollabLearnLogo from '../assets/collablearn-logo.svg';
+import { resolveAdminWebsiteRoute } from './navLinks.js';
 import { logoutSession } from '../utils/session.js';
 
 export default function AdminNavbar() {
@@ -23,7 +24,7 @@ export default function AdminNavbar() {
   const [email] = useState(localStorage.getItem('email') || '');
   const [isSuperAdmin] = useState(localStorage.getItem('isSuperAdmin') === 'true');
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const websiteRoute = isSuperAdmin ? '/dashboard' : '/';
+  const websiteRoute = resolveAdminWebsiteRoute({ isSuperAdmin });
 
   useEffect(() => {
     function handleClickOutside(event) {

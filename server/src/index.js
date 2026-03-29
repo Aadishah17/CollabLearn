@@ -19,9 +19,22 @@ const { Server } = require('socket.io');
 
 const PORT = Number(process.env.PORT) || 5001;
 const isProduction = String(process.env.NODE_ENV || '').trim() === 'production';
+const isTruthyEnv = (value) => /^(1|true|yes|on)$/i.test(String(value || '').trim());
+const debugStartupLogs = isTruthyEnv(process.env.DEBUG_SERVER_STARTUP_LOGS);
+const debugSocketLogs = isTruthyEnv(process.env.DEBUG_SOCKET_LOGS);
 const uploadsPath = path.join(__dirname, '..', 'uploads');
 const avatarUploadsPath = path.join(uploadsPath, 'avatars');
 const sessionDocumentUploadsPath = path.join(uploadsPath, 'session-documents');
+const logStartup = (...args) => {
+  if (debugStartupLogs) {
+    console.log(...args);
+  }
+};
+const logSocket = (...args) => {
+  if (debugSocketLogs) {
+    console.log(...args);
+  }
+};
 
 const normalizeOriginEntry = (origin) => {
   const trimmed = String(origin || '').trim().replace(/\/+$/, '');
@@ -119,12 +132,12 @@ if (!fs.existsSync(sessionDocumentUploadsPath)) {
   fs.mkdirSync(sessionDocumentUploadsPath, { recursive: true });
 }
 
-console.log('-----------------------------------------');
-console.log('DEBUG: SERVER STARTUP');
-console.log('DEBUG: Loaded .env via dotenv');
-console.log('DEBUG: External AI provider key present?', !!process.env.GEMINI_API_KEY);
-console.log('DEBUG: CORS_ORIGINS:', allowedOrigins.join(', '));
-console.log('-----------------------------------------');
+logStartup('-----------------------------------------');
+logStartup('DEBUG: SERVER STARTUP');
+logStartup('DEBUG: Loaded .env via dotenv');
+logStartup('DEBUG: External AI provider key present?', !!process.env.GEMINI_API_KEY);
+logStartup('DEBUG: CORS_ORIGINS:', allowedOrigins.join(', '));
+logStartup('-----------------------------------------');
 
 const server = http.createServer(app);
 const io = new Server(server, {
@@ -149,7 +162,7 @@ io.on('connection', (socket) => {
   socket.on('user_online', (userId) => {
     if (!userId) return;
 
-    console.log(`User online: ${userId} (Socket: ${socket.id})`);
+    logSocket(`User online: ${userId} (Socket: ${socket.id})`);
     onlineUsers.set(userId, socket.id);
     socket.userId = userId;
 
@@ -184,7 +197,7 @@ io.on('connection', (socket) => {
 
   socket.on('disconnect', () => {
     if (!socket.userId) return;
-    console.log(`User disconnected: ${socket.userId}`);
+    logSocket(`User disconnected: ${socket.userId}`);
     onlineUsers.delete(socket.userId);
     socket.broadcast.emit('user_status_change', { userId: socket.userId, isOnline: false });
   });
@@ -220,11 +233,11 @@ app.use(
   })
 );
 
-console.log('Attempting to connect to MongoDB:', resolveMongoUri());
+logStartup('Attempting to connect to MongoDB:', resolveMongoUri());
 void connectDB();
 
 mongoose.connection.on('error', (error) => console.error('MongoDB error:', error));
-mongoose.connection.on('disconnected', () => console.log('MongoDB disconnected'));
+mongoose.connection.on('disconnected', () => console.warn('MongoDB disconnected'));
 
 app.get('/api/users', auth, async (_req, res) => {
   try {
@@ -281,13 +294,13 @@ app.use('/api/courses', require('./routes/courses'));
 app.use('/api/ai', aiRateLimiter, require('./routes/ai'));
 app.use('/api/modules', require('./routes/moduleRoutes'));
 
-console.log('All routes loaded');
+logStartup('All routes loaded');
 
 app.get('/', (_req, res) => {
   res.json({ message: 'CollabLearn API Running!' });
 });
 
 server.listen(PORT, '0.0.0.0', () => {
-  console.log(`Server running on port ${PORT}`);
-  console.log(`Local: http://localhost:${PORT}`);
+  logStartup(`Server running on port ${PORT}`);
+  logStartup(`Local: http://localhost:${PORT}`);
 });

@@ -61,7 +61,7 @@ function App() {
           <Route path="/signup" element={<SignupPage />} />
           <Route path="/status" element={<StatusPage />} />
           <Route path="/admin" element={<ProtectedRoute requiredRole="admin"><AdminDashboard /></ProtectedRoute>} />
-          <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+          <Route path="/dashboard" element={<ProtectedRoute requiredRole="user"><Dashboard /></ProtectedRoute>} />
           <Route path="/modules" element={<ProtectedRoute><ModuleDashboard /></ProtectedRoute>} />
           <Route path="/modules/create" element={<ProtectedRoute><ModuleEditor /></ProtectedRoute>} />
           <Route path="/modules/:id" element={<ProtectedRoute><ModuleEditor /></ProtectedRoute>} />

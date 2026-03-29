@@ -1,374 +1,239 @@
-import React, {
-  useState,
-  useEffect,
-  useMemo,
-  useCallback,
-  lazy,
-  Suspense,
-} from "react";
-import { Link, useNavigate } from "react-router-dom";
+import React, { Suspense, lazy, useCallback, useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
-  Calendar,
-  Star,
-  Users,
-  Trophy,
   BookOpen,
-  Clock,
-  MessageSquare,
-  Settings,
+  Calendar,
+  Clock3,
+  GraduationCap,
+  LoaderCircle,
   Lock,
+  MessageSquare,
   Sparkles,
-} from "lucide-react";
-import MainNavbar from "../../navbar/mainNavbar";
-import { API_URL } from "../../config";
-import { clearSession } from "../../utils/session";
+  Target,
+  TrendingUp,
+  Trophy,
+  Users,
+} from 'lucide-react';
+import MainNavbar from '../../navbar/mainNavbar';
+import { getDashboardStats } from '../../services/dashboardApi';
+import { clearSession } from '../../utils/session';
 
+const StudentInfoModal = lazy(() => import('./StudentInfoModal'));
 
-// Lazy load the StudentInfoModal for better initial load performance
-const StudentInfoModal = lazy(() => import("./StudentInfoModal"));
+const CACHE_KEY = 'dashboard_data_v2';
+const CACHE_TIMESTAMP_KEY = 'dashboard_timestamp_v2';
+const CACHE_TTL_MS = 2 * 60 * 1000;
+const memoryCache = { data: null, timestamp: 0 };
 
-const Dashboard = React.memo(() => {
+const formatSessionDate = (value) => {
+  if (!value) return 'Not scheduled';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return 'Not scheduled';
+
+  const today = new Date();
+  const tomorrow = new Date();
+  tomorrow.setDate(today.getDate() + 1);
+
+  if (date.toDateString() === today.toDateString()) {
+    return `Today · ${date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`;
+  }
+
+  if (date.toDateString() === tomorrow.toDateString()) {
+    return `Tomorrow · ${date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`;
+  }
+
+  return date.toLocaleString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  });
+};
+
+const getSkillInitials = (skillName) =>
+  String(skillName || 'SK')
+    .split(' ')
+    .map((word) => word.charAt(0).toUpperCase())
+    .join('')
+    .slice(0, 2);
+
+const getProgressTone = (progress) => {
+  if (progress >= 75) return 'from-emerald-400 to-emerald-500';
+  if (progress >= 50) return 'from-sky-400 to-blue-500';
+  if (progress >= 25) return 'from-amber-400 to-orange-500';
+  return 'from-zinc-400 to-zinc-500';
+};
+
+const readCachedDashboard = () => {
+  try {
+    if (memoryCache.data && Date.now() - memoryCache.timestamp < CACHE_TTL_MS) {
+      return memoryCache.data;
+    }
+
+    const cached = sessionStorage.getItem(CACHE_KEY);
+    const timestamp = Number(sessionStorage.getItem(CACHE_TIMESTAMP_KEY) || 0);
+
+    if (!cached || !timestamp || Date.now() - timestamp >= CACHE_TTL_MS) {
+      return null;
+    }
+
+    const parsed = JSON.parse(cached);
+    memoryCache.data = parsed;
+    memoryCache.timestamp = timestamp;
+    return parsed;
+  } catch {
+    sessionStorage.removeItem(CACHE_KEY);
+    sessionStorage.removeItem(CACHE_TIMESTAMP_KEY);
+    return null;
+  }
+};
+
+const writeCachedDashboard = (payload) => {
+  memoryCache.data = payload;
+  memoryCache.timestamp = Date.now();
+
+  try {
+    const serialized = JSON.stringify(payload);
+    if (serialized.length < 1024 * 1024) {
+      sessionStorage.setItem(CACHE_KEY, serialized);
+      sessionStorage.setItem(CACHE_TIMESTAMP_KEY, String(Date.now()));
+    }
+  } catch {
+    // Best effort cache only.
+  }
+};
+
+export default function Dashboard() {
+  const navigate = useNavigate();
   const [dashboardData, setDashboardData] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState('');
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [selectedSkill, setSelectedSkill] = useState(null);
   const [showStudentModal, setShowStudentModal] = useState(false);
-  const navigate = useNavigate();
 
-  // Memoize the token to avoid getting it on every render
-  const token = useMemo(() => localStorage.getItem("token"), []);
-
-  // In-memory cache as fallback if storage fails
-  const memoryCache = useMemo(() => ({ data: null, timestamp: null }), []);
-
-  // Cleanup function to prevent memory leaks
-  useEffect(() => {
-    return () => {
-      // Clear memory cache on unmount
-      if (memoryCache) {
-        memoryCache.data = null;
-        memoryCache.timestamp = null;
-      }
-    };
-  }, [memoryCache]);
-
-  const fetchFallbackData = useCallback(async (activeToken) => {
-    // Fetch user profile
-    const userResponse = await fetch(`${API_URL}/api/auth/me`, {
-      headers: {
-        Authorization: `Bearer ${activeToken}`,
-        "Content-Type": "application/json",
-      },
-    });
-
-    if (!userResponse.ok) {
-      if (userResponse.status === 401) {
-        clearSession();
-        navigate("/login");
-        return;
-      }
-      throw new Error("Failed to fetch user data");
-    }
-
-    // Fetch user's skills
-    try {
-      const skillsResponse = await fetch(`${API_URL}/api/skills/my-skills`, {
-        headers: {
-          Authorization: `Bearer ${activeToken}`,
-          "Content-Type": "application/json",
-        },
-      });
-
-      if (skillsResponse.ok) {
-        // Intentionally left as a compatibility fallback while the dashboard
-        // consolidates around the stats endpoint.
-      }
-    } catch (skillsErr) {
-      console.error("Skills fetch error:", skillsErr);
-    }
-
-    // Additional fallback calls omitted for brevity
-  }, [navigate]);
-
-  const fetchDashboardData = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      // Check sessionStorage cache first (lasts for browser session, larger quota)
-      const cacheKey = "dashboard_data";
-      const cacheTimestampKey = "dashboard_timestamp";
-
+  const fetchDashboardData = useCallback(
+    async ({ bypassCache = false } = {}) => {
       try {
-        // Try sessionStorage first
-        const cached = sessionStorage.getItem(cacheKey);
-        const cacheTimestamp = sessionStorage.getItem(cacheTimestampKey);
+        setLoading(true);
+        setError('');
 
-        if (cached && cacheTimestamp) {
-          const age = Date.now() - parseInt(cacheTimestamp);
-          if (age < 2 * 60 * 1000) {
-            // 2 minutes for faster refresh
-            setDashboardData(JSON.parse(cached));
+        if (!bypassCache) {
+          const cached = readCachedDashboard();
+          if (cached) {
+            setDashboardData(cached);
             setLoading(false);
             return;
           }
         }
 
-        // Fall back to memory cache
-        if (memoryCache.data && memoryCache.timestamp) {
-          const age = Date.now() - memoryCache.timestamp;
-          if (age < 1 * 60 * 1000) {
-            // 1 minute for memory cache
-            setDashboardData(memoryCache.data);
-            setLoading(false);
-            return;
-          }
-        }
-      } catch (cacheError) {
-        console.warn("Cache read failed:", cacheError);
-        // Clear potentially corrupted cache
-        try {
-          sessionStorage.removeItem(cacheKey);
-          sessionStorage.removeItem(cacheTimestampKey);
-        } catch (clearError) {
-          console.error("Failed to clear cache:", clearError);
-        }
-      }
+        const payload = await getDashboardStats();
+        setDashboardData(payload);
+        writeCachedDashboard(payload);
+      } catch (fetchError) {
+        console.error('Dashboard error:', fetchError);
 
-      // Fetch fresh data with optimized single API call
-      const dashboardResponse = await fetch(`${API_URL}/api/dashboard/stats`, {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-      });
-
-      if (!dashboardResponse.ok) {
-        if (dashboardResponse.status === 401) {
+        if (fetchError?.status === 401) {
           clearSession();
-          navigate("/login");
+          navigate('/login');
           return;
         }
 
-        const errorText = await dashboardResponse.text();
-        console.error("Dashboard API error:", errorText);
-        throw new Error(
-          `Failed to fetch dashboard data: ${dashboardResponse.status} ${dashboardResponse.statusText}`,
-        );
+        setError(fetchError.message || 'Failed to load your dashboard.');
+      } finally {
+        setLoading(false);
       }
-
-      const dashboardData = await dashboardResponse.json();
-
-      if (dashboardData.success) {
-        // Set the consolidated dashboard data
-        setDashboardData(dashboardData.data);
-
-        // Cache optimized data (only essential info to reduce size)
-        const optimizedCache = {
-          user: {
-            id: dashboardData.data.user?.id,
-            name: dashboardData.data.user?.name,
-            email: dashboardData.data.user?.email,
-            avatar: dashboardData.data.user?.avatar,
-            isPremium: !!dashboardData.data.user?.isPremium,
-          },
-          stats: dashboardData.data.stats,
-          skills: {
-            teaching: dashboardData.data.skills?.teaching?.slice(0, 10) || [], // Limit to 10 most recent
-            learning: dashboardData.data.skills?.learning?.slice(0, 10) || [],
-          },
-          upcomingBookings: {
-            teaching:
-              dashboardData.data.upcomingBookings?.teaching?.slice(0, 5) || [], // Limit to 5 most recent
-            learning:
-              dashboardData.data.upcomingBookings?.learning?.slice(0, 5) || [],
-          },
-        };
-
-        // Always store in memory cache
-        memoryCache.data = optimizedCache;
-        memoryCache.timestamp = Date.now();
-
-        // Try to store in sessionStorage
-        try {
-          const cacheString = JSON.stringify(optimizedCache);
-          // Check if the data size is reasonable (< 1MB)
-          if (cacheString.length < 1024 * 1024) {
-            sessionStorage.setItem(cacheKey, cacheString);
-            sessionStorage.setItem(cacheTimestampKey, Date.now().toString());
-          }
-        } catch (storageError) {
-          console.warn(
-            "Failed to cache dashboard data in sessionStorage:",
-            storageError,
-          );
-        }
-      } else {
-        throw new Error(
-          dashboardData.message || "Failed to fetch dashboard data",
-        );
-      }
-    } catch (err) {
-      console.error("Dashboard error:", err);
-
-      // Fallback to individual API calls if dashboard endpoint fails
-      try {
-        await fetchFallbackData(token);
-      } catch (fallbackErr) {
-        console.error("Fallback also failed:", fallbackErr);
-        setError(err.message);
-      }
-    } finally {
-      setLoading(false);
-    }
-  }, [fetchFallbackData, memoryCache, navigate, token]);
+    },
+    [navigate],
+  );
 
   useEffect(() => {
-    if (token) {
-      fetchDashboardData();
-    } else {
-      setError("Please login to view dashboard");
-      setLoading(false);
-    }
-  }, [fetchDashboardData, token]);
+    fetchDashboardData();
+  }, [fetchDashboardData]);
 
-  // Memoize derived data to prevent unnecessary re-calculations
   const derivedData = useMemo(() => {
     if (!dashboardData) return null;
 
     const teachingSkills = dashboardData.skills?.teaching || [];
     const learningSkills = dashboardData.skills?.learning || [];
-    const upcomingBookings = dashboardData.upcomingBookings?.teaching || [];
-    const studentBookings = dashboardData.upcomingBookings?.learning || [];
+    const teachingBookings = dashboardData.upcomingBookings?.teaching || [];
+    const learningBookings = dashboardData.upcomingBookings?.learning || [];
+    const studentSummaries = dashboardData.studentSummaries || [];
+    const recentActivity = dashboardData.recentActivity || [];
+
+    const allUpcomingSessions = [
+      ...teachingBookings.map((booking) => ({ ...booking, dashboardRole: 'teaching' })),
+      ...learningBookings.map((booking) => ({ ...booking, dashboardRole: 'learning' })),
+    ].sort((left, right) => new Date(left.date) - new Date(right.date));
 
     return {
-      user: dashboardData.user,
+      user: dashboardData.user || {},
+      stats: dashboardData.stats || {},
       teachingSkills,
       learningSkills,
-      upcomingBookings,
-      studentBookings,
-      stats: dashboardData.stats || {},
-      // Pre-compute commonly used values
-      hasTeachingSkills: teachingSkills.length > 0,
-      hasLearningSkills: learningSkills.length > 0,
-      hasUpcomingSessions:
-        upcomingBookings.length > 0 || studentBookings.length > 0,
-      allUpcomingSessions: [...upcomingBookings, ...studentBookings].sort(
-        (a, b) => new Date(a.date) - new Date(b.date),
+      studentSummaries,
+      recentActivity,
+      teachingBookings,
+      learningBookings,
+      allUpcomingSessions,
+      nextSession: allUpcomingSessions[0] || null,
+      totalCompletedSessions: studentSummaries.reduce(
+        (sum, summary) => sum + (summary.completedSessions || 0),
+        0,
       ),
     };
   }, [dashboardData]);
 
-  // Whether current user can join meetings (premium users only)
-  // Coerce to boolean to avoid undefined/truthy issues from cached data
-  const allowJoin = !!derivedData?.user?.isPremium;
+  const dashboardPulseItems = useMemo(() => {
+    if (!derivedData) return [];
 
-  const handleViewStudentProgress = useCallback((student, skill) => {
-    setSelectedStudent(student);
-    setSelectedSkill(skill);
+    return [
+      `${derivedData.teachingSkills.length} teaching lanes live`,
+      `${derivedData.learningSkills.length} learning tracks active`,
+      `${derivedData.studentSummaries.length} learners in motion`,
+      `${derivedData.allUpcomingSessions.length} upcoming sessions`,
+      `${derivedData.totalCompletedSessions} sessions completed`,
+    ];
+  }, [derivedData]);
+
+  const allowJoin = Boolean(derivedData?.user?.isPremium);
+
+  const handleOpenStudent = useCallback((summary) => {
+    setSelectedStudent(summary.student);
+    setSelectedSkill(summary.focusSkill || null);
     setShowStudentModal(true);
   }, []);
 
   const handleMessageStudent = useCallback(
     (student) => {
-      navigate("/messages", { state: { startChat: student } });
+      navigate('/messages', { state: { startChat: student } });
       setShowStudentModal(false);
     },
     [navigate],
   );
 
-  /* const handleScheduleSession = useCallback(() => {
-    navigate("/book-session");
-  }, [navigate]); */
-
-  /* const handleManageAllSkills = useCallback(() => {
-    navigate("/browse-skills");
-  }, [navigate]);
-
-  const handleFindSkills = useCallback(() => {
-    navigate("/browse-skills");
-  }, [navigate]); */
-
-  const handleAddTeachingSkill = useCallback(() => {
-    navigate("/browse-skills");
-  }, [navigate]);
-
-  /* const handleExploreSkillsToLearn = () => {
-    navigate("/browse-skills");
-  };
-
-  const handleViewAllSessions = useCallback(() => {
-    navigate("/calendar");
-  }, [navigate]);
-
-  const handleSetAvailability = useCallback(() => {
-    navigate("/calendar");
-  }, [navigate]);
-
-  const handleMessageCenter = useCallback(() => {
-    navigate("/messages");
-  }, [navigate]); */
-
-  const handleViewMoreInfo = useCallback(
+  const handleOpenSkill = useCallback(
     (skill) => {
-      if (!skill || !skill._id) {
-        console.error("Invalid skill data:", skill);
+      if (!skill?._id) {
         return;
       }
-      navigate("/skill-sessions", { state: { skill } });
+
+      navigate('/skill-sessions', { state: { skill } });
     },
     [navigate],
   );
-
-  const handleCalendar = useCallback(() => {
-    navigate("/calendar");
-  }, [navigate]);
-
-  // Memoized utility functions
-  const formatDate = useCallback((dateString) => {
-    const date = new Date(dateString);
-    const today = new Date();
-    const tomorrow = new Date();
-    tomorrow.setDate(today.getDate() + 1);
-
-    if (date.toDateString() === today.toDateString()) {
-      return `Today @ ${date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
-    } else if (date.toDateString() === tomorrow.toDateString()) {
-      return `Tomorrow @ ${date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
-    } else {
-      return `${date.toLocaleDateString("en-US", { month: "short", day: "numeric" })} @ ${date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
-    }
-  }, []);
-
-  const getProgressColor = useCallback((progress) => {
-    // Use indigo accents to match browseSkills styling
-    if (progress >= 80) return "bg-indigo-500";
-    if (progress >= 50) return "bg-indigo-400";
-    if (progress >= 25) return "bg-indigo-300";
-    return "bg-gray-300";
-  }, []);
-
-  const getSkillInitials = useCallback((skillName) => {
-    return skillName
-      .split(" ")
-      .map((word) => word.charAt(0).toUpperCase())
-      .join("")
-      .substring(0, 2);
-  }, []);
 
   if (loading) {
     return (
       <div className="glass-page flex min-h-screen items-center justify-center px-6">
         <div className="surface-card w-full max-w-md p-8 text-center">
-          <div className="mx-auto mb-5 h-14 w-14 animate-spin rounded-full border-2 border-white/15 border-t-red-500" />
-          <p className="text-sm font-semibold uppercase tracking-[0.3em] text-red-300/80">
+          <LoaderCircle className="mx-auto h-12 w-12 animate-spin text-red-300" />
+          <p className="mt-5 text-sm font-semibold uppercase tracking-[0.3em] text-red-300/80">
             Dashboard
           </p>
           <h1 className="mt-3 text-2xl font-bold text-white">Loading your workspace</h1>
           <p className="mt-2 text-sm leading-6 text-zinc-300">
-            Pulling in sessions, skills, and progress signals.
+            Pulling in sessions, learning goals, and student signals.
           </p>
         </div>
       </div>
@@ -383,13 +248,10 @@ const Dashboard = React.memo(() => {
             Dashboard error
           </p>
           <h2 className="mt-3 text-3xl font-black tracking-tight text-white">
-            Your workspace data did not load cleanly.
+            Your workspace did not load cleanly.
           </h2>
           <p className="mx-auto mt-4 max-w-xl text-sm leading-7 text-zinc-300">{error}</p>
-          <button
-            onClick={fetchDashboardData}
-            className="glass-cta mt-8"
-          >
+          <button type="button" onClick={() => fetchDashboardData({ bypassCache: true })} className="glass-cta mt-8">
             Retry
           </button>
         </div>
@@ -398,648 +260,578 @@ const Dashboard = React.memo(() => {
   }
 
   if (!derivedData) {
-    return (
-      <div className="glass-page flex min-h-screen items-center justify-center px-6">
-        <div className="surface-card w-full max-w-md p-8 text-center">
-          <div className="mx-auto mb-5 h-14 w-14 animate-pulse rounded-full border border-white/15 bg-white/5" />
-          <h2 className="text-2xl font-bold text-white">Preparing your dashboard</h2>
-          <p className="mt-3 text-sm leading-6 text-zinc-300">
-            We are assembling your current skills, bookings, and progress state.
-          </p>
-        </div>
-      </div>
-    );
+    return null;
   }
 
-  return (
-    <div className="glass-page min-h-screen font-sans transition-colors duration-300">
-      {/* Main Content Area */}
-      <div className="flex min-h-screen flex-1 flex-col">
-        {/* Top Navbar Component */}
-        <MainNavbar />
+  const statCards = [
+    {
+      label: 'Teaching',
+      value: derivedData.teachingSkills.length,
+      note: 'Active skills available for students',
+      icon: <Users size={16} />,
+      accent: 'from-red-500/20 via-red-500/5 to-transparent text-red-200',
+    },
+    {
+      label: 'Learning',
+      value: derivedData.learningSkills.length,
+      note: 'Goals currently being tracked',
+      icon: <GraduationCap size={16} />,
+      accent: 'from-sky-500/20 via-sky-500/5 to-transparent text-sky-200',
+    },
+    {
+      label: 'Avg progress',
+      value: `${derivedData.stats.averageLearningProgress || 0}%`,
+      note: 'Average completion across learning tracks',
+      icon: <Target size={16} />,
+      accent: 'from-emerald-500/20 via-emerald-500/5 to-transparent text-emerald-200',
+    },
+    {
+      label: 'Students',
+      value: derivedData.studentSummaries.length,
+      note: 'Live teaching relationships in motion',
+      icon: <Sparkles size={16} />,
+      accent: 'from-amber-500/20 via-amber-500/5 to-transparent text-amber-200',
+    },
+  ];
 
-        {/* Main Dashboard Content */}
-        <main className="mx-auto flex w-full max-w-7xl flex-1 flex-col px-4 pb-10 pt-28 transition-colors duration-300 sm:px-6">
-          {/* Welcome Section */}
-          <div className="mb-8 grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
-            <div className="surface-card relative overflow-hidden p-7 md:p-8">
-              <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-red-500/8 via-transparent to-blue-500/10" />
-              <div className="relative">
+  const quickActions = [
+    {
+      label: 'Open learning workspace',
+      note: 'Resume guided study',
+      onClick: () => navigate('/ai-learning'),
+      primary: true,
+    },
+    {
+      label: 'Browse skills',
+      note: 'Expand teaching or learning',
+      onClick: () => navigate('/browse-skills'),
+      primary: false,
+    },
+    {
+      label: 'Open calendar',
+      note: 'Review upcoming sessions',
+      onClick: () => navigate('/calendar'),
+      primary: false,
+    },
+  ];
+
+  return (
+    <div className="dashboard-shell glass-page min-h-screen text-zinc-100">
+      <MainNavbar />
+
+      <main className="mx-auto flex w-full max-w-7xl flex-col gap-8 px-4 pb-12 pt-28 sm:px-6">
+        <section className="grid gap-6 xl:grid-cols-[1.25fr_0.75fr]">
+          <div className="surface-card dashboard-shell hero-stage hero-beam glow-frame group relative overflow-hidden p-7 transition-transform duration-300 hover:-translate-y-1 hover:border-white/15 md:p-8">
+            <div className="aurora-orb aurora-orb-warm left-[-7%] top-0 h-44 w-44" />
+            <div className="aurora-orb aurora-orb-cool right-[4%] top-10 h-52 w-52" />
+            <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/40 to-transparent" />
+
+            <div className="relative reveal-up">
+              <div className="flex flex-wrap items-center justify-between gap-3">
                 <div className="eyebrow">
                   <Sparkles size={14} className="text-red-300" />
-                  Workspace overview
+                  Authenticated workspace
                 </div>
-                <h1 className="mt-6 text-4xl font-black tracking-tight text-white md:text-5xl">
-                  Welcome back, {derivedData?.user?.name || "Learner"}.
-                </h1>
-                <p className="mt-4 max-w-2xl text-base leading-7 text-zinc-300">
-                  Your dashboard keeps the next study action, current sessions, and teaching momentum in one place.
-                </p>
+                <div className="inline-flex items-center gap-2 rounded-full border border-emerald-400/20 bg-emerald-500/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.24em] text-emerald-200">
+                  <span className="h-2 w-2 animate-pulse rounded-full bg-emerald-300" />
+                  Live data
+                </div>
+              </div>
 
-                <div className="mt-7 flex flex-col gap-3 sm:flex-row">
-                  <button onClick={() => navigate("/ai-learning")} className="glass-cta">
-                    Open learning workspace
-                  </button>
-                  <button
-                    onClick={() => navigate("/browse-skills")}
-                    className="inline-flex items-center justify-center rounded-2xl border border-white/15 px-5 py-3 text-sm font-semibold text-zinc-100 transition-colors hover:border-blue-400/45 hover:bg-blue-500/12"
+              <div className="mt-8 grid gap-8 lg:grid-cols-[1.15fr_0.85fr]">
+                <div>
+                  <p className="text-sm font-semibold uppercase tracking-[0.3em] text-zinc-400">Command center</p>
+                  <h1 className="mt-4 max-w-3xl text-4xl font-black tracking-tight text-white md:text-5xl xl:text-6xl">
+                    Welcome back, {derivedData.user?.name || 'Learner'}.
+                  </h1>
+                  <p className="mt-4 max-w-2xl text-sm leading-7 text-zinc-300 md:text-base">
+                    Real sessions, current learning momentum, and active student progress are all surfaced here in one operating view.
+                  </p>
+
+                  <div className="signal-marquee mt-6 rounded-[24px] px-3 py-3">
+                    <div className="signal-marquee-track gap-3">
+                      {[...dashboardPulseItems, ...dashboardPulseItems].map((item, index) => (
+                        <span key={`${item}-${index}`} className="signal-pill whitespace-nowrap">
+                          <TrendingUp size={12} className="text-red-300" />
+                          {item}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="mt-8 grid gap-3 sm:grid-cols-3">
+                    {quickActions.map((action) => (
+                      <button
+                        key={action.label}
+                        type="button"
+                        onClick={action.onClick}
+                        className={
+                          action.primary
+                            ? 'glass-cta justify-between px-4 py-4 text-left transition duration-300 hover:-translate-y-0.5'
+                            : 'glass-outline-btn justify-between px-4 py-4 text-left transition duration-300 hover:-translate-y-0.5'
+                        }
+                      >
+                        <span className="block">
+                          <span className="block text-sm font-semibold text-white">{action.label}</span>
+                          <span className="mt-1 block text-xs font-medium uppercase tracking-[0.18em] text-zinc-400">
+                            {action.note}
+                          </span>
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="grid gap-4 self-start">
+                  <div className="glow-frame reveal-up reveal-delay-2 rounded-[28px] border border-white/10 bg-black/20 p-5 shadow-[0_20px_60px_rgba(0,0,0,0.25)] backdrop-blur-sm transition duration-300 hover:border-white/15 hover:bg-black/25">
+                    <div className="flex items-start justify-between gap-4">
+                      <div>
+                        <p className="text-xs font-semibold uppercase tracking-[0.24em] text-zinc-500">Next session</p>
+                        <h2 className="mt-3 text-2xl font-bold text-white">
+                          {derivedData.nextSession?.skill?.name || 'No session scheduled'}
+                        </h2>
+                        <p className="mt-3 text-sm leading-7 text-zinc-300">
+                          {derivedData.nextSession
+                            ? `${formatSessionDate(derivedData.nextSession.date)} · ${
+                                derivedData.nextSession.dashboardRole === 'teaching'
+                                  ? `Teaching ${derivedData.nextSession.student?.name || 'student'}`
+                                  : `Learning with ${derivedData.nextSession.instructor?.name || 'instructor'}`
+                              }`
+                            : 'Use the calendar to lock in your next teaching or learning block.'}
+                        </p>
+                      </div>
+                      <div className="rounded-2xl border border-red-400/20 bg-red-500/10 p-3 text-red-200">
+                        <Calendar className="h-5 w-5" />
+                      </div>
+                    </div>
+
+                    <div className="mt-5 flex items-center justify-between gap-3 rounded-[22px] border border-white/10 bg-white/[0.04] px-4 py-3">
+                      <div>
+                        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-500">Session queue</p>
+                        <p className="mt-1 text-sm text-zinc-200">
+                          {derivedData.allUpcomingSessions.length} upcoming{' '}
+                          {derivedData.allUpcomingSessions.length === 1 ? 'booking' : 'bookings'}
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => navigate('/calendar')}
+                        className="text-sm font-semibold text-red-300 transition-colors hover:text-red-200"
+                      >
+                        Open calendar
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="glow-frame reveal-up reveal-delay-3 rounded-[28px] border border-white/10 bg-white/[0.03] p-5 transition duration-300 hover:border-white/15 hover:bg-white/[0.05]">
+                    <div className="flex items-start justify-between gap-4">
+                      <div>
+                        <p className="text-xs font-semibold uppercase tracking-[0.24em] text-zinc-500">Account access</p>
+                        <h2 className="mt-3 text-2xl font-bold text-white">
+                          {allowJoin ? 'Premium active' : 'Standard access'}
+                        </h2>
+                        <p className="mt-3 text-sm leading-7 text-zinc-300">
+                          {allowJoin
+                            ? 'Video sessions and premium meeting tools are available from your upcoming bookings.'
+                            : 'Upgrade when you need premium session tools like in-app video calls.'}
+                        </p>
+                      </div>
+                      <div
+                        className={`rounded-2xl border p-3 ${
+                          allowJoin
+                            ? 'border-amber-400/20 bg-amber-500/10 text-amber-200'
+                            : 'border-white/10 bg-white/[0.04] text-zinc-400'
+                        }`}
+                      >
+                        <Trophy className="h-5 w-5" />
+                      </div>
+                    </div>
+
+                    <div className="mt-5 flex items-center justify-between gap-3">
+                      <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-black/20 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-zinc-400">
+                        {allowJoin ? 'Meetings unlocked' : 'Upgrade available'}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => navigate(allowJoin ? '/settings' : '/get-premium')}
+                        className="text-sm font-semibold text-red-300 transition-colors hover:text-red-200"
+                      >
+                        {allowJoin ? 'Manage account' : 'Explore premium'}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-8 grid gap-3 md:grid-cols-4">
+                {statCards.map((card) => (
+                  <div
+                    key={card.label}
+                    className="metric-rail group/stat relative overflow-hidden"
                   >
-                    Browse skills
-                  </button>
-                </div>
-
-                <div className="mt-8 grid gap-4 md:grid-cols-3">
-                  <div className="rounded-[24px] border border-white/10 bg-white/[0.04] p-5">
-                    <p className="text-sm font-semibold uppercase tracking-[0.2em] text-zinc-400">
-                      Teaching
-                    </p>
-                    <p className="mt-3 text-3xl font-black text-white">
-                      {derivedData.teachingSkills.length}
-                    </p>
-                    <p className="mt-2 text-sm leading-6 text-zinc-300">
-                      Skills currently available for students.
-                    </p>
+                    <div className={`pointer-events-none absolute inset-0 bg-gradient-to-br opacity-60 ${card.accent}`} />
+                    <div className="relative">
+                      <div className="flex items-center justify-between gap-3">
+                        <p className="text-xs font-semibold uppercase tracking-[0.24em] text-zinc-400">{card.label}</p>
+                        <div className="text-zinc-300 transition-transform duration-300 group-hover/stat:scale-110">
+                          {card.icon}
+                        </div>
+                      </div>
+                      <p className="mt-4 text-3xl font-black text-white">{card.value}</p>
+                      <p className="mt-2 text-sm leading-6 text-zinc-300">{card.note}</p>
+                    </div>
                   </div>
-                  <div className="rounded-[24px] border border-white/10 bg-white/[0.04] p-5">
-                    <p className="text-sm font-semibold uppercase tracking-[0.2em] text-zinc-400">
-                      Learning
-                    </p>
-                    <p className="mt-3 text-3xl font-black text-white">
-                      {derivedData.learningSkills.length}
-                    </p>
-                    <p className="mt-2 text-sm leading-6 text-zinc-300">
-                      Active learning tracks you are progressing through.
-                    </p>
-                  </div>
-                  <div className="rounded-[24px] border border-white/10 bg-white/[0.04] p-5">
-                    <p className="text-sm font-semibold uppercase tracking-[0.2em] text-zinc-400">
-                      Upcoming
-                    </p>
-                    <p className="mt-3 text-3xl font-black text-white">
-                      {derivedData.allUpcomingSessions.length}
-                    </p>
-                    <p className="mt-2 text-sm leading-6 text-zinc-300">
-                      Sessions scheduled across teaching and learning.
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="grid gap-4">
-              <div className="surface-card p-6">
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <p className="text-sm font-semibold uppercase tracking-[0.2em] text-zinc-400">
-                      Next session
-                    </p>
-                    <h2 className="mt-3 text-2xl font-bold text-white">
-                      {derivedData.allUpcomingSessions[0]?.skill?.name || "No session scheduled"}
-                    </h2>
-                    <p className="mt-3 text-sm leading-7 text-zinc-300">
-                      {derivedData.allUpcomingSessions[0]
-                        ? formatDate(derivedData.allUpcomingSessions[0].date)
-                        : "Use the calendar to schedule your next teaching or learning block."}
-                    </p>
-                  </div>
-                  <Calendar className="h-5 w-5 text-red-300" />
-                </div>
-                <button
-                  onClick={handleCalendar}
-                  className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-red-300 transition-colors hover:text-red-200"
-                >
-                  Open calendar
-                </button>
-              </div>
-
-              <div className="surface-card p-6">
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <p className="text-sm font-semibold uppercase tracking-[0.2em] text-zinc-400">
-                      Account access
-                    </p>
-                    <h2 className="mt-3 text-2xl font-bold text-white">
-                      {allowJoin ? "Premium active" : "Standard access"}
-                    </h2>
-                    <p className="mt-3 text-sm leading-7 text-zinc-300">
-                      {allowJoin
-                        ? "You can join video sessions directly from upcoming bookings."
-                        : "Upgrade when you need premium session tools like video call access."}
-                    </p>
-                  </div>
-                  <Trophy className={`h-5 w-5 ${allowJoin ? "text-amber-300" : "text-zinc-500"}`} />
-                </div>
-                <button
-                  onClick={() => navigate(allowJoin ? "/settings" : "/get-premium")}
-                  className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-red-300 transition-colors hover:text-red-200"
-                >
-                  {allowJoin ? "Manage account" : "Explore premium"}
-                </button>
-              </div>
-            </div>
-          </div>
-
-          {/* New Feature Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-            <div className="glass-panel-strong rounded-xl p-6 text-white shadow-lg relative overflow-hidden group">
-              <div className="relative z-10">
-                <h3 className="text-2xl font-bold mb-2">
-                  Become a Founding Instructor
-                </h3>
-                <p className="text-red-100 mb-6 max-w-sm">
-                  Share your knowledge and earn revenue. We're looking for 10
-                  founding partners.
-                </p>
-                <div className="flex gap-3">
-                  <button
-                    onClick={() => navigate("/teach")}
-                    className="px-5 py-2 bg-white text-red-600 font-bold rounded-lg hover:bg-red-50 transition-colors shadow-md"
-                  >
-                    Start Teaching
-                  </button>
-                  <button
-                    onClick={() => navigate("/teach")}
-                    className="px-5 py-2 bg-red-500/30 text-white font-semibold rounded-lg hover:bg-red-500/50 transition-colors backdrop-blur-sm"
-                  >
-                    Learn More
-                  </button>
-                </div>
-              </div>
-              <div className="absolute right-0 bottom-0 opacity-20 transform translate-x-1/4 translate-y-1/4">
-                <Trophy size={180} />
-              </div>
-            </div>
-
-            <div className="glass-panel rounded-xl p-6 shadow-md flex flex-col justify-center relative overflow-hidden group hover:border-red-500/40 transition-all">
-              <div className="relative z-10">
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="p-2 bg-red-900/30 text-red-500 rounded-lg">
-                    <BookOpen size={24} />
-                  </div>
-                  <h3 className="text-xl font-bold text-gray-800 dark:text-white">
-                    Learning Workspace
-                  </h3>
-                </div>
-                <p className="text-gray-600 dark:text-gray-300 mb-6">
-                  Build a personalized roadmap, track progress, and get guided
-                  resources for any skill.
-                </p>
-                <button
-                  onClick={() => navigate("/ai-learning")}
-                  className="w-full py-3 bg-white/8 text-zinc-100 font-bold rounded-lg border border-white/15 hover:border-red-500/55 hover:bg-red-500/18 hover:text-red-200 transition-all flex items-center justify-center gap-2"
-                >
-                  Open learning workspace <Clock size={16} />
-                </button>
+                ))}
               </div>
             </div>
           </div>
+        </section>
 
-          {/* Grid for two main sections: Upcoming/Skills and Learning Progress/Activity/Actions */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Left Column (Upcoming Sessions & Skills I'm Teaching) */}
-            <div className="lg:col-span-2 space-y-6">
-              {/* Upcoming Sessions Card */}
-              <div className="glass-panel p-6 rounded-xl transition-colors">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-xl font-semibold text-white flex items-center">
-                    <Calendar className="w-5 h-5 text-white mr-2" /> Upcoming
-                    Sessions
-                  </h3>
-                  <button
-                    onClick={handleCalendar}
-                    className="text-red-500 text-sm font-semibold hover:underline"
-                  >
-                    View All
-                  </button>
+        <section className="grid gap-6 lg:grid-cols-[1.08fr_0.92fr]">
+          <div className="space-y-6">
+            <section className="glass-panel glow-frame reveal-up overflow-hidden p-6">
+              <div className="mb-5 flex flex-wrap items-center justify-between gap-4">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.24em] text-zinc-500">Schedule</p>
+                  <h2 className="mt-2 text-xl font-semibold text-white">Upcoming sessions</h2>
                 </div>
+                <button
+                  type="button"
+                  onClick={() => navigate('/calendar')}
+                  className="text-sm font-semibold text-red-300 transition-colors hover:text-red-200"
+                >
+                  View all
+                </button>
+              </div>
 
-                {derivedData.allUpcomingSessions
-                  .slice(0, 5)
-                  .map((booking, index) => {
-                    const isTeaching =
-                      derivedData.upcomingBookings.includes(booking);
-                    const otherUser = isTeaching
-                      ? booking.student
-                      : booking.instructor;
+              {derivedData.allUpcomingSessions.length ? (
+                <div className="space-y-3">
+                  {derivedData.allUpcomingSessions.slice(0, 5).map((booking) => {
+                    const isTeaching = booking.dashboardRole === 'teaching';
+                    const otherUserName = isTeaching
+                      ? booking.student?.name || 'Unknown student'
+                      : booking.instructor?.name || 'Unknown instructor';
 
                     return (
                       <div
-                        key={booking._id || index}
-                        className={`flex items-center justify-between py-4 px-4 rounded-lg mb-3 border-l-4 ${
-                          isTeaching
-                            ? "glass-card border-red-500/80"
-                            : "glass-card border-red-400/80"
-                        }`}
+                        key={booking._id}
+                        className="glass-card glow-frame border-white/8 p-4 transition duration-300 hover:-translate-y-0.5 hover:border-white/15 hover:bg-white/[0.05]"
                       >
-                        <div className="flex items-center space-x-4">
-                          <div
-                            className={`rounded-full h-12 w-12 flex items-center justify-center text-white font-bold text-lg ${
-                              isTeaching ? "bg-red-600" : "bg-red-600"
-                            }`}
-                          >
-                            {getSkillInitials(booking.skill?.name || "SK")}
-                          </div>
-                          <div>
-                            <div className="flex items-center space-x-2">
-                              <p className="font-semibold text-white text-lg">
-                                {booking.skill?.name || "Unknown Skill"}
-                              </p>
-                              <span
-                                className={`text-xs px-2 py-1 rounded-full font-medium ${
-                                  isTeaching
-                                    ? "bg-red-900/40 text-red-300"
-                                    : "bg-red-900/40 text-red-300"
-                                }`}
-                              >
-                                {isTeaching ? "Teaching" : "Learning"}
-                              </span>
+                        <div className="flex flex-wrap items-start justify-between gap-4">
+                          <div className="flex min-w-0 items-start gap-4">
+                            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-red-500 to-red-600 text-sm font-black text-white shadow-lg shadow-red-900/20">
+                              {getSkillInitials(booking.skill?.name)}
                             </div>
-                            <p className="text-sm text-gray-300 font-medium">
-                              {isTeaching
-                                ? `Teaching ${otherUser?.name || "Unknown Student"}`
-                                : `Learning with ${otherUser?.name || "Unknown Instructor"}`}
-                            </p>
-                            <p className="text-xs text-gray-400">
-                              {formatDate(booking.date)}
-                            </p>
+                            <div className="min-w-0">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <p className="text-lg font-semibold text-white">{booking.skill?.name || 'Unknown skill'}</p>
+                                <span className="rounded-full border border-white/10 bg-white/5 px-2 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-300">
+                                  {isTeaching ? 'Teaching' : 'Learning'}
+                                </span>
+                              </div>
+                              <p className="mt-1 text-sm text-zinc-300">
+                                {isTeaching ? `Teaching ${otherUserName}` : `Learning with ${otherUserName}`}
+                              </p>
+                              <div className="mt-3 flex flex-wrap items-center gap-3 text-xs uppercase tracking-[0.18em] text-zinc-500">
+                                <span className="inline-flex items-center gap-2">
+                                  <Clock3 size={12} />
+                                  {formatSessionDate(booking.date)}
+                                </span>
+                                <span className="inline-flex items-center gap-2">
+                                  <MessageSquare size={12} />
+                                  {allowJoin ? 'Join-ready' : 'Premium required'}
+                                </span>
+                              </div>
+                            </div>
                           </div>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <div className="relative group">
+
+                          <div className="flex items-center gap-2">
                             <button
-                              onClick={() => {
-                                if (!allowJoin) return;
-                                navigate("/video-call", {
-                                  state: { userName: derivedData?.user?.name },
-                                });
-                              }}
+                              type="button"
+                              onClick={() =>
+                                allowJoin &&
+                                navigate('/video-call', {
+                                  state: { userName: derivedData.user?.name },
+                                })
+                              }
                               disabled={!allowJoin}
-                              className={`px-3 py-1 text-sm rounded-md font-medium transition-colors ${
-                                isTeaching
-                                  ? "bg-red-600 text-white hover:bg-red-700"
-                                  : "bg-red-600 text-white hover:bg-red-700"
-                              } ${!allowJoin ? "opacity-60 cursor-not-allowed" : ""}`}
+                              className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold ${
+                                allowJoin
+                                  ? 'bg-red-600 text-white transition duration-300 hover:-translate-y-0.5 hover:bg-red-700'
+                                  : 'cursor-not-allowed bg-zinc-800 text-zinc-500'
+                              }`}
                             >
+                              {!allowJoin ? <Lock size={14} /> : null}
                               Join
                             </button>
-                            {!allowJoin && (
-                              <div className="absolute right-0 -top-12 z-50 opacity-0 group-hover:opacity-100 transition-opacity duration-150 pointer-events-none">
-                                <div className="flex items-center space-x-2 bg-gray-900 text-white text-sm px-3 py-2 rounded-md shadow-lg">
-                                  <Lock className="w-5 h-5" />
-                                  <span>Need Premium to use this feature</span>
-                                </div>
-                                <div className="w-3 h-3 bg-gray-900 transform rotate-45 -mt-1 mr-3"></div>
-                              </div>
-                            )}
                           </div>
-                          <button className="text-gray-400 hover:text-gray-600 p-1">
-                            <span className="text-lg">⋮</span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="rounded-[24px] border border-dashed border-white/15 bg-white/[0.03] p-8 text-center">
+                  <p className="text-lg font-semibold text-white">No upcoming sessions</p>
+                  <p className="mt-2 text-sm text-zinc-400">Book a session or open the calendar to plan the next one.</p>
+                </div>
+              )}
+            </section>
+
+            <section className="glass-panel glow-frame reveal-up reveal-delay-1 p-6">
+              <div className="mb-5 flex flex-wrap items-center justify-between gap-4">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.24em] text-zinc-500">Teaching</p>
+                  <h2 className="mt-2 text-xl font-semibold text-white">Teaching skills</h2>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => navigate('/browse-skills')}
+                  className="text-sm font-semibold text-red-300 transition-colors hover:text-red-200"
+                >
+                  Manage
+                </button>
+              </div>
+
+              {derivedData.teachingSkills.length ? (
+                <div className="space-y-3">
+                  {derivedData.teachingSkills.map((skill) => {
+                    const activeStudents = derivedData.studentSummaries.filter((summary) =>
+                      summary.sharedSkills.includes(skill.name),
+                    );
+
+                    return (
+                      <div
+                        key={skill._id}
+                        className="glass-card glow-frame border-white/8 p-4 transition duration-300 hover:-translate-y-0.5 hover:border-white/15 hover:bg-white/[0.05]"
+                      >
+                        <div className="flex flex-wrap items-center justify-between gap-4">
+                          <div className="flex items-center gap-4">
+                            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-red-500 to-red-600 text-sm font-black text-white shadow-lg shadow-red-900/20">
+                              {getSkillInitials(skill.name)}
+                            </div>
+                            <div>
+                              <p className="text-lg font-semibold text-white">{skill.name}</p>
+                              <div className="mt-2 flex flex-wrap items-center gap-2 text-xs uppercase tracking-[0.18em] text-zinc-400">
+                                <span className="rounded-full border border-white/10 bg-white/5 px-2 py-1">
+                                  {skill.offering?.level || 'Beginner'}
+                                </span>
+                                <span>
+                                  {activeStudents.length} active{' '}
+                                  {activeStudents.length === 1 ? 'student' : 'students'}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={() => handleOpenSkill(skill)}
+                            className="glass-outline-btn px-4 py-2"
+                          >
+                            View info
                           </button>
                         </div>
                       </div>
                     );
                   })}
-
-                {derivedData.upcomingBookings.length === 0 &&
-                  derivedData.studentBookings.length === 0 && (
-                    <div className="text-center py-8 text-gray-400">
-                      <p>No upcoming sessions scheduled</p>
-                      <p className="text-sm mt-2">
-                        Book a session to get started!
-                      </p>
-                    </div>
-                  )}
-              </div>
-
-              {/* Skills I'm Teaching Card */}
-              <div className="glass-panel p-6 rounded-xl border-l-4 border-l-red-500/70 transition-colors">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-xl font-semibold text-white flex items-center">
-                    <div className="bg-red-900/40 text-red-500 rounded-full p-2 mr-3">
-                      <Users className="w-5 h-5" />
-                    </div>
-                    Skills I'm Teaching
-                    <span className="ml-2 bg-red-900/40 text-red-300 text-sm px-2 py-1 rounded-full">
-                      {derivedData.teachingSkills.length} active
-                    </span>
-                  </h3>
-                  <button className="text-red-500 text-sm font-semibold hover:underline">
-                    Manage All
+                </div>
+              ) : (
+                <div className="rounded-[24px] border border-dashed border-white/15 bg-white/[0.03] p-8 text-center">
+                  <p className="text-lg font-semibold text-white">You are not teaching any skills yet</p>
+                  <p className="mt-2 text-sm text-zinc-400">Post your first skill to start building teaching momentum.</p>
+                  <button type="button" onClick={() => navigate('/browse-skills')} className="glass-cta mt-5">
+                    Add teaching skill
                   </button>
                 </div>
-
-                {derivedData.teachingSkills.length > 0 ? (
-                  <div className="space-y-3">
-                    {derivedData.teachingSkills.map((skill, index) => {
-                      // Determine unique students for this skill from upcoming teaching bookings
-                      const students = (derivedData.upcomingBookings || [])
-                        .filter(
-                          (b) =>
-                            b.skill &&
-                            b.skill._id === skill._id &&
-                            b.student &&
-                            b.student.name,
-                        )
-                        .map((b) => b.student.name)
-                        .filter((v, i, a) => a.indexOf(v) === i); // dedupe
-
-                      return (
-                        <div
-                          key={skill._id || index}
-                          className="flex items-center justify-between p-4 glass-card border-gray-700/50"
-                        >
-                          <div className="flex items-center space-x-4">
-                            <div className="bg-red-600 text-white rounded-full h-12 w-12 flex items-center justify-center font-bold text-lg">
-                              {getSkillInitials(skill.name)}
-                            </div>
-                            <div>
-                              <p className="font-semibold text-white text-lg">
-                                {skill.name}
-                              </p>
-                              <p className="text-sm text-gray-300">
-                                Level:{" "}
-                                {skill.offering?.level || "Not specified"}
-                              </p>
-                              <p className="text-sm text-gray-300 mt-1">
-                                Teaching:{" "}
-                                {students.length > 0
-                                  ? students.join(", ")
-                                  : "No active students"}
-                              </p>
-                            </div>
-                          </div>
-                          <div className="flex flex-col space-y-2">
-                            <button
-                              onClick={() => handleViewMoreInfo(skill)}
-                              className="px-4 py-2 text-sm bg-gradient-to-r from-red-600 to-red-800 text-white rounded-md hover:from-red-700 hover:to-red-900 transition-colors duration-200"
-                            >
-                              View Info
-                            </button>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                ) : (
-                  <div className="text-center py-12 glass-panel rounded-lg border-2 border-dashed border-white/20">
-                    <div className="bg-red-900/30 text-red-500 rounded-full h-16 w-16 flex items-center justify-center mx-auto mb-4">
-                      <Users className="w-8 h-8" />
-                    </div>
-                    <p className="text-gray-300 text-lg font-medium mb-2">
-                      You're not teaching any skills yet
-                    </p>
-                    <p className="text-gray-400 text-sm mb-4">
-                      Share your expertise and start earning by teaching others!
-                    </p>
-                    <button
-                      onClick={handleAddTeachingSkill}
-                      className="px-6 py-3 bg-gradient-to-r from-red-600 to-red-800 text-white rounded-lg font-semibold hover:from-red-700 hover:to-red-900 transition-colors"
-                    >
-                      Add Your First Teaching Skill
-                    </button>
-                  </div>
-                )}
-              </div>
-
-              {/* Students I'm Teaching */}
-              <div className="glass-panel p-6 rounded-xl transition-colors">
-                <h3 className="text-xl font-semibold text-white flex items-center mb-4">
-                  <Users className="w-5 h-5 text-white mr-2" /> My Students
-                </h3>
-
-                {derivedData.upcomingBookings.length > 0 ? (
-                  <div className="space-y-4">
-                    {derivedData.upcomingBookings
-                      .slice(0, 4)
-                      .map((booking, index) => {
-                        const progressPercentage =
-                          Math.floor(Math.random() * 80) + 20; // Mock progress for now
-
-                        return (
-                          <div
-                            key={booking._id || index}
-                            className="flex items-center justify-between p-4 glass-card border-gray-700/50"
-                          >
-                            <div className="flex items-center space-x-4">
-                              <div className="bg-gradient-to-r from-red-600 to-red-800 text-white rounded-full h-12 w-12 flex items-center justify-center font-semibold text-lg">
-                                {booking.student?.name
-                                  ?.charAt(0)
-                                  .toUpperCase() || "S"}
-                              </div>
-                              <div className="flex-1">
-                                <p className="font-semibold text-white">
-                                  {booking.student?.name || "Unknown Student"}
-                                </p>
-                                <p className="text-sm text-gray-300">
-                                  {booking.skill?.name || "Unknown Skill"}
-                                </p>
-                                <button
-                                  onClick={() =>
-                                    handleViewStudentProgress(
-                                      booking.student,
-                                      booking.skill,
-                                    )
-                                  }
-                                  className="flex items-center space-x-2 mt-2 w-full text-left"
-                                  title="View student progress"
-                                >
-                                  <div className="w-24 bg-gray-700 rounded-full h-2">
-                                    <div
-                                      className={`h-2 rounded-full ${getProgressColor(progressPercentage)}`}
-                                      style={{
-                                        width: `${progressPercentage}%`,
-                                      }}
-                                    ></div>
-                                  </div>
-                                  <span className="text-xs text-gray-500">
-                                    {progressPercentage}%
-                                  </span>
-                                </button>
-                              </div>
-                            </div>
-                            <div className="flex items-center space-x-2">
-                              <button
-                                onClick={() =>
-                                  handleViewStudentProgress(
-                                    booking.student,
-                                    booking.skill,
-                                  )
-                                }
-                                className="text-red-500 hover:text-red-700 text-sm font-medium"
-                              >
-                                View Progress
-                              </button>
-                              <button
-                                onClick={() =>
-                                  handleMessageStudent(booking.student)
-                                }
-                                className="text-green-500 hover:text-green-700 text-sm font-medium"
-                              >
-                                Message
-                              </button>
-                            </div>
-                          </div>
-                        );
-                      })}
-                  </div>
-                ) : (
-                  <div className="text-center py-8 text-gray-400">
-                    <p>No students yet</p>
-                    <p className="text-sm mt-2">
-                      Start teaching to connect with students!
-                    </p>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Right Column (Learning Progress, Recent Activity, Quick Actions) */}
-            <div className="lg:col-span-1 space-y-6">
-              {/* Skills I'm Learning Card */}
-              <div className="glass-panel p-6 rounded-xl border-l-4 border-l-red-500/70 transition-colors">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-xl font-semibold text-white flex items-center">
-                    <div className="bg-red-900/40 text-red-500 rounded-full p-2 mr-3">
-                      <BookOpen className="w-5 h-5" />
-                    </div>
-                    Skills I'm Learning
-                    <span className="ml-2 bg-red-900/40 text-red-300 text-sm px-2 py-1 rounded-full">
-                      {derivedData.learningSkills.length} in progress
-                    </span>
-                  </h3>
-                </div>
-
-                {derivedData.learningSkills.length > 0 ? (
-                  <div className="space-y-4">
-                    {derivedData.learningSkills.map((skill, index) => (
-                      <div
-                        key={skill._id || index}
-                        className="p-4 glass-card border-gray-700/50"
-                      >
-                        <div className="flex items-center mb-3">
-                          <div className="flex items-center space-x-3">
-                            <div className="bg-red-600 text-white rounded-full h-10 w-10 flex items-center justify-center font-bold">
-                              {getSkillInitials(skill.name)}
-                            </div>
-                            <div>
-                              <p className="text-white font-semibold text-lg">
-                                {skill.name}
-                              </p>
-                              <p className="text-sm text-gray-300">
-                                {skill.seeking?.currentInstructor
-                                  ? `Learning with ${skill.seeking.currentInstructor.name}`
-                                  : "Looking for an instructor"}
-                              </p>
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="mt-3">
-                          <div className="text-xs text-gray-400">
-                            <span className="flex items-center">
-                              <span className="w-2 h-2 bg-red-500 rounded-full mr-1"></span>
-                              Currently learning this skill
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-12 glass-panel rounded-lg border-2 border-dashed border-white/20">
-                    <div className="bg-red-900/30 text-red-500 rounded-full h-16 w-16 flex items-center justify-center mx-auto mb-4">
-                      <BookOpen className="w-8 h-8" />
-                    </div>
-                    <p className="text-gray-300 text-lg font-medium mb-2">
-                      No learning goals set
-                    </p>
-                    <p className="text-gray-400 text-sm">
-                      Discover new skills and connect with expert instructors!
-                    </p>
-                  </div>
-                )}
-              </div>
-
-              {/* Recent Activity Card */}
-              <div className="glass-panel p-6 rounded-xl transition-colors">
-                <h3 className="text-xl font-semibold text-white flex items-center mb-4">
-                  <Clock className="w-5 h-5 text-white mr-2" /> Recent Activity
-                </h3>
-
-                {/* Mock Recent Activities - In real implementation, fetch from database */}
-                <div className="space-y-3">
-                  {derivedData.upcomingBookings
-                    .slice(0, 3)
-                    .map((booking, index) => (
-                      <div
-                        key={booking._id || index}
-                        className="flex items-start"
-                      >
-                        <div className="w-6 h-6 bg-red-900/50 text-red-500 rounded-full flex items-center justify-center mr-3 mt-1 flex-shrink-0">
-                          <Users className="w-3 h-3" />
-                        </div>
-                        <div>
-                          <p className="text-gray-300">
-                            Teaching session:{" "}
-                            <span className="font-semibold">
-                              {booking.skill?.name || "Unknown Skill"}
-                            </span>
-                          </p>
-                          <p className="text-xs text-gray-400">
-                            {new Date(booking.date).toLocaleDateString()}
-                          </p>
-                        </div>
-                      </div>
-                    ))}
-
-                  {derivedData.studentBookings
-                    .slice(0, 2)
-                    .map((booking, index) => (
-                      <div
-                        key={`student-${booking._id || index}`}
-                        className="flex items-start"
-                      >
-                        <div className="w-6 h-6 bg-red-900/50 text-red-500 rounded-full flex items-center justify-center mr-3 mt-1 flex-shrink-0">
-                          <BookOpen className="w-3 h-3" />
-                        </div>
-                        <div>
-                          <p className="text-gray-300">
-                            Learning session:{" "}
-                            <span className="font-semibold">
-                              {booking.skill?.name || "Unknown Skill"}
-                            </span>
-                          </p>
-                          <p className="text-xs text-gray-400">
-                            {new Date(booking.date).toLocaleDateString()}
-                          </p>
-                        </div>
-                      </div>
-                    ))}
-
-                  {derivedData.upcomingBookings.length === 0 &&
-                    derivedData.studentBookings.length === 0 && (
-                      <div className="text-center py-4 text-gray-400">
-                        <p>No recent activity</p>
-                      </div>
-                    )}
-                </div>
-              </div>
-            </div>
+              )}
+            </section>
           </div>
-        </main>
-      </div>
 
-      {/* Student Info Modal */}
-      {showStudentModal && (
+          <div className="space-y-6">
+            <section className="glass-panel glow-frame reveal-up p-6">
+              <div className="mb-5 flex items-start justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="rounded-2xl border border-red-400/20 bg-red-500/10 p-3 text-red-200">
+                    <Users size={18} />
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.24em] text-zinc-500">Coaching</p>
+                    <h2 className="mt-1 text-xl font-semibold text-white">Student momentum</h2>
+                    <p className="text-sm text-zinc-400">Live coaching relationships with deterministic progress signals.</p>
+                  </div>
+                </div>
+                <div className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-zinc-400">
+                  {derivedData.totalCompletedSessions} sessions completed
+                </div>
+              </div>
+
+              {derivedData.studentSummaries.length ? (
+                <div className="space-y-3">
+                  {derivedData.studentSummaries.slice(0, 4).map((summary) => (
+                    <div
+                      key={summary.student.id}
+                      className="glass-card glow-frame border-white/8 p-4 transition duration-300 hover:-translate-y-0.5 hover:border-white/15 hover:bg-white/[0.05]"
+                    >
+                      <div className="flex flex-wrap items-start justify-between gap-4">
+                        <div>
+                          <p className="text-lg font-semibold text-white">{summary.student.name}</p>
+                          <p className="mt-1 text-sm text-zinc-300">
+                            {summary.focusSkill?.name || 'Active learner'} · {summary.completedSessions}/{summary.totalSessions}{' '}
+                            sessions completed
+                          </p>
+                          <p className="mt-2 text-xs uppercase tracking-[0.18em] text-zinc-500">
+                            {summary.nextSessionAt
+                              ? `Next session ${formatSessionDate(summary.nextSessionAt)}`
+                              : 'No upcoming session scheduled'}
+                          </p>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => handleOpenStudent(summary)}
+                          className="text-sm font-semibold text-red-300 transition-colors hover:text-red-200"
+                        >
+                          View details
+                        </button>
+                      </div>
+
+                      <div className="mt-4">
+                        <div className="flex items-center justify-between text-xs uppercase tracking-[0.18em] text-zinc-500">
+                          <span>Tracked progress</span>
+                          <span>
+                            {summary.focusSkill?.progress === null || summary.focusSkill?.progress === undefined
+                              ? 'Not tracked'
+                              : `${summary.focusSkill.progress}%`}
+                          </span>
+                        </div>
+                        <div className="mt-2 h-2 overflow-hidden rounded-full bg-white/8">
+                          <div
+                            className={`h-full rounded-full bg-gradient-to-r transition-all duration-700 ${
+                              getProgressTone(summary.focusSkill?.progress || 0)
+                            }`}
+                            style={{
+                              width: `${
+                                summary.focusSkill?.progress === null || summary.focusSkill?.progress === undefined
+                                  ? 0
+                                  : Math.max(8, summary.focusSkill.progress)
+                              }%`,
+                            }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm leading-7 text-zinc-300">
+                  Student relationships will appear here as soon as confirmed teaching bookings start accumulating.
+                </p>
+              )}
+            </section>
+
+            <section className="glass-panel glow-frame reveal-up reveal-delay-1 p-6">
+              <div className="mb-5 flex items-center gap-3">
+                <div className="rounded-2xl border border-blue-400/20 bg-blue-500/10 p-3 text-blue-200">
+                  <GraduationCap size={18} />
+                </div>
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.24em] text-zinc-500">Learning</p>
+                  <h2 className="mt-1 text-xl font-semibold text-white">Learning tracks</h2>
+                  <p className="text-sm text-zinc-400">Progress reflects the actual percentages stored on your goals.</p>
+                </div>
+              </div>
+
+              {derivedData.learningSkills.length ? (
+                <div className="space-y-3">
+                  {derivedData.learningSkills.map((skill) => (
+                    <div
+                      key={skill._id}
+                      className="glass-card glow-frame border-white/8 p-4 transition duration-300 hover:-translate-y-0.5 hover:border-white/15 hover:bg-white/[0.05]"
+                    >
+                      <div className="flex items-start justify-between gap-4">
+                        <div>
+                          <p className="text-lg font-semibold text-white">{skill.name}</p>
+                          <p className="mt-1 text-sm text-zinc-300">
+                            {skill.seeking?.currentInstructor?.name
+                              ? `Learning with ${skill.seeking.currentInstructor.name}`
+                              : 'Instructor not assigned yet'}
+                          </p>
+                        </div>
+                        <div className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-sm font-semibold text-white">
+                          {skill.seeking?.progress || 0}%
+                        </div>
+                      </div>
+
+                      <div className="mt-4 h-2 overflow-hidden rounded-full bg-white/8">
+                        <div
+                          className={`h-full rounded-full bg-gradient-to-r transition-all duration-700 ${getProgressTone(skill.seeking?.progress || 0)}`}
+                          style={{ width: `${Math.max(6, skill.seeking?.progress || 0)}%` }}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm leading-7 text-zinc-300">
+                  Add a learning goal to start tracking progress here.
+                </p>
+              )}
+            </section>
+
+            <section className="glass-panel glow-frame reveal-up reveal-delay-2 p-6">
+              <div className="mb-5 flex items-start justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="rounded-2xl border border-amber-400/20 bg-amber-500/10 p-3 text-amber-200">
+                    <TrendingUp size={18} />
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.24em] text-zinc-500">Activity</p>
+                    <h2 className="mt-1 text-xl font-semibold text-white">Recent activity</h2>
+                    <p className="text-sm text-zinc-400">Completed sessions and recent learning movement.</p>
+                  </div>
+                </div>
+                <div className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-zinc-400">
+                  {derivedData.recentActivity.length} entries
+                </div>
+              </div>
+
+              {derivedData.recentActivity.length ? (
+                <div className="space-y-3">
+                  {derivedData.recentActivity.map((activity) => (
+                    <div
+                      key={activity.id}
+                      className="glow-frame rounded-[22px] border border-white/8 bg-white/[0.03] p-4 transition duration-300 hover:-translate-y-0.5 hover:border-white/15 hover:bg-white/[0.05]"
+                    >
+                      <div className="flex items-start gap-3">
+                        <div className="mt-1 rounded-full bg-red-500/12 p-2 text-red-200">
+                          {activity.type === 'teaching_completed' ? <Users size={14} /> : <BookOpen size={14} />}
+                        </div>
+                        <div>
+                          <p className="text-sm font-semibold text-white">{activity.description}</p>
+                          <p className="mt-1 text-sm text-zinc-400">
+                            {activity.otherUser} · {formatSessionDate(activity.date)}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm leading-7 text-zinc-300">
+                  Recent completed sessions will appear here once activity starts building.
+                </p>
+              )}
+            </section>
+          </div>
+        </section>
+      </main>
+
+      {showStudentModal ? (
         <Suspense
           fallback={
-            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-              <div className="bg-white rounded-lg p-6">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-sky-600 mx-auto"></div>
-                <p className="mt-2 text-sm text-gray-600">
-                  Loading student details...
-                </p>
-              </div>
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70">
+              <LoaderCircle className="h-10 w-10 animate-spin text-red-300" />
             </div>
           }
         >
@@ -1054,11 +846,7 @@ const Dashboard = React.memo(() => {
             onMessage={handleMessageStudent}
           />
         </Suspense>
-      )}
+      ) : null}
     </div>
   );
-});
-
-Dashboard.displayName = "Dashboard";
-
-export default Dashboard;
+}

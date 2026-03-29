@@ -4,7 +4,7 @@ const aiController = require('../controllers/aiController');
 const auth = require('../middleware/auth');
 
 router.get('/studio-status', aiController.getStudioStatus);
-router.post('/studio-test', aiController.testStudioConnection);
+router.post('/studio-test', auth, aiController.testStudioConnection);
 router.post('/chat', auth, aiController.chat);
 router.post('/study-session', auth, aiController.generateStudySession);
 router.post('/studio-tool', auth, aiController.generateStudioTool);

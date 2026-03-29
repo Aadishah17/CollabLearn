@@ -97,21 +97,21 @@ userSchema.virtual('skillsOffering', {
   ref: 'Skill',
   localField: '_id',
   foreignField: 'user',
-  match: { isOffering: true, isActive: true }
+  match: { isOffering: true, isPosted: true }
 });
 
 userSchema.virtual('skillsSeeking', {
   ref: 'Skill',
   localField: '_id',
   foreignField: 'user',
-  match: { isSeeking: true, isActive: true }
+  match: { isSeeking: true, isPosted: true }
 });
 
 userSchema.virtual('allSkills', {
   ref: 'Skill',
   localField: '_id',
   foreignField: 'user',
-  match: { isActive: true }
+  match: { isPosted: true }
 });
 
 // Ensure virtual fields are serialized

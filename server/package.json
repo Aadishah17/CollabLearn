@@ -8,6 +8,8 @@
     "db:ping": "node scripts/ping-db.js",
     "seed:mock": "node scripts/seed-mock-data.js",
     "seed:mock:reset": "node scripts/seed-mock-data.js --reset",
+    "fixture:seed": "node scripts/seed-mock-data.js",
+    "fixture:reset": "node scripts/seed-mock-data.js --reset",
     "smoke:deep": "node scripts/deep-api-smoke.js",
     "test": "node --test"
   },

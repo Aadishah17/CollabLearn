@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useDeferredValue, useEffect, useMemo, useState } from 'react';
 import {
   Search,
   Sparkles,
@@ -19,79 +19,8 @@ import {
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import MainNavbar from '../../navbar/mainNavbar.jsx';
-import { API_URL } from '../../config';
 import { getAvatarDisplayProps } from '../../utils/avatarUtils';
-
-const getMockSkills = () => [
-  {
-    _id: 'mock-1',
-    name: 'Advanced React Patterns',
-    category: 'Programming',
-    subCategory: 'Web Development',
-    offering: {
-      description: 'Master higher-order components, compound components, and custom hooks.',
-      level: 'Advanced',
-      duration: '1.5 hours',
-      price: 1200,
-      rating: 4.9,
-      sessions: 42
-    },
-    user: { name: 'Sarah Drasner', rating: { average: 4.95 } },
-    tags: ['React', 'Frontend', 'JavaScript'],
-    createdAt: new Date().toISOString()
-  },
-  {
-    _id: 'mock-2',
-    name: 'Figma UI/UX Masterclass',
-    category: 'Design',
-    subCategory: 'UI/UX',
-    offering: {
-      description: 'Learn auto-layout, components, and prototyping in Figma from scratch.',
-      level: 'Beginner',
-      duration: '2 hours',
-      price: 0,
-      rating: 4.7,
-      sessions: 128
-    },
-    user: { name: 'Gary Designer', rating: { average: 4.8 } },
-    tags: ['Figma', 'UI/UX', 'Design System'],
-    createdAt: new Date(Date.now() - 86400000).toISOString()
-  },
-  {
-    _id: 'mock-3',
-    name: 'Technical SEO Audit',
-    category: 'Marketing',
-    subCategory: 'SEO',
-    offering: {
-      description: 'Step-by-step guide to finding and fixing indexing and crawler issues on your website.',
-      level: 'Intermediate',
-      duration: '1 hour',
-      price: 800,
-      rating: 4.5,
-      sessions: 15
-    },
-    user: { name: 'Ahrefs Expert', rating: { average: 4.6 } },
-    tags: ['SEO', 'Marketing', 'Analytics'],
-    createdAt: new Date(Date.now() - 172800000).toISOString()
-  },
-  {
-    _id: 'mock-4',
-    name: 'Ethical Hacking 101',
-    category: 'Cybersecurity',
-    subCategory: 'Ethical Hacking',
-    offering: {
-      description: 'Introduction to penetration testing and network vulnerability scanning.',
-      level: 'Beginner',
-      duration: '2.5 hours',
-      price: 2000,
-      rating: 4.9,
-      sessions: 8
-    },
-    user: { name: 'Cyber Sec Pro', rating: { average: 5.0 } },
-    tags: ['Security', 'Wireshark', 'Kali'],
-    createdAt: new Date(Date.now() - 259200000).toISOString()
-  }
-];
+import { requestJson } from '../../services/apiClient';
 
 const SUB_CATEGORIES = {
   Programming: ['Web Development', 'Mobile Dev', 'Data Science', 'Game Dev', 'DevOps'],
@@ -168,6 +97,7 @@ export default function SkillSwapBrowse() {
 
   const [visibleSkills, setVisibleSkills] = useState(8);
   const [searchQuery, setSearchQuery] = useState('');
+  const deferredSearchQuery = useDeferredValue(searchQuery);
   const [selectedCategory, setSelectedCategory] = useState('All Categories');
   const [selectedLevel, setSelectedLevel] = useState('All Levels');
   const [sortBy, setSortBy] = useState('recommended');
@@ -209,14 +139,8 @@ export default function SkillSwapBrowse() {
         setRefreshing(true);
       }
 
-      const response = await fetch(`${API_URL}/api/skills/search`);
-      const data = await response.json();
-
-      if (!response.ok || !data.success) {
-        throw new Error(data.message || 'Failed to fetch skills');
-      }
-
-      setSkills(Array.isArray(data.data) && data.data.length > 0 ? data.data : getMockSkills());
+      const data = await requestJson('/api/skills/search');
+      setSkills(Array.isArray(data.data) ? data.data : []);
     } catch (err) {
       console.error('Fetch skills error:', err);
       setError(err.message || 'Could not load skills right now.');
@@ -256,7 +180,7 @@ export default function SkillSwapBrowse() {
   }, [categoryCounts]);
 
   const filteredSkills = useMemo(() => {
-    const query = searchQuery.trim().toLowerCase();
+    const query = deferredSearchQuery.trim().toLowerCase();
 
     const filtered = skills.filter((skill) => {
       const categoryMatch =
@@ -307,7 +231,7 @@ export default function SkillSwapBrowse() {
     }
 
     return sorted;
-  }, [savedSkills, searchQuery, selectedCategory, selectedLevel, showSavedOnly, skills, sortBy]);
+  }, [deferredSearchQuery, savedSkills, selectedCategory, selectedLevel, showSavedOnly, skills, sortBy]);
 
   const displayedSkills = useMemo(() => filteredSkills.slice(0, visibleSkills), [filteredSkills, visibleSkills]);
 
@@ -330,6 +254,20 @@ export default function SkillSwapBrowse() {
     };
   }, [savedSkills.length, skills]);
 
+  const marketplacePulseItems = useMemo(() => {
+    const topCategories = categories
+      .filter((category) => category !== 'All Categories')
+      .slice(0, 4)
+      .map((category) => `${category} · ${categoryCounts[category] || 0} live`);
+
+    return [
+      `${filteredSkills.length} curated matches`,
+      `${marketplaceSignals.topRatedCount} highly rated mentors`,
+      `${marketplaceSignals.saved} saved listings`,
+      ...topCategories,
+    ];
+  }, [categories, categoryCounts, filteredSkills.length, marketplaceSignals.saved, marketplaceSignals.topRatedCount]);
+
   useEffect(() => {
     setVisibleSkills(8);
   }, [searchQuery, selectedCategory, selectedLevel, showSavedOnly, sortBy]);
@@ -344,16 +282,11 @@ export default function SkillSwapBrowse() {
         return;
       }
 
-      const response = await fetch(`${API_URL}/api/skills/my-skills`, {
-        method: 'GET',
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
+      const data = await requestJson('/api/skills/my-skills', {
+        auth: true,
       });
 
-      const data = await response.json();
-      if (!response.ok || !data.success) {
+      if (!data.success) {
         throw new Error(data.message || 'Failed to fetch your skills');
       }
 
@@ -400,13 +333,10 @@ export default function SkillSwapBrowse() {
     }
 
     try {
-      const response = await fetch(`${API_URL}/api/skills/post`, {
+      const data = await requestJson('/api/skills/post', {
         method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
+        auth: true,
+        body: {
           title: postSkillForm.title.trim(),
           description: postSkillForm.description.trim(),
           skills: postSkillForm.skills,
@@ -414,11 +344,10 @@ export default function SkillSwapBrowse() {
           subCategory: postSkillForm.subCategory.trim(),
           timePerHour: postSkillForm.timePerHour,
           price: postSkillForm.price
-        })
+        },
       });
 
-      const data = await response.json();
-      if (!response.ok || !data.success) {
+      if (!data.success) {
         throw new Error(data.message || 'Failed to post skill');
       }
 
@@ -457,30 +386,29 @@ export default function SkillSwapBrowse() {
   };
 
   return (
-    <div className="min-h-screen glass-page text-zinc-100">
+    <div className="dashboard-shell min-h-screen glass-page text-zinc-100">
       <MainNavbar />
 
       <main className="max-w-7xl mx-auto px-4 md:px-6 pt-28 pb-12 space-y-6">
-        <section className="surface-card surface-card-shimmer p-6 md:p-8 relative overflow-hidden">
-          <div className="absolute -top-14 left-8 h-36 w-36 rounded-full bg-red-500/20 blur-3xl" />
-          <div className="absolute -bottom-20 right-6 h-44 w-44 rounded-full bg-sky-500/18 blur-3xl" />
+        <section className="surface-card surface-card-shimmer hero-stage hero-beam p-6 md:p-8 relative overflow-hidden">
+          <div className="aurora-orb aurora-orb-warm left-[-6%] top-8 h-44 w-44" />
+          <div className="aurora-orb aurora-orb-cool right-[4%] top-12 h-52 w-52" />
 
           <div className="relative flex flex-wrap items-start justify-between gap-4">
-            <div>
+            <div className="reveal-up max-w-4xl">
               <p className="inline-flex items-center gap-2 text-xs uppercase tracking-wide text-red-300 font-semibold">
                 <Sparkles size={14} />
                 Skill Marketplace
               </p>
               <h1 className="text-3xl md:text-5xl font-black tracking-tight mt-3">
-                Discover mentors and skill offers that feel ready to book, not random listings.
+                Book from a marketplace that reads like a live signal board, not a directory dump.
               </h1>
               <p className="text-zinc-300 mt-3 max-w-3xl leading-7">
-                The marketplace now surfaces stronger signals: who is rated well, which offers are worth saving,
-                and which sessions fit your level, budget, and timing.
+                CollabLearn surfaces who is trusted, what is worth saving, and which sessions feel actionable before you open a single listing.
               </p>
             </div>
 
-            <div className="flex items-center gap-2 flex-wrap">
+            <div className="reveal-up reveal-delay-1 flex items-center gap-2 flex-wrap">
               <Link to="/skill-recommendations" className="glass-chip border-sky-400/40 bg-sky-500/15 text-sky-100">
                 <BookOpen size={14} />
                 Recommendations
@@ -497,30 +425,41 @@ export default function SkillSwapBrowse() {
           </div>
 
           <div className="relative mt-6 grid grid-cols-2 md:grid-cols-5 gap-3">
-            <div className="glass-panel-strong p-3">
+            <div className="metric-rail reveal-up reveal-delay-1">
               <p className="text-xs uppercase text-zinc-400">Total Listings</p>
               <p className="text-xl font-bold mt-1">{skills.length}</p>
             </div>
-            <div className="glass-panel-strong p-3">
+            <div className="metric-rail reveal-up reveal-delay-2">
               <p className="text-xs uppercase text-zinc-400">Visible</p>
               <p className="text-xl font-bold mt-1">{filteredSkills.length}</p>
             </div>
-            <div className="glass-panel-strong p-3">
+            <div className="metric-rail reveal-up reveal-delay-3">
               <p className="text-xs uppercase text-zinc-400">Saved</p>
               <p className="text-xl font-bold mt-1">{marketplaceSignals.saved}</p>
             </div>
-            <div className="glass-panel-strong p-3">
+            <div className="metric-rail reveal-up reveal-delay-2">
               <p className="text-xs uppercase text-zinc-400">Top Rated</p>
               <p className="text-xl font-bold mt-1">{marketplaceSignals.topRatedCount}</p>
             </div>
-            <div className="glass-panel-strong p-3">
+            <div className="metric-rail reveal-up reveal-delay-1">
               <p className="text-xs uppercase text-zinc-400">Avg Price</p>
               <p className="text-xl font-bold mt-1">INR {marketplaceSignals.avgPrice.toLocaleString('en-IN')}</p>
             </div>
           </div>
+
+          <div className="relative mt-5 signal-marquee rounded-[24px] px-3 py-3">
+            <div className="signal-marquee-track gap-3">
+              {[...marketplacePulseItems, ...marketplacePulseItems].map((item, index) => (
+                <span key={`${item}-${index}`} className="signal-pill whitespace-nowrap">
+                  <BadgeCheck size={12} className="text-red-300" />
+                  {item}
+                </span>
+              ))}
+            </div>
+          </div>
         </section>
 
-        <section className="glass-panel p-4 md:p-5 space-y-4">
+        <section className="glass-panel glow-frame sticky top-24 z-20 p-4 md:p-5 space-y-4 backdrop-blur-xl">
           <div className="grid grid-cols-1 lg:grid-cols-[1fr,220px,220px,auto] gap-3 items-center">
             <div className="relative">
               <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
@@ -610,9 +549,9 @@ export default function SkillSwapBrowse() {
         </section>
 
         {featuredSkill && !loading && (
-          <section className="surface-card card-spotlight overflow-hidden p-6 md:p-7">
+          <section className="surface-card card-spotlight dashboard-shell overflow-hidden p-6 md:p-7">
             <div className="grid gap-6 xl:grid-cols-[1fr_0.42fr] xl:items-end">
-              <div>
+              <div className="reveal-up">
                 <div className="eyebrow">
                   <BadgeCheck size={14} className="text-red-300" />
                   Featured listing
@@ -623,6 +562,7 @@ export default function SkillSwapBrowse() {
                 <p className="mt-3 max-w-3xl text-sm leading-7 text-zinc-300">
                   {featuredSkill.offering?.description || 'A focused skill listing ready for booking.'}
                 </p>
+                <div className="luminous-divider mt-5" />
                 <div className="mt-4 flex flex-wrap gap-2">
                   <span className="glass-chip border-white/15 bg-white/5 text-zinc-200">
                     {featuredSkill.category || 'Other'}
@@ -638,7 +578,7 @@ export default function SkillSwapBrowse() {
                 </div>
               </div>
 
-              <div className="rounded-[28px] border border-white/10 bg-white/[0.04] p-5">
+              <div className="glow-frame reveal-up reveal-delay-2 rounded-[28px] border border-white/10 bg-white/[0.04] p-5">
                 <div className="space-y-3 text-sm text-zinc-300">
                   <div className="flex items-center justify-between">
                     <span>Instructor</span>
@@ -701,13 +641,24 @@ export default function SkillSwapBrowse() {
           </section>
         ) : filteredSkills.length === 0 ? (
           <section className="glass-panel p-10 text-center">
-            <h2 className="text-xl font-semibold">No matching skills found</h2>
-            <p className="text-zinc-400 mt-2">Try another category, level, or search term.</p>
+            <h2 className="text-xl font-semibold">
+              {skills.length === 0 ? 'No live listings yet' : 'No matching skills found'}
+            </h2>
+            <p className="mt-2 text-zinc-400">
+              {skills.length === 0
+                ? 'The marketplace is empty right now. Post the first skill or check back after more instructors publish offers.'
+                : 'Try another category, level, or search term.'}
+            </p>
+            {skills.length === 0 ? (
+              <button type="button" onClick={() => setShowPostSkillModal(true)} className="glass-cta mt-6">
+                Post the first skill
+              </button>
+            ) : null}
           </section>
         ) : (
           <section className="space-y-5">
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
-              {displayedSkills.map((skill) => {
+              {displayedSkills.map((skill, index) => {
                 const ownerId = skill.user?._id || skill.user?.id;
                 const isOwnSkill = currentUserId && ownerId && String(ownerId) === String(currentUserId);
                 const avatar = getAvatarDisplayProps(skill.user, 44);
@@ -715,7 +666,11 @@ export default function SkillSwapBrowse() {
                 const isSaved = savedSkills.includes(skill._id);
 
                 return (
-                  <article key={skill._id} className="glass-panel interactive-tile p-5 flex flex-col">
+                  <article
+                    key={skill._id}
+                    className="glass-panel glow-frame interactive-tile reveal-up p-5 flex flex-col"
+                    style={{ animationDelay: `${Math.min(index * 70, 280)}ms` }}
+                  >
                     <div className="flex items-start justify-between gap-3 mb-4">
                       <div className="flex items-center gap-3 min-w-0">
                         {avatar.hasCustom ? (

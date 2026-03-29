@@ -1,17 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { MessageSquare, Send, X, Sparkles, Loader2, Map } from 'lucide-react';
-import { API_URL } from '../../config';
-
-const buildAuthHeaders = () => {
-  const token = localStorage.getItem('token');
-  if (!token) {
-    return { 'Content-Type': 'application/json' };
-  }
-  return {
-    'Content-Type': 'application/json',
-    Authorization: `Bearer ${token}`
-  };
-};
+import { requestJson } from '../../services/apiClient';
 
 const sanitizeRoadmapFromResponse = (responseData) => {
   if (!responseData || typeof responseData !== 'object') return null;
@@ -89,23 +78,21 @@ const AiChatbot = ({ defaultSkill = '', context = {} }) => {
 
       if (isRoadmapIntent) {
         const requestedSkill = extractSkillFromPrompt(messageText, defaultSkill);
-        const roadmapResponse = await fetch(`${API_URL}/api/ai/roadmap`, {
+        const roadmapData = await requestJson('/api/ai/roadmap', {
           method: 'POST',
-          headers: buildAuthHeaders(),
-          body: JSON.stringify({
+          body: {
             skill: requestedSkill,
             learnerLevel: normalizedContext.learnerLevel,
             weeklyHours: normalizedContext.weeklyHours,
             targetWeeks: normalizedContext.targetWeeks,
             focusAreas: normalizedContext.focusAreas,
             savePlan: false
-          })
+          },
+          auth: true
         });
 
-        const roadmapData = await roadmapResponse.json();
         const normalizedRoadmap = sanitizeRoadmapFromResponse(roadmapData);
-
-        if (!roadmapResponse.ok || !roadmapData.success || !normalizedRoadmap) {
+        if (!normalizedRoadmap) {
           throw new Error(roadmapData.message || 'Could not generate roadmap');
         }
 
@@ -117,19 +104,18 @@ const AiChatbot = ({ defaultSkill = '', context = {} }) => {
         return;
       }
 
-      const response = await fetch(`${API_URL}/api/ai/chat`, {
+      const data = await requestJson('/api/ai/chat', {
         method: 'POST',
-        headers: buildAuthHeaders(),
-        body: JSON.stringify({
+        body: {
           message: messageText,
           skillContext: defaultSkill || 'General learning',
           learnerLevel: normalizedContext.learnerLevel,
           context: normalizedContext
-        })
+        },
+        auth: true
       });
 
-      const data = await response.json();
-      if (!response.ok || !data.success) {
+      if (!data.response) {
         throw new Error(data.message || 'AI chat failed');
       }
 

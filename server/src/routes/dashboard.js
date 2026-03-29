@@ -4,20 +4,21 @@ const auth = require('../middleware/auth');
 const User = require('../models/User');
 const Skill = require('../models/Skill');
 const Booking = require('../models/Booking');
-
-// Test endpoint
-router.get('/test', (req, res) => {
-  console.log('Dashboard test endpoint hit');
-  res.json({ success: true, message: 'Dashboard route is working' });
-});
+const {
+  buildRecentActivity,
+  buildStudentDetailsPayload,
+  buildStudentSummaries,
+  calculateAverageLearningProgress,
+  isCompletedBooking,
+  isUpcomingBooking,
+} = require('../utils/dashboardMetrics');
 
 // GET /api/dashboard/stats - Get dashboard statistics for current user
 router.get('/stats', auth, async (req, res) => {
-  console.log('Dashboard stats endpoint hit for user:', req.userId);
-  
   try {
     const userId = req.userId;
-    
+    const now = new Date();
+
     // Get user with skills
     const user = await User.findById(userId)
       .select('-password')
@@ -34,38 +35,27 @@ router.get('/stats', auth, async (req, res) => {
     // Get teaching bookings
     const teachingBookings = await Booking.find({ 
       instructor: userId,
-      status: { $in: ['confirmed', 'pending'] }
+      status: { $in: ['confirmed', 'pending', 'completed', 'ongoing'] }
     })
-    .populate('student', 'name email')
+    .populate('student', 'name email avatar bio totalSessions')
     .populate('skill')
     .sort({ date: 1 });
 
     // Get learning bookings
     const learningBookings = await Booking.find({ 
       student: userId,
-      status: { $in: ['confirmed', 'pending'] }
+      status: { $in: ['confirmed', 'pending', 'completed', 'ongoing'] }
     })
-    .populate('instructor', 'name email')
+    .populate('instructor', 'name email avatar bio totalSessions')
     .populate('skill')
     .sort({ date: 1 });
 
-    // Calculate statistics
-    const totalTeachingSessions = await Booking.countDocuments({ 
-      instructor: userId, 
-      status: 'confirmed' 
-    });
-    
-    const totalLearningSessions = await Booking.countDocuments({ 
-      student: userId, 
-      status: 'confirmed' 
-    });
-
-    const upcomingTeachingSessions = teachingBookings.filter(booking => 
-      new Date(booking.date) > new Date()
+    const upcomingTeachingSessions = teachingBookings.filter((booking) =>
+      isUpcomingBooking(booking, now),
     );
 
-    const upcomingLearningSessions = learningBookings.filter(booking => 
-      new Date(booking.date) > new Date()
+    const upcomingLearningSessions = learningBookings.filter((booking) =>
+      isUpcomingBooking(booking, now),
     );
 
     // Get skills being taught
@@ -79,6 +69,35 @@ router.get('/stats', auth, async (req, res) => {
       user: userId, 
       isSeeking: true
     }).populate('seeking.currentInstructor', 'name');
+
+    const studentIds = Array.from(
+      new Set(
+        teachingBookings
+          .map((booking) => booking?.student?._id)
+          .filter(Boolean)
+          .map((id) => String(id)),
+      ),
+    );
+
+    const studentSeekingSkills = studentIds.length
+      ? await Skill.find({
+          user: { $in: studentIds },
+          isSeeking: true,
+        }).populate('seeking.currentInstructor', 'name email')
+      : [];
+
+    const studentSummaries = buildStudentSummaries(teachingBookings, studentSeekingSkills, now);
+    const recentActivity = buildRecentActivity(
+      [...teachingBookings, ...learningBookings],
+      userId,
+      now,
+    );
+    const totalTeachingSessions = teachingBookings.filter((booking) =>
+      isCompletedBooking(booking, now),
+    ).length;
+    const totalLearningSessions = learningBookings.filter((booking) =>
+      isCompletedBooking(booking, now),
+    ).length;
 
     res.json({
       success: true,
@@ -99,11 +118,14 @@ router.get('/stats', auth, async (req, res) => {
           totalSessions: user.totalSessions,
           averageRating: user.rating.average,
           skillsTeaching: teachingSkills.length,
+          skillsLearning: learningSkills.length,
           badgesEarned: user.badges.length,
           totalTeachingSessions,
           totalLearningSessions,
           upcomingTeachingSessions: upcomingTeachingSessions.length,
-          upcomingLearningSessions: upcomingLearningSessions.length
+          upcomingLearningSessions: upcomingLearningSessions.length,
+          averageLearningProgress: calculateAverageLearningProgress(learningSkills),
+          studentsSupported: studentSummaries.length,
         },
         upcomingBookings: {
           teaching: upcomingTeachingSessions.slice(0, 5),
@@ -113,7 +135,8 @@ router.get('/stats', auth, async (req, res) => {
           teaching: teachingSkills,
           learning: learningSkills
         },
-        recentActivity: await getRecentActivity(userId)
+        studentSummaries,
+        recentActivity,
       }
     });
 
@@ -166,51 +189,21 @@ router.get('/student/:studentId', auth, async (req, res) => {
         { instructor: studentId, student: instructorId }
       ]
     })
-    .populate('skill', 'name')
-    .sort({ date: -1 });
+      .populate('skill', 'name')
+      .sort({ date: -1 });
 
-    // Calculate student statistics
-    const completedSessions = allBookings.filter(b => 
-      b.status === 'confirmed' && new Date(b.date) < new Date()
-    ).length;
-
-    const totalSessions = allBookings.length;
-    const averageRating = 4.5; // Mock rating - implement rating system
-    const currentStreak = 7; // Mock streak - implement streak calculation
+    const learningSkills = await Skill.find({
+      user: studentId,
+      isSeeking: true,
+    }).populate('seeking.currentInstructor', 'name email');
 
     res.json({
       success: true,
-      data: {
-        student: {
-          id: student._id,
-          name: student.name,
-          email: student.email,
-          avatar: student.getAvatarUrl(),
-          bio: student.bio,
-          joinDate: student.createdAt
-        },
-        stats: {
-          totalSessions,
-          completedSessions,
-          averageRating,
-          currentStreak
-        },
-        learningGoals: student.skillsSeeking.map(skill => ({
-          skill: skill.name,
-          progress: skill.seeking.progress || 0,
-          target: 'Advanced', // Mock target
-          currentInstructor: skill.seeking.currentInstructor
-        })),
-        sessionHistory: allBookings.map(booking => ({
-          id: booking._id,
-          date: booking.date,
-          skill: booking.skill ? booking.skill.name : 'Unknown Skill',
-          duration: booking.duration,
-          status: booking.status,
-          notes: booking.notes
-        })),
-        achievements: ['Quick Learner', 'Consistent Student'] // Mock achievements
-      }
+      data: buildStudentDetailsPayload({
+        student,
+        bookings: allBookings,
+        learningSkills,
+      }),
     });
 
   } catch (error) {
@@ -222,40 +215,5 @@ router.get('/student/:studentId', auth, async (req, res) => {
     });
   }
 });
-
-// Helper function to get recent activity
-async function getRecentActivity(userId) {
-  try {
-    // Get recent completed bookings
-    const recentBookings = await Booking.find({
-      $or: [
-        { instructor: userId },
-        { student: userId }
-      ],
-      status: 'confirmed',
-      date: { $lt: new Date() }
-    })
-    .populate('student', 'name')
-    .populate('instructor', 'name')
-    .populate('skill', 'name')
-    .sort({ date: -1 })
-    .limit(10);
-
-    return recentBookings.map(booking => {
-      const isTeaching = booking.instructor._id.toString() === userId;
-      const skillName = booking.skill ? booking.skill.name : 'Unknown Skill';
-      return {
-        type: isTeaching ? 'teaching_completed' : 'learning_completed',
-        description: `${isTeaching ? 'Taught' : 'Learned'} ${skillName}`,
-        otherUser: isTeaching ? booking.student.name : booking.instructor.name,
-        date: booking.date,
-        skill: skillName
-      };
-    });
-  } catch (error) {
-    console.error('Recent activity error:', error);
-    return [];
-  }
-}
 
 module.exports = router;

@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Sparkles, BookOpen, Clock, Star, ArrowLeft, Zap, Award, TrendingUp } from 'lucide-react';
 import MainNavbar from '../../navbar/mainNavbar';
 import { formatINR } from '../../utils/currencyUtils';
-import { API_URL } from '../../config';
+import { requestJson } from '../../services/apiClient';
+import { buildFallbackRecommendations } from '../../utils/recommendationUtils';
 
 
 // Skeleton Loader Component
@@ -38,33 +39,20 @@ const SkillRecommendations = () => {
   const [recommendations, setRecommendations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [fallbackMode, setFallbackMode] = useState(false);
 
   useEffect(() => {
     const fetchRecommendations = async () => {
       try {
-        const token = localStorage.getItem('token');
-        if (!token) {
+        if (!localStorage.getItem('token')) {
           setError('You must be logged in to see recommendations.');
           setLoading(false);
           return;
         }
 
-        const headers = {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        };
-
-        // Use the new personalized recommendations endpoint
-        const response = await fetch(`${API_URL}/api/skills/recommendations`, {
-          headers,
-          cache: 'no-store'
+        const data = await requestJson('/api/skills/recommendations', {
+          auth: true,
         });
-
-        if (!response.ok) {
-          throw new Error(`Failed to fetch recommendations: ${response.statusText}`);
-        }
-
-        const data = await response.json();
 
         if (data.success) {
           // Store user profile info for UI enhancements
@@ -72,6 +60,7 @@ const SkillRecommendations = () => {
 
           // Set recommendations with enhanced data
           setRecommendations(data.data || []);
+          setFallbackMode(false);
 
         } else {
           throw new Error(data.message || 'Failed to get recommendations');
@@ -81,25 +70,17 @@ const SkillRecommendations = () => {
         console.error('Recommendation fetch error:', err);
         setError(err.message || 'Failed to load recommendations');
 
-        // Fallback to basic search if advanced recommendations fail
+        // Fall back to deterministic ranking instead of random scores.
         try {
-          const token = localStorage.getItem('token');
-          const fallbackResponse = await fetch(`${API_URL}/api/skills/search?offering=true`, {
-            headers: {
-              'Authorization': `Bearer ${token}`,
-              'Content-Type': 'application/json'
-            }
+          const fallbackData = await requestJson('/api/skills/search?offering=true', {
+            auth: true,
           });
 
-          if (fallbackResponse.ok) {
-            const fallbackData = await fallbackResponse.json();
-            const basicRecommendations = (fallbackData.data || []).map(skill => ({
-              ...skill,
-              recommendationScore: Math.floor(Math.random() * 50) + 30, // Basic random scoring
-              recommendationReason: 'Basic match'
-            }));
+          if (fallbackData.success) {
+            const basicRecommendations = buildFallbackRecommendations(fallbackData.data || []);
             setRecommendations(basicRecommendations.slice(0, 12));
-            setError(null); // Clear error if fallback works
+            setFallbackMode(true);
+            setError(null);
           }
         } catch (fallbackErr) {
           console.error('Fallback failed:', fallbackErr);
@@ -186,7 +167,7 @@ const SkillRecommendations = () => {
     return (
       <div className="min-h-screen bg-black">
         <MainNavbar />
-        <div className="text-center py-10 text-red-500">Error: {error.message || "An unknown error occurred"}</div>
+        <div className="text-center py-10 text-red-500">Error: {error || 'An unknown error occurred'}</div>
       </div>
     );
   }
@@ -218,6 +199,12 @@ const SkillRecommendations = () => {
 
         {/* Main Content - Grid View */}
         <div className="max-w-7xl mx-auto px-4 py-6">
+          {fallbackMode ? (
+            <div className="mb-6 rounded-2xl border border-amber-400/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
+              Personalized recommendations were unavailable, so this list is ranked using live marketplace quality signals instead.
+            </div>
+          ) : null}
+
           {recommendations.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {recommendations.map(skill => {

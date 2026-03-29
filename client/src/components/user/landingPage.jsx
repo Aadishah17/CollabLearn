@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   ArrowRight,
@@ -14,6 +15,8 @@ import {
   Users,
 } from 'lucide-react';
 import LandingNavbar from '../../navbar/landingNavbar';
+import { resolvePublicWebsiteEntry } from '../../navbar/navLinks.js';
+import { hasStoredSession } from '../../utils/session.js';
 
 const quickSignals = [
   {
@@ -66,6 +69,49 @@ const heroStats = [
     label: 'Momentum window',
     detail: 'The product is designed to keep your next step obvious after the first burst of motivation fades.',
   },
+];
+
+const heroPulseItems = [
+  'Goal-first roadmaps',
+  'Mentor sessions on demand',
+  'Community checkpoints',
+  'Visible weekly momentum',
+  'Teach what you master later',
+];
+
+const heroBoardLanes = [
+  {
+    label: 'Active roadmap',
+    title: 'Frontend systems sprint',
+    detail: 'Week 2 of 6 · layout systems, component patterns, and one mentor review.',
+    tone: 'border-red-400/20 bg-red-500/10 text-red-100',
+    iconClass: 'bg-red-400',
+  },
+  {
+    label: 'Next checkpoint',
+    title: 'Mentor review tomorrow · 7:00 PM',
+    detail: 'Use the session to review responsive structure before the next milestone locks.',
+    tone: 'border-blue-400/20 bg-blue-500/10 text-blue-100',
+    iconClass: 'bg-blue-400',
+  },
+  {
+    label: 'Momentum',
+    title: '68% of this month completed',
+    detail: 'Progress stays visible so the next study block is obvious before motivation drops.',
+    tone: 'border-emerald-400/20 bg-emerald-500/10 text-emerald-100',
+    iconClass: 'bg-emerald-400',
+  },
+];
+
+const heroThreadItems = [
+  'Review my responsive nav before I ship it',
+  'What changed your consistency this month?',
+  'Looking for feedback on a portfolio case study',
+];
+
+const heroStatusTiles = [
+  { label: 'Study streak', value: '4 weeks' },
+  { label: 'Mentor queue', value: '1 review booked' },
 ];
 
 const featureCards = [
@@ -171,40 +217,70 @@ const workflowLanes = [
 
 export default function CollabLearnLanding() {
   const navigate = useNavigate();
-  const hasSession = Boolean(localStorage.getItem('token'));
+  const [hasSession, setHasSession] = useState(hasStoredSession);
+  const [userRole, setUserRole] = useState(
+    typeof localStorage === 'undefined' ? 'user' : localStorage.getItem('userRole'),
+  );
+  const [isSuperAdmin, setIsSuperAdmin] = useState(
+    typeof localStorage === 'undefined' ? false : localStorage.getItem('isSuperAdmin') === 'true',
+  );
+
+  useEffect(() => {
+    const syncSession = () => {
+      setHasSession(hasStoredSession());
+      setUserRole(typeof localStorage === 'undefined' ? 'user' : localStorage.getItem('userRole'));
+      setIsSuperAdmin(
+        typeof localStorage === 'undefined' ? false : localStorage.getItem('isSuperAdmin') === 'true',
+      );
+    };
+
+    window.addEventListener('storage', syncSession);
+    window.addEventListener('profileUpdated', syncSession);
+
+    return () => {
+      window.removeEventListener('storage', syncSession);
+      window.removeEventListener('profileUpdated', syncSession);
+    };
+  }, []);
+
+  const publicEntry = resolvePublicWebsiteEntry({
+    hasSession,
+    userRole,
+    isSuperAdmin,
+  });
 
   return (
-    <div className="glass-page min-h-screen overflow-x-hidden text-slate-100 selection:bg-red-500/30">
+    <div className="dashboard-shell glass-page min-h-screen overflow-x-hidden text-slate-100 selection:bg-red-500/30">
       <LandingNavbar />
 
-      <section className="relative overflow-hidden px-6 pb-20 pt-32 md:pb-24 md:pt-36">
+      <section className="hero-stage hero-beam relative overflow-hidden px-6 pb-16 pt-28 md:pb-20 md:pt-32">
         <div className="ambient-grid pointer-events-none absolute inset-x-0 top-0 h-[520px] opacity-30" />
-        <div className="pointer-events-none absolute left-[-10%] top-20 h-72 w-72 rounded-full bg-red-500/12 blur-[110px]" />
-        <div className="pointer-events-none absolute right-[-6%] top-10 h-80 w-80 rounded-full bg-blue-500/12 blur-[120px]" />
+        <div className="aurora-orb aurora-orb-warm left-[-8%] top-20 h-72 w-72" />
+        <div className="aurora-orb aurora-orb-cool right-[-2%] top-10 h-80 w-80" />
 
-        <div className="mx-auto grid max-w-7xl items-center gap-14 lg:grid-cols-[1.05fr_0.95fr]">
-          <div className="relative z-10">
+        <div className="mx-auto grid max-w-[1480px] items-start gap-10 lg:min-h-[calc(100svh-8.5rem)] lg:grid-cols-[minmax(0,0.5fr)_minmax(520px,0.5fr)]">
+          <div className="relative z-10 max-w-[680px] pt-4 reveal-up lg:pt-12">
             <div className="eyebrow">
               <Sparkles size={14} className="text-red-300" />
-              Guided roadmaps, mentor sessions, and community learning
+              A guided learning system with live support
             </div>
 
-            <h1 className="mt-8 max-w-4xl text-5xl font-black leading-[0.95] tracking-tight text-white md:text-7xl">
-              Learn faster
-              <span className="block text-red-400">with structure, not guesswork.</span>
+            <h1 className="mt-8 max-w-[12ch] text-5xl font-black leading-[0.92] tracking-tight text-white md:text-7xl">
+              Make the next move
+              <span className="block text-red-400">obvious every week.</span>
             </h1>
 
-            <p className="mt-6 max-w-2xl text-lg leading-8 text-zinc-300 md:text-xl">
-              CollabLearn turns vague goals into weekly learning roadmaps, live mentor sessions, community support, and visible progress tracking in one workspace.
+            <p className="mt-6 max-w-[34rem] text-lg leading-8 text-zinc-300 md:text-xl">
+              CollabLearn turns a vague skill goal into a living roadmap, mentor support, community feedback, and visible progress so learning keeps moving after the first burst of motivation fades.
             </p>
 
             <div className="mt-10 flex flex-col gap-4 sm:flex-row">
               <button
                 type="button"
-                onClick={() => navigate(hasSession ? '/dashboard' : '/signup')}
+                onClick={() => navigate(hasSession ? publicEntry.path : '/signup')}
                 className="glass-cta"
               >
-                {hasSession ? 'Open your dashboard' : 'Start learning free'}
+                {hasSession ? publicEntry.label : 'Start learning free'}
                 <ArrowRight size={18} />
               </button>
               {hasSession ? (
@@ -220,119 +296,161 @@ export default function CollabLearnLanding() {
                   href="#how-it-works"
                   className="glass-outline-btn"
                 >
-                  See how it works
+                  See the learning loop
                 </a>
               )}
             </div>
 
-            <div className="mt-8 flex flex-wrap gap-3">
-              <span className="glass-chip">
-                <Target size={14} className="text-red-300" />
-                Roadmaps built from your goal
+            <div className="mt-8 flex flex-wrap items-center gap-4 text-sm font-medium text-zinc-300 reveal-up reveal-delay-1">
+              <span className="inline-flex items-center gap-2">
+                <span className="signal-dot bg-emerald-400" />
+                Goal-first planning, mentor support, and community feedback in one loop
               </span>
-              <span className="glass-chip">
-                <GraduationCap size={14} className="text-blue-300" />
-                Learn or teach on the same platform
-              </span>
-              <span className="glass-chip">
-                <CheckCircle2 size={14} className="text-emerald-300" />
-                Built for consistency, not one-off inspiration
-              </span>
-              <Link to="/status" className="glass-chip border-white/15 hover:border-blue-400/45">
-                <Clock3 size={14} className="text-blue-300" />
+              <Link to="/status" className="inline-flex items-center gap-2 text-zinc-200 transition-colors hover:text-blue-300">
+                <Clock3 size={15} className="text-blue-300" />
                 Public system status
               </Link>
             </div>
-
-            <div className="mt-8 grid gap-3 sm:grid-cols-3">
-              {heroStats.map((stat) => (
-                <div key={stat.label} className="hero-mini-card">
-                  <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">
-                    {stat.label}
-                  </p>
-                  <p className="mt-3 text-3xl font-black text-white">{stat.value}</p>
-                  <p className="mt-2 text-sm leading-6 text-zinc-300">{stat.detail}</p>
-                </div>
-              ))}
-            </div>
           </div>
 
-          <div className="relative z-10">
-            <div className="surface-card relative overflow-hidden p-5 md:p-6">
+          <div className="relative z-10 reveal-up reveal-delay-2 lg:pt-3">
+            <div className="surface-card dashboard-shell hero-stage glow-frame orbit-shell float-drift relative min-h-[540px] overflow-hidden rounded-[36px] p-5 md:p-6 lg:min-h-[620px]">
               <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-white/4 via-transparent to-red-500/6" />
-              <div className="relative flex items-center justify-between border-b border-white/10 pb-4">
+              <div className="pointer-events-none absolute right-8 top-10 h-28 w-28 rounded-full bg-blue-500/12 blur-3xl" />
+              <div className="pointer-events-none absolute inset-y-0 left-[58%] hidden w-px bg-gradient-to-b from-transparent via-white/10 to-transparent lg:block" />
+
+              <div className="relative flex flex-wrap items-center justify-between gap-4 border-b border-white/10 pb-4">
                 <div>
                   <p className="text-sm font-semibold uppercase tracking-[0.24em] text-zinc-400">
-                    This week
+                    Live product scene
                   </p>
-                  <h2 className="mt-2 text-2xl font-bold text-white">Frontend roadmap</h2>
+                  <h2 className="mt-2 text-2xl font-bold text-white">Roadmap, support, and momentum in one screen</h2>
                 </div>
                 <div className="rounded-2xl border border-emerald-400/25 bg-emerald-500/10 px-3 py-2 text-sm font-semibold text-emerald-200">
-                  On track
+                  Week 2 active
                 </div>
               </div>
 
-              <div className="relative mt-4 flex flex-wrap gap-2 text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">
-                <span className="rounded-full border border-white/10 bg-white/[0.03] px-3 py-1.5 text-zinc-200">
-                  Roadmap
-                </span>
-                <span className="rounded-full border border-white/10 bg-white/[0.03] px-3 py-1.5 text-zinc-200">
-                  Mentor session
-                </span>
-                <span className="rounded-full border border-white/10 bg-white/[0.03] px-3 py-1.5 text-zinc-200">
-                  Progress saved
-                </span>
-              </div>
-
-              <div className="relative mt-5 grid gap-4 md:grid-cols-[1.1fr_0.9fr]">
-                <div className="rounded-[24px] border border-white/10 bg-black/25 p-4">
-                  <div className="flex items-center justify-between">
-                    <p className="text-sm font-semibold text-white">Weekly roadmap</p>
-                    <span className="rounded-full bg-red-500/10 px-2 py-1 text-xs font-semibold text-red-200">
-                      Week 2 of 6
+              <div className="relative mt-5 grid gap-4 lg:grid-cols-[1.06fr_0.94fr]">
+                <div className="rounded-[30px] border border-white/10 bg-black/25 p-5 backdrop-blur-sm">
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-500">Current roadmap</p>
+                      <p className="mt-2 text-xl font-bold text-white">Frontend systems sprint</p>
+                    </div>
+                    <span className="rounded-full bg-red-500/10 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.18em] text-red-200">
+                      3 active lanes
                     </span>
                   </div>
-                  <div className="mt-4 space-y-3">
-                    {[
-                      'Finish React state management module',
-                      'Book a 30 min mentor session for feedback',
-                      'Share one progress post in the community',
-                    ].map((item) => (
+
+                  <div className="luminous-divider mt-4" />
+
+                  <div className="mt-5 space-y-4">
+                    {heroBoardLanes.map((lane, index) => (
                       <div
-                        key={item}
-                        className="flex items-start gap-3 rounded-2xl border border-white/8 bg-white/[0.03] p-3"
+                        key={lane.label}
+                        className={`glow-frame rounded-[24px] border p-4 transition duration-300 hover:-translate-y-0.5 ${lane.tone}`}
                       >
-                        <span className="signal-dot mt-1 bg-emerald-400" />
-                        <p className="text-sm leading-6 text-zinc-200">{item}</p>
+                        <div className="flex items-start gap-4">
+                          <div className="flex flex-col items-center gap-2 pt-1">
+                            <span className={`signal-dot ${lane.iconClass}`} />
+                            {index < heroBoardLanes.length - 1 ? (
+                              <span className="h-10 w-px bg-white/12" />
+                            ) : null}
+                          </div>
+                          <div>
+                            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">{lane.label}</p>
+                            <p className="mt-2 text-lg font-semibold text-white">{lane.title}</p>
+                            <p className="mt-2 text-sm leading-6 text-zinc-200">{lane.detail}</p>
+                          </div>
+                        </div>
                       </div>
                     ))}
                   </div>
                 </div>
 
                 <div className="space-y-4">
-                  <div className="rounded-[24px] border border-white/10 bg-red-500/[0.07] p-4">
+                  <div className="glow-frame rounded-[24px] border border-red-400/18 bg-red-500/[0.07] p-4">
                     <div className="flex items-center justify-between">
-                      <p className="text-sm font-semibold text-white">Next session</p>
+                      <p className="text-sm font-semibold text-white">Next mentor touchpoint</p>
                       <Clock3 size={16} className="text-red-300" />
                     </div>
                     <p className="mt-3 text-lg font-bold text-white">CSS review with mentor</p>
                     <p className="mt-2 text-sm leading-6 text-zinc-300">
-                      Tomorrow at 7:00 PM with a focus on layout systems and responsive patterns.
+                      Tomorrow at 7:00 PM with a focus on layout systems, responsive patterns, and sharper component structure.
                     </p>
+                    <div className="mt-4 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-red-100">
+                      <span className="signal-dot bg-red-300" />
+                      30 min review booked
+                    </div>
                   </div>
 
-                  <div className="rounded-[24px] border border-white/10 bg-blue-500/[0.08] p-4">
+                  <div className="glow-frame rounded-[24px] border border-blue-400/18 bg-blue-500/[0.08] p-4">
                     <div className="flex items-center justify-between">
-                      <p className="text-sm font-semibold text-white">Progress</p>
+                      <p className="text-sm font-semibold text-white">Momentum curve</p>
                       <TrendingUp size={16} className="text-blue-300" />
                     </div>
                     <div className="mt-4 h-3 overflow-hidden rounded-full bg-white/8">
-                      <div className="h-full w-[68%] rounded-full bg-gradient-to-r from-blue-400 to-red-400" />
+                      <div className="h-full w-[68%] rounded-full bg-gradient-to-r from-blue-400 via-sky-400 to-red-400 transition-all duration-700" />
                     </div>
                     <p className="mt-3 text-sm leading-6 text-zinc-300">
-                      You completed 68% of this month’s milestones and stayed active for four straight study weeks.
+                      You completed 68% of this month’s milestones and kept the loop alive for four straight study weeks.
                     </p>
                   </div>
+
+                  <div className="glow-frame rounded-[24px] border border-white/10 bg-white/[0.03] p-4">
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm font-semibold text-white">Community pressure</p>
+                      <MessageSquare size={16} className="text-emerald-300" />
+                    </div>
+                    <div className="mt-4 space-y-3">
+                      {heroThreadItems.map((thread) => (
+                        <div key={thread} className="rounded-[18px] border border-white/8 bg-black/20 px-3 py-3 text-sm text-zinc-200">
+                          {thread}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3 text-xs font-semibold uppercase tracking-[0.18em] text-zinc-300">
+                    {heroStatusTiles.map((tile) => (
+                      <div key={tile.label} className="metric-rail">
+                        <p className="text-zinc-500">{tile.label}</p>
+                        <p className="mt-2 text-base font-bold text-white normal-case tracking-normal">{tile.value}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="lg:col-span-2">
+            <div className="grid gap-3 lg:grid-cols-[0.92fr_1.08fr]">
+              <div className="grid gap-3 sm:grid-cols-3">
+                {heroStats.map((stat, index) => (
+                  <div
+                    key={stat.label}
+                    className="metric-rail reveal-up"
+                    style={{ animationDelay: `${120 + index * 80}ms` }}
+                  >
+                    <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">
+                      {stat.label}
+                    </p>
+                    <p className="mt-3 text-3xl font-black text-white">{stat.value}</p>
+                    <p className="mt-2 text-sm leading-6 text-zinc-300">{stat.detail}</p>
+                  </div>
+                ))}
+              </div>
+
+              <div className="signal-marquee rounded-[24px] px-3 py-3 reveal-up reveal-delay-2">
+                <div className="signal-marquee-track gap-3">
+                  {[...heroPulseItems, ...heroPulseItems].map((item, index) => (
+                    <span key={`${item}-${index}`} className="signal-pill whitespace-nowrap">
+                      <Sparkles size={12} className="text-red-300" />
+                      {item}
+                    </span>
+                  ))}
                 </div>
               </div>
             </div>
@@ -342,10 +460,11 @@ export default function CollabLearnLanding() {
 
       <section className="px-6 py-6">
         <div className="mx-auto grid max-w-7xl gap-4 md:grid-cols-2 xl:grid-cols-4">
-          {quickSignals.map((signal) => (
+          {quickSignals.map((signal, index) => (
             <div
               key={signal.title}
-              className="relative overflow-hidden rounded-[28px] border border-white/10 bg-white/[0.035] p-5"
+              className="glow-frame interactive-tile reveal-up relative overflow-hidden rounded-[28px] border border-white/10 bg-white/[0.035] p-5"
+              style={{ animationDelay: `${index * 80}ms` }}
             >
               <div className={`pointer-events-none absolute inset-0 bg-gradient-to-br ${signal.haloClass}`} />
               <div className="relative">
@@ -366,7 +485,7 @@ export default function CollabLearnLanding() {
       <section className="px-6 pb-10 pt-8">
         <div className="mx-auto max-w-7xl">
           <div className="grid gap-6 lg:grid-cols-[0.92fr_1.08fr]">
-            <div className="surface-card overflow-hidden p-6 md:p-8">
+            <div className="surface-card glow-frame overflow-hidden p-6 md:p-8">
               <div className="eyebrow">
                 <Target size={14} className="text-red-300" />
                 The learning rhythm
@@ -396,6 +515,8 @@ export default function CollabLearnLanding() {
                 ))}
               </div>
 
+              <div className="luminous-divider mt-8" />
+
               <div className="mt-8 rounded-[24px] border border-white/10 bg-black/20 p-5">
                 <p className="text-xs font-semibold uppercase tracking-[0.24em] text-zinc-400">
                   Product promise
@@ -408,10 +529,11 @@ export default function CollabLearnLanding() {
             </div>
 
             <div className="grid gap-4 md:grid-cols-2">
-              {workflowLanes.map((lane) => (
+              {workflowLanes.map((lane, index) => (
                 <div
                   key={lane.title}
-                  className="relative overflow-hidden rounded-[28px] border border-white/10 bg-white/[0.035] p-6"
+                  className="glow-frame interactive-tile reveal-up relative overflow-hidden rounded-[28px] border border-white/10 bg-white/[0.035] p-6"
+                  style={{ animationDelay: `${index * 90}ms` }}
                 >
                   <div className={`pointer-events-none absolute inset-0 bg-gradient-to-br ${lane.accent}`} />
                   <div className="relative">
@@ -455,10 +577,11 @@ export default function CollabLearnLanding() {
           </div>
 
           <div className="mt-10 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-            {featureCards.map((feature) => (
+            {featureCards.map((feature, index) => (
               <div
                 key={feature.title}
-                className={`feature-tile relative overflow-hidden ${feature.featured ? 'xl:col-span-2 xl:grid xl:grid-cols-[0.82fr_1.18fr] xl:items-center xl:gap-8' : ''}`}
+                className={`feature-tile glow-frame interactive-tile reveal-up relative overflow-hidden ${feature.featured ? 'xl:col-span-2 xl:grid xl:grid-cols-[0.82fr_1.18fr] xl:items-center xl:gap-8' : ''}`}
+                style={{ animationDelay: `${index * 70}ms` }}
               >
                 <div className={`pointer-events-none absolute inset-0 bg-gradient-to-br ${feature.accent}`} />
                 <div className="relative">
@@ -496,7 +619,7 @@ export default function CollabLearnLanding() {
 
           <div className="space-y-5">
             {steps.map((step, index) => (
-              <div key={step.title} className="surface-card p-6 md:p-7">
+              <div key={step.title} className="surface-card glow-frame reveal-up p-6 md:p-7" style={{ animationDelay: `${index * 90}ms` }}>
                 <div className="flex flex-col gap-4 md:flex-row md:items-start">
                   <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-red-500/12 text-lg font-black text-red-200">
                     0{index + 1}
@@ -523,7 +646,7 @@ export default function CollabLearnLanding() {
           </div>
 
           <div className="mt-10 grid gap-6 lg:grid-cols-2">
-            <div className="surface-card p-7 md:p-8">
+            <div className="surface-card glow-frame p-7 md:p-8">
               <div className="inline-flex rounded-full border border-red-400/20 bg-red-500/10 px-3 py-1 text-sm font-semibold text-red-200">
                 For learners
               </div>
@@ -544,7 +667,7 @@ export default function CollabLearnLanding() {
               </ul>
             </div>
 
-            <div className="surface-card p-7 md:p-8">
+            <div className="surface-card glow-frame orbit-shell p-7 md:p-8">
               <div className="inline-flex rounded-full border border-blue-400/20 bg-blue-500/10 px-3 py-1 text-sm font-semibold text-blue-200">
                 For teachers
               </div>
@@ -579,7 +702,9 @@ export default function CollabLearnLanding() {
 
       <section className="px-6 pb-24 pt-8">
         <div className="mx-auto max-w-5xl">
-          <div className="surface-card relative overflow-hidden p-8 md:p-12">
+          <div className="surface-card hero-stage hero-beam glow-frame relative overflow-hidden p-8 md:p-12">
+            <div className="aurora-orb aurora-orb-warm left-[-6%] top-10 h-36 w-36" />
+            <div className="aurora-orb aurora-orb-cool right-[8%] top-8 h-40 w-40" />
             <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-red-500/6 via-transparent to-blue-500/8" />
             <div className="relative grid gap-8 lg:grid-cols-[1fr_auto] lg:items-center">
               <div className="max-w-3xl">
@@ -606,10 +731,10 @@ export default function CollabLearnLanding() {
               <div className="flex flex-col gap-3 sm:flex-row lg:flex-col">
                 <button
                   type="button"
-                  onClick={() => navigate(hasSession ? '/dashboard' : '/signup')}
+                  onClick={() => navigate(hasSession ? publicEntry.path : '/signup')}
                   className="glass-cta"
                 >
-                  {hasSession ? 'Return to workspace' : 'Create your account'}
+                  {hasSession ? publicEntry.label : 'Create your account'}
                   <ArrowRight size={18} />
                 </button>
                 {hasSession ? (

@@ -7,6 +7,8 @@ const {
   createStudioDiagnostics,
   resolveStudioHttpStatus
 } = require('../utils/aiStatus');
+const { getAiRequestProfile } = require('../utils/aiRequestProfiles');
+const { TimeoutError, withTimeout } = require('../utils/withTimeout');
 
 // --- AI SDK Initialization ---
 const { OpenAI } = require('openai');
@@ -26,11 +28,14 @@ const isQuotaError = (error) => {
     message.includes('quota') ||
     message.includes('429') ||
     message.includes('resource_exhausted') ||
-    message.includes('limit') ||
-    message.includes('404') ||
-    message.includes('not found')
+    message.includes('limit')
   );
 };
+
+const isAiTimeoutError = (error) =>
+  error instanceof TimeoutError ||
+  error?.name === 'APIConnectionTimeoutError' ||
+  error?.code === 'ETIMEDOUT';
 
 function isPlaceholderApiKeyRaw(key) {
   const normalized = String(key || '').trim().toLowerCase();
@@ -92,6 +97,8 @@ const parseIntegerEnv = (value, fallback) => {
   const parsed = Number.parseInt(value, 10);
   return Number.isInteger(parsed) ? parsed : fallback;
 };
+
+const AI_PROVIDER_TIMEOUT_MS = clamp(parseIntegerEnv(process.env.AI_PROVIDER_TIMEOUT_MS, 9000), 1000, 60000);
 
 const toTitleCase = (value) =>
   String(value || '')
@@ -292,6 +299,22 @@ const normalizeRoadmapInput = (body = {}) => {
   };
 };
 
+const normalizeLearningPlanSource = (source) => (source === 'ai' ? 'ai' : 'fallback');
+
+const applyRoadmapToLearningPlan = (plan, { input, roadmap, source }) => {
+  plan.skill = input.skill;
+  plan.learnerLevel = input.learnerLevel;
+  plan.weeklyHours = input.weeklyHours;
+  plan.targetWeeks = input.targetWeeks;
+  plan.focusAreas = input.focusAreas;
+  plan.plan = roadmap;
+  plan.completedStepIndexes = [];
+  plan.progressPercentage = 0;
+  plan.lastProgressUpdate = null;
+  plan.source = source;
+  return plan;
+};
+
 const normalizeChatContext = (body = {}) => {
   const context = body && typeof body.context === 'object' ? body.context : {};
   const focusAreas = normalizeFocusAreas(context.focusAreas);
@@ -368,8 +391,7 @@ const parseYouTubeApiKeys = () =>
     new Set(
       [
         sanitizeText(process.env.YOUTUBE_API_KEY),
-        sanitizeText(process.env.GOOGLE_API_KEY),
-        sanitizeText(process.env.GEMINI_API_KEY)
+        sanitizeText(process.env.GOOGLE_API_KEY)
       ].filter(Boolean)
     )
   );
@@ -970,7 +992,7 @@ const buildRoadmapPrompt = ({ skill, learnerLevel, weeklyHours, targetWeeks, foc
 
   return `
 You are an expert skill-learning coach for CollabLearn.
-Create a personalized learning roadmap for "${skill}".
+Create a concise personalized learning roadmap for "${skill}".
 
 Learner profile:
 - Level: ${learnerLevel}
@@ -978,7 +1000,9 @@ Learner profile:
 - Target duration (weeks): ${targetWeeks}
 - ${focusInstruction}
 
-Return ONLY valid JSON with this exact schema:
+Return ONLY valid JSON. Do not add markdown, prose, or code fences.
+Keep titles and descriptions short and concrete.
+Use this exact schema:
 {
   "summary": "string",
   "steps": [
@@ -1011,34 +1035,82 @@ Return ONLY valid JSON with this exact schema:
 }
 
 Rules:
-- 5 to 8 roadmap steps.
-- Every step must include at least 2 concrete goals.
-- Every description must state exactly what will be practiced in that phase.
-- Every practiceTask must create proof of work (recording, solved exercise, draft, or mini deliverable).
-- Milestones must map to realistic weeks inside target duration.
-- Give 5 to 8 high-value resources with practical relevance.
-- Keep writing concise, specific, and action-oriented.
+- Summary: maximum 2 short sentences.
+- Use 5 or 6 roadmap steps.
+- Every step must include exactly 2 concrete goals.
+- Every description must say what gets practiced in that phase in 1 short sentence.
+- Every practiceTask must produce proof of work (recording, solved exercise, draft, or mini deliverable).
+- Use exactly 3 milestones mapped to realistic weeks inside target duration.
+- Use exactly 5 high-value resources with practical relevance.
+- Use exactly 3 habits and 3 checkpoints.
+- Keep every string concise, specific, and action-oriented.
 `.trim();
 };
 
 // --- AI Generation Functions (NVIDIA / Gemini API with fallback) ---
 
-const callAI = async (prompt) => {
+const resolveAiRequestProfile = (profileName = 'default') =>
+  getAiRequestProfile(profileName, {
+    defaultTimeoutMs: AI_PROVIDER_TIMEOUT_MS,
+    providerDefaultTemperature: parseNumericEnv(AI_STUDIO_CONFIG?.generationConfig?.temperature, 0.7),
+    providerDefaultMaxOutputTokens: parseIntegerEnv(AI_STUDIO_CONFIG?.generationConfig?.maxOutputTokens, 2048)
+  });
+
+const callAI = async (prompt, profileName = 'default') => {
+  const requestProfile = resolveAiRequestProfile(profileName);
+
   if (openaiClient) {
-    const response = await openaiClient.chat.completions.create({
-      model: NVIDIA_MODEL_NAME,
-      messages: [{ role: 'user', content: prompt }],
-      max_tokens: 3000,
-      temperature: 0.7,
-    });
-    return response.choices[0].message.content;
+    try {
+      const response = await openaiClient.chat.completions.create(
+        {
+          model: NVIDIA_MODEL_NAME,
+          messages: [{ role: 'user', content: prompt }],
+          max_tokens: requestProfile.maxOutputTokens,
+          temperature: requestProfile.temperature,
+        },
+        {
+          timeout: requestProfile.timeoutMs,
+          maxRetries: 0
+        }
+      );
+      return response.choices?.[0]?.message?.content || '';
+    } catch (error) {
+      if (isAiTimeoutError(error)) {
+        error.timeoutMs = requestProfile.timeoutMs;
+      }
+      throw error;
+    }
   }
   if (!geminiModel) {
     throw new Error('AI model not initialized');
   }
-  const result = await geminiModel.generateContent(prompt);
-  const response = result.response;
-  return response.text();
+
+  const geminiRequestModel = genAI
+    ? genAI.getGenerativeModel(
+        buildModelConfig(GEMINI_MODEL_NAME, {
+          temperature: requestProfile.temperature,
+          maxOutputTokens: requestProfile.maxOutputTokens,
+          ...(requestProfile.responseMimeType ? { responseMimeType: requestProfile.responseMimeType } : {})
+        })
+      )
+    : geminiModel;
+
+  try {
+    const result = await withTimeout(
+      () => geminiRequestModel.generateContent(prompt),
+      {
+        timeoutMs: requestProfile.timeoutMs,
+        message: `Gemini request timed out after ${requestProfile.timeoutMs}ms`
+      }
+    );
+    const response = result.response;
+    return response.text();
+  } catch (error) {
+    if (isAiTimeoutError(error)) {
+      error.timeoutMs = requestProfile.timeoutMs;
+    }
+    throw error;
+  }
 };
 
 const createRoadmap = async (input) => {
@@ -1047,7 +1119,7 @@ const createRoadmap = async (input) => {
     try {
       const prompt = buildRoadmapPrompt(input);
       console.log(`[AI] Calling AI API (${AI_STUDIO_CONFIG.provider}) for roadmap generation...`);
-      const responseText = await callAI(prompt);
+      const responseText = await callAI(prompt, 'roadmap');
       const parsedRoadmap = parseJsonWithCleanup(responseText);
       const normalizedRoadmap = normalizeRoadmap(parsedRoadmap, input);
       const enriched = await applyBestVideoGuidance(normalizedRoadmap, input);
@@ -1061,6 +1133,8 @@ const createRoadmap = async (input) => {
     } catch (error) {
       if (isQuotaError(error)) {
         console.warn('[AI] Quota exceeded, switching to fallback.');
+      } else if (isAiTimeoutError(error)) {
+          console.warn(`[AI] Provider request timed out after ${error.timeoutMs || AI_PROVIDER_TIMEOUT_MS}ms, switching to fallback.`);
       } else {
         console.error('[AI] Roadmap generation failed:', error.message);
       }
@@ -1162,7 +1236,7 @@ const chat = async (req, res) => {
       try {
         await refreshAiStudioConfig();
         console.log(`[AI] Calling AI API (${AI_STUDIO_CONFIG.provider}) for chat...`);
-        const responseText = await callAI(chatPrompt);
+        const responseText = await callAI(chatPrompt, 'chat');
         console.log('[AI] Chat response received.');
         return res.json({
           success: true,
@@ -1174,6 +1248,8 @@ const chat = async (req, res) => {
       } catch (error) {
         if (isQuotaError(error)) {
           console.warn('[AI] Chat quota exceeded, using fallback.');
+        } else if (isAiTimeoutError(error)) {
+          console.warn(`[AI] Chat provider request timed out after ${error.timeoutMs || AI_PROVIDER_TIMEOUT_MS}ms, using fallback.`);
         } else {
           console.error('[AI] Chat failed:', error.message);
         }
@@ -1326,13 +1402,17 @@ const createStudySession = async (input) => {
     try {
       const prompt = buildStudySessionPrompt(input);
       console.log(`[AI] Calling AI API (${AI_STUDIO_CONFIG.provider}) for study session...`);
-      const responseText = await callAI(prompt);
+      const responseText = await callAI(prompt, 'study-session');
       const parsedSession = parseJsonWithCleanup(responseText);
       const normalizedSession = normalizeStudySession(parsedSession, input);
       console.log('[AI] Study session generated successfully.');
       return { session: normalizedSession, source: 'ai', model: AI_STUDIO_CONFIG.modelCandidates[0] };
     } catch (error) {
-      console.error('[AI] Study session failed, using fallback:', error.message);
+      if (isAiTimeoutError(error)) {
+        console.warn(`[AI] Study session provider request timed out after ${error.timeoutMs || AI_PROVIDER_TIMEOUT_MS}ms, using fallback.`);
+      } else {
+        console.error('[AI] Study session failed, using fallback:', error.message);
+      }
     }
   }
 
@@ -1385,14 +1465,16 @@ const generateRoadmap = async (req, res) => {
 
     await refreshAiStudioConfig();
     const { roadmap, source, model, videoGuidance } = await createRoadmap(input);
+    const normalizedSource = normalizeLearningPlanSource(source);
 
     const shouldSave = Boolean(req.body?.savePlan);
     const optionalUserId = getOptionalUserIdFromToken(req);
+    const requestedPlanId = sanitizeText(req.body?.planId);
     let savedPlanId = null;
 
     if (shouldSave && optionalUserId) {
       try {
-        const planDoc = await LearningPlan.create({
+        const learningPlanData = {
           user: optionalUserId,
           skill: input.skill,
           learnerLevel: input.learnerLevel,
@@ -1402,9 +1484,27 @@ const generateRoadmap = async (req, res) => {
           plan: roadmap,
           completedStepIndexes: [],
           progressPercentage: 0,
-          source
-        });
-        savedPlanId = planDoc._id;
+          source: normalizedSource
+        };
+
+        if (requestedPlanId) {
+          const existingPlan = await LearningPlan.findOne({ _id: requestedPlanId, user: optionalUserId });
+          if (existingPlan) {
+            applyRoadmapToLearningPlan(existingPlan, {
+              input,
+              roadmap,
+              source: normalizedSource
+            });
+            await existingPlan.save();
+            savedPlanId = existingPlan._id;
+          } else {
+            const planDoc = await LearningPlan.create(learningPlanData);
+            savedPlanId = planDoc._id;
+          }
+        } else {
+          const planDoc = await LearningPlan.create(learningPlanData);
+          savedPlanId = planDoc._id;
+        }
       } catch (saveError) {
         console.warn('Could not save learning plan to database:', saveError.message);
       }
@@ -1413,8 +1513,8 @@ const generateRoadmap = async (req, res) => {
     return res.json({
       success: true,
       roadmap,
-      source,
-      provider: source === 'ai' ? AI_STUDIO_CONFIG.provider : 'fallback',
+      source: normalizedSource,
+      provider: normalizedSource === 'ai' ? AI_STUDIO_CONFIG.provider : 'fallback',
       model,
       videoGuidance,
       savedPlanId
@@ -1546,7 +1646,7 @@ const runStudioConnectionCheck = async () => {
 
   if (openaiClient || geminiModel) {
     try {
-      const resultText = await callAI('Say "AI is connected to CollabLearn" in exactly those words.');
+      const resultText = await callAI('Say "AI is connected to CollabLearn" in exactly those words.', 'health-check');
       const preview = resultText.slice(0, 200);
       const payload = {
         success: true,
@@ -1662,7 +1762,7 @@ const STUDIO_PROMPTS = {
 
   'summary-slides': (ctx) => `You are a slide deck generator for CollabLearn.\n${ctx}\n\nGenerate 8 presentation slides as JSON: { "slides": [{ "title": "string", "body": "string", "footer": "string" }] }. Cover key concepts progressively. Return ONLY valid JSON.`,
 
-  'audio-script': (ctx) => `You are an audio overview script writer for CollabLearn.\n${ctx}\n\nGenerate a ~3 minute audio overview script as JSON: { "title": "string", "duration": "3 min", "paragraphs": ["string"] }. Write 6-8 conversational paragraphs that explain the topic clearly. Return ONLY valid JSON.`,
+  'audio-script': (ctx) => `You are an audio overview script writer for CollabLearn.\n${ctx}\n\nGenerate a concise 2-3 minute audio overview script as JSON: { "title": "string", "duration": "2-3 min", "paragraphs": ["string"] }. Write 4-5 short conversational paragraphs. Return ONLY valid JSON.`,
 
   report: (ctx) => `You are a learning report generator for CollabLearn.\n${ctx}\n\nGenerate a learning analysis report as JSON: { "title": "string", "executive_summary": "string", "sections": [{ "heading": "string", "content": "string" }], "recommendations": ["string"] }. Include 4-5 analytical sections. Return ONLY valid JSON.`,
 
@@ -1777,16 +1877,26 @@ const STUDIO_FALLBACKS = {
 
   'audio-script': (input) => ({
     title: `${input.skill} — Audio Learning Overview`,
-    duration: '4 min',
+    duration: '3 min',
     paragraphs: [
-      `Welcome to your personalized ${input.skill} audio overview. Over the next few minutes, we'll walk through what you're learning, where you currently stand, and how to get the most out of your study sessions.`,
-      `You're currently at the ${input.learnerLevel} level, which means ${input.learnerLevel === 'beginner' ? "you're building your foundational understanding. This is the most exciting phase — every concept is new, and your growth will be rapid." : input.learnerLevel === 'advanced' ? "you have a solid grasp of the fundamentals and are ready to tackle complex, real-world challenges. Focus on depth over breadth." : "you've moved past the basics and are developing practical fluency. This is where you start connecting concepts and seeing the bigger picture."}`,
-      input.currentStepTitle ? `Your current focus area is "${input.currentStepTitle}." ${input.currentStepDescription || 'This step is designed to build on your previous knowledge and introduce the next layer of complexity.'} Take your time with this — rushing through concepts creates gaps that are harder to fill later.` : `Your roadmap will guide you through a structured learning path. Each step builds on the previous one, so resist the temptation to skip ahead. The goal is deep understanding, not surface-level familiarity.`,
-      `Here's what makes learning ${input.skill} effectively different from other skills: it requires both conceptual understanding AND hands-on practice. You can't just read about it — you need to build things, break things, and fix things. Research shows that active practice is three to five times more effective than passive learning.`,
-      input.focusAreas.length > 0 ? `Your personalized focus areas are: ${input.focusAreas.join(', ')}. These were identified as the highest-impact topics for your current level. When you sit down to practice, start with these before exploring other areas.` : 'As you progress through your roadmap, pay special attention to the concepts that challenge you the most. Those difficult moments are where the deepest learning happens.',
-      `A pro tip for your study sessions: use the Pomodoro technique. Set a timer for twenty-five minutes of focused work, then take a five-minute break. After four sessions, take a longer break. This rhythm keeps your mind sharp and prevents burnout.`,
-      `One more thing — don't learn in isolation. Join communities, participate in discussions, and explain concepts to others. Teaching is one of the most powerful learning techniques. When you can explain something clearly to someone else, you truly understand it.`,
-      `That's your ${input.skill} overview. Head back to your dashboard, generate a study session, and start building. Remember — the best time to start was yesterday. The second best time is right now. Good luck on your learning journey!`
+      `This is your quick ${input.skill} audio overview. It gives the shape of the roadmap without repeating every detail.`,
+      (() => {
+        const learnerLevelKey = String(input.learnerLevel || '').toLowerCase();
+        if (learnerLevelKey === 'beginner') {
+          return 'You are building the base now. Keep each session small, focus on fundamentals, and look for one clear win before moving on.';
+        }
+        if (learnerLevelKey === 'advanced') {
+          return 'You already have the basics. Spend more time on depth, edge cases, and real-world application.';
+        }
+        return 'You are past the basics and ready to connect concepts. Focus on repetition, patterns, and practical use.';
+      })(),
+      input.currentStepTitle
+        ? `Your next focus is "${input.currentStepTitle}". ${input.currentStepDescription || 'Use this step to build momentum with one concrete output.'}`
+        : 'Work the next unfinished step in your roadmap and keep the output concrete.',
+      input.focusAreas.length > 0
+        ? `Focus areas: ${input.focusAreas.join(', ')}. Start with the first item and keep the rest in reserve.`
+        : 'Stick to the highest-value concept in each session and avoid bouncing between topics.',
+      'Close each session by shipping one artifact: notes, a solved exercise, or a working draft.'
     ]
   }),
 
@@ -1895,13 +2005,17 @@ const generateStudioTool = async (req, res) => {
       try {
         const prompt = STUDIO_PROMPTS[input.tool](ctx);
         console.log(`[AI] Studio tool "${input.tool}" — calling ${AI_STUDIO_CONFIG.provider}...`);
-        const responseText = await callAI(prompt);
+        const responseText = await callAI(prompt, 'studio-tool');
         const parsed = parseJsonWithCleanup(responseText);
         const normalized = normalizeStudioResult(parsed, input.tool);
         console.log(`[AI] Studio tool "${input.tool}" generated successfully.`);
         return res.json({ success: true, tool: input.tool, result: normalized, source: 'ai', provider: AI_STUDIO_CONFIG.provider });
       } catch (error) {
-        console.error(`[AI] Studio tool "${input.tool}" failed, using fallback:`, error.message);
+        if (isAiTimeoutError(error)) {
+          console.warn(`[AI] Studio tool "${input.tool}" timed out after ${error.timeoutMs || AI_PROVIDER_TIMEOUT_MS}ms, using fallback.`);
+        } else {
+          console.error(`[AI] Studio tool "${input.tool}" failed, using fallback:`, error.message);
+        }
       }
     }
 

@@ -1,12 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
-  Search,
-  Home,
-  Calendar,
-  MessageSquare,
-  Users,
-  Trophy,
   Bell,
   User,
   UserCircle,
@@ -14,19 +8,16 @@ import {
   LogOut,
   Moon,
   Sun,
-  Play,
-  Sparkles,
   ShieldCheck,
-  Book,
   Menu,
-  X,
-  GraduationCap
+  X
 } from 'lucide-react';
 import CollabLearnLogo from '../assets/collablearn-logo.svg';
 import { formatAccessLabel, isAdminRole, normalizeStoredRole } from '../auth/access.js';
 import Notification from '../components/Notification';
 import { useTheme } from '../components/user/useTheme.js';
 import { API_URL } from '../config';
+import { buildMainNavLinks, resolveMainNavbarHomePath } from './navLinks.js';
 import { logoutSession } from '../utils/session.js';
 
 export default function MainNavbar() {
@@ -50,34 +41,14 @@ export default function MainNavbar() {
   const mobileMenuRef = useRef(null);
 
   const isGuest = username === 'Guest';
+  const logoHomePath = resolveMainNavbarHomePath({ isGuest, userRole });
 
   const navLinks = useMemo(() => {
-    const links = [
-      { path: '/dashboard', label: 'Dashboard', icon: Home },
-      { path: '/ai-learning', label: 'Learning Workspace', icon: Sparkles, featured: true },
-      { path: '/modules', label: 'Modules', icon: Book },
-      { path: '/browse-skills', label: 'Skills', icon: Search },
-      { path: '/courses', label: 'Courses', icon: Play },
-      { path: '/community', label: 'Community', icon: Users },
-      { path: '/calendar', label: 'Calendar', icon: Calendar },
-      { path: '/messages', label: 'Messages', icon: MessageSquare },
-      { path: '/teach', label: 'Teach', icon: GraduationCap }
-    ];
-
-    if (isPremium === false) {
-      links.push({ path: '/get-premium', label: 'Get Premium', icon: Trophy, premium: true });
-    }
-
-    if (isAdminRole(userRole)) {
-      links.push({
-        path: '/admin',
-        label: isSuperAdmin ? 'Super Access' : 'Admin Console',
-        icon: ShieldCheck,
-        admin: true
-      });
-    }
-
-    return links;
+    return buildMainNavLinks({
+      isPremium,
+      isSuperAdmin,
+      userRole
+    });
   }, [isPremium, isSuperAdmin, userRole]);
 
   const fetchUserData = async () => {
@@ -285,7 +256,7 @@ export default function MainNavbar() {
         <div className="pointer-events-none absolute -right-8 -bottom-8 h-24 w-24 rounded-full liquid-orb opacity-45"></div>
 
         <div className="relative flex h-20 items-center gap-3 px-4 md:px-6">
-          <Link to={isGuest ? '/' : '/dashboard'} className="flex items-center gap-3 shrink-0">
+          <Link to={logoHomePath} className="flex items-center gap-3 shrink-0">
             <img
               src={CollabLearnLogo}
               alt="CollabLearn Logo"

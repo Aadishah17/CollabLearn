@@ -61,6 +61,30 @@ const shuffleArray = (arr) => {
   return a;
 };
 
+const getSpeechSynthesisApi = () => {
+  if (typeof window === 'undefined') {
+    return null;
+  }
+
+  const { speechSynthesis, SpeechSynthesisUtterance } = window;
+
+  if (
+    !speechSynthesis ||
+    typeof speechSynthesis.speak !== 'function' ||
+    typeof speechSynthesis.cancel !== 'function' ||
+    typeof speechSynthesis.pause !== 'function' ||
+    typeof speechSynthesis.resume !== 'function' ||
+    typeof SpeechSynthesisUtterance !== 'function'
+  ) {
+    return null;
+  }
+
+  return {
+    synth: speechSynthesis,
+    Utterance: SpeechSynthesisUtterance
+  };
+};
+
 /* ───── Audio Overview — REAL TTS ───── */
 
 const AudioScript = ({ data }) => {
@@ -70,67 +94,129 @@ const AudioScript = ({ data }) => {
   const [progress, setProgress] = useState(0);
   const [currentPara, setCurrentPara] = useState(-1);
   const [copied, setCopied] = useState(false);
-  const synthRef = useRef(window.speechSynthesis);
-  const utterancesRef = useRef([]);
+  const speechApiRef = useRef(getSpeechSynthesisApi());
   const intervalRef = useRef(null);
+  const playbackSessionRef = useRef(0);
 
   const paragraphs = data?.paragraphs || [];
+  const audioSupported = Boolean(speechApiRef.current);
 
-  const stopAudio = useCallback(() => {
-    synthRef.current.cancel();
-    setPlaying(false);
-    setPaused(false);
-    setProgress(0);
-    setCurrentPara(-1);
-    if (intervalRef.current) clearInterval(intervalRef.current);
+  const clearKeepAliveInterval = useCallback(() => {
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
   }, []);
 
-  useEffect(() => () => { synthRef.current.cancel(); if (intervalRef.current) clearInterval(intervalRef.current); }, []);
+  const cancelAudioPlayback = useCallback(
+    (resetProgress = true) => {
+      playbackSessionRef.current += 1;
+      speechApiRef.current?.synth.cancel();
+      clearKeepAliveInterval();
+      setPlaying(false);
+      setPaused(false);
+      if (resetProgress) {
+        setProgress(0);
+      }
+      setCurrentPara(-1);
+    },
+    [clearKeepAliveInterval]
+  );
+
+  const finishPlayback = useCallback(() => {
+    clearKeepAliveInterval();
+    setPlaying(false);
+    setPaused(false);
+    setCurrentPara(-1);
+  }, [clearKeepAliveInterval]);
+
+  const startKeepAliveInterval = useCallback(() => {
+    if (!audioSupported || intervalRef.current) {
+      return;
+    }
+
+    intervalRef.current = globalThis.setInterval(() => {
+      const synth = speechApiRef.current?.synth;
+      if (synth?.speaking && !synth.paused) {
+        synth.pause();
+        synth.resume();
+      }
+    }, 8000);
+  }, [audioSupported]);
+
+  useEffect(() => () => {
+    playbackSessionRef.current += 1;
+    clearKeepAliveInterval();
+    speechApiRef.current?.synth.cancel();
+  }, [clearKeepAliveInterval]);
 
   if (!paragraphs.length) return <p className="text-zinc-400 text-sm">No audio script generated.</p>;
 
   const fullText = paragraphs.join('\n\n');
 
   const playAudio = () => {
-    if (paused) {
-      synthRef.current.resume();
-      setPaused(false);
-      setPlaying(true);
+    const speechApi = speechApiRef.current;
+
+    if (!speechApi) {
+      toast.error('Audio playback is not supported in this browser.');
       return;
     }
 
-    stopAudio();
+    if (paused) {
+      speechApi.synth.resume();
+      setPaused(false);
+      setPlaying(true);
+      startKeepAliveInterval();
+      return;
+    }
+
+    cancelAudioPlayback(true);
+    const playbackSessionId = playbackSessionRef.current;
     setPlaying(true);
 
     const utts = paragraphs.map((text, i) => {
-      const u = new SpeechSynthesisUtterance(text);
+      const u = new speechApi.Utterance(text);
       u.rate = rate;
       u.pitch = 1;
       u.lang = 'en-US';
-      u.onstart = () => setCurrentPara(i);
+      u.onstart = () => {
+        if (playbackSessionRef.current !== playbackSessionId) return;
+        setCurrentPara(i);
+      };
       u.onend = () => {
+        if (playbackSessionRef.current !== playbackSessionId) return;
         setProgress(Math.round(((i + 1) / paragraphs.length) * 100));
-        if (i === paragraphs.length - 1) { setPlaying(false); setCurrentPara(-1); }
+        if (i === paragraphs.length - 1) {
+          finishPlayback();
+        }
+      };
+      u.onerror = () => {
+        if (playbackSessionRef.current !== playbackSessionId) return;
+        finishPlayback();
       };
       return u;
     });
 
-    utterancesRef.current = utts;
-    utts.forEach(u => synthRef.current.speak(u));
+    utts.forEach((utterance) => speechApi.synth.speak(utterance));
 
-    // Chrome workaround: keep synth alive
-    intervalRef.current = setInterval(() => {
-      if (synthRef.current.speaking && !synthRef.current.paused) {
-        synthRef.current.pause();
-        synthRef.current.resume();
-      }
-    }, 8000);
+    startKeepAliveInterval();
   };
 
   const pauseAudio = () => {
-    synthRef.current.pause();
+    const speechApi = speechApiRef.current;
+
+    if (!speechApi) {
+      return;
+    }
+
+    speechApi.synth.pause();
+    clearKeepAliveInterval();
     setPaused(true);
     setPlaying(false);
+  };
+
+  const stopAudio = () => {
+    cancelAudioPlayback(true);
   };
 
   const copyAll = () => {
@@ -145,7 +231,7 @@ const AudioScript = ({ data }) => {
       <div className="audio-player">
         <div className="audio-player-controls">
           {!playing ? (
-            <button className="audio-play-btn" onClick={playAudio}><Play size={20} fill="white" /></button>
+            <button className="audio-play-btn" onClick={playAudio} disabled={!audioSupported}><Play size={20} fill="white" /></button>
           ) : (
             <button className="audio-play-btn" onClick={pauseAudio}><Pause size={20} fill="white" /></button>
           )}
@@ -170,6 +256,9 @@ const AudioScript = ({ data }) => {
             <div className="audio-progress-fill" style={{ width: `${progress}%` }} />
           </div>
           <p className="text-[11px] text-zinc-500 mt-1">{data.duration} • {playing ? 'Playing...' : paused ? 'Paused' : progress === 100 ? 'Finished' : 'Ready'}</p>
+          {!audioSupported && (
+            <p className="text-[11px] text-amber-300 mt-1">Audio playback is not supported in this browser. The transcript is still available.</p>
+          )}
         </div>
       </div>
 

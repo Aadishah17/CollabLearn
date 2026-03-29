@@ -1,283 +1,316 @@
-import React, { useCallback, useState, useEffect } from 'react';
-import { API_URL } from '../../config';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import {
+  CalendarClock,
+  CheckCircle2,
+  Clock3,
+  GraduationCap,
+  LoaderCircle,
+  MessageSquare,
+  Target,
+  X,
+} from 'lucide-react';
+import { getStudentDetails } from '../../services/dashboardApi';
 
+const formatDateTime = (value) => {
+  if (!value) return 'Not scheduled';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return 'Not scheduled';
 
-const StudentInfoModal = ({ student, skill, onClose, onMessage }) => {
-  const [studentDetails, setStudentDetails] = useState(null);
-  const [sessions, setSessions] = useState([]);
+  return date.toLocaleString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  });
+};
+
+const formatDate = (value) => {
+  if (!value) return 'Unknown';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return 'Unknown';
+
+  return date.toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+  });
+};
+
+const statusClassMap = {
+  completed: 'border-emerald-400/30 bg-emerald-500/10 text-emerald-200',
+  confirmed: 'border-sky-400/30 bg-sky-500/10 text-sky-200',
+  pending: 'border-amber-400/30 bg-amber-500/10 text-amber-200',
+  cancelled: 'border-zinc-500/30 bg-zinc-500/10 text-zinc-300',
+  ongoing: 'border-violet-400/30 bg-violet-500/10 text-violet-200',
+};
+
+export default function StudentInfoModal({ student, skill, onClose, onMessage }) {
+  const studentId = student?._id || student?.id;
+  const [details, setDetails] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
   const fetchStudentDetails = useCallback(async () => {
+    if (!studentId) {
+      setError('Student details are unavailable for this session.');
+      setLoading(false);
+      return;
+    }
+
     try {
       setLoading(true);
-      const token = localStorage.getItem('token');
-
-      if (!token || !student?.id) {
-        return;
-      }
-
-      // Fetch student details from API
-      const response = await fetch(`${API_URL}/api/dashboard/student/${student.id}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        if (data.success) {
-          setStudentDetails({
-            ...data.data.student,
-            ...data.data.stats,
-            learningGoals: data.data.learningGoals,
-            achievements: data.data.achievements
-          });
-          setSessions(data.data.sessionHistory);
-        }
-      } else {
-        // Fallback to mock data if API fails
-        setStudentDetails({
-          ...student,
-          joinDate: new Date(2024, 0, 15),
-          totalSessions: Math.floor(Math.random() * 50) + 10,
-          completedSessions: Math.floor(Math.random() * 30) + 5,
-          averageRating: (Math.random() * 2 + 3).toFixed(1),
-          currentStreak: Math.floor(Math.random() * 15) + 1,
-          achievements: ['Quick Learner', 'Consistent Student', 'Problem Solver'],
-          learningGoals: [
-            { skill: skill?.name, progress: Math.floor(Math.random() * 80) + 20, target: 'Advanced' },
-            { skill: 'Problem Solving', progress: Math.floor(Math.random() * 60) + 30, target: 'Expert' }
-          ]
-        });
-
-        setSessions([
-          {
-            id: 1,
-            date: new Date(2024, 9, 5),
-            skill: skill?.name,
-            duration: 60,
-            status: 'completed',
-            rating: 5,
-            notes: 'Great progress on advanced concepts'
-          },
-          {
-            id: 2,
-            date: new Date(2024, 9, 12),
-            skill: skill?.name,
-            duration: 90,
-            status: 'completed',
-            rating: 4,
-            notes: 'Worked on practical exercises'
-          },
-          {
-            id: 3,
-            date: new Date(2024, 9, 19),
-            skill: skill?.name,
-            duration: 60,
-            status: 'scheduled',
-            notes: 'Next: Advanced project work'
-          }
-        ]);
-      }
-
-    } catch (error) {
-      console.error('Error fetching student details:', error);
-      // Fallback to mock data on error
-      setStudentDetails({
-        ...student,
-        joinDate: new Date(2024, 0, 15),
-        totalSessions: Math.floor(Math.random() * 50) + 10,
-        completedSessions: Math.floor(Math.random() * 30) + 5,
-        averageRating: (Math.random() * 2 + 3).toFixed(1),
-        currentStreak: Math.floor(Math.random() * 15) + 1,
-        achievements: ['Quick Learner', 'Consistent Student', 'Problem Solver'],
-        learningGoals: [
-          { skill: skill?.name, progress: Math.floor(Math.random() * 80) + 20, target: 'Advanced' },
-          { skill: 'Problem Solving', progress: Math.floor(Math.random() * 60) + 30, target: 'Expert' }
-        ]
-      });
+      setError('');
+      const payload = await getStudentDetails(studentId);
+      setDetails(payload);
+    } catch (fetchError) {
+      console.error('Error fetching student details:', fetchError);
+      setError(fetchError.message || 'Failed to load student details.');
     } finally {
       setLoading(false);
     }
-  }, [skill?.name, student]);
+  }, [studentId]);
 
   useEffect(() => {
-    if (student) {
+    if (studentId) {
       fetchStudentDetails();
     }
-  }, [fetchStudentDetails, student]);
+  }, [fetchStudentDetails, studentId]);
 
-  const getProgressColor = (progress) => {
-    if (progress >= 80) return 'bg-green-500';
-    if (progress >= 60) return 'bg-blue-500';
-    if (progress >= 40) return 'bg-yellow-500';
-    return 'bg-red-500';
-  };
+  const metrics = useMemo(() => {
+    const stats = details?.stats || {};
+    return [
+      {
+        label: 'Sessions together',
+        value: stats.totalSessions ?? 0,
+        detail: 'Booked across past and upcoming coaching blocks.',
+        icon: CalendarClock,
+      },
+      {
+        label: 'Completed',
+        value: stats.completedSessions ?? 0,
+        detail: 'Sessions already finished and reflected in history.',
+        icon: CheckCircle2,
+      },
+      {
+        label: 'Scheduled',
+        value: stats.upcomingSessions ?? 0,
+        detail: 'Upcoming sessions still on the calendar.',
+        icon: Clock3,
+      },
+      {
+        label: 'Practice hours',
+        value: details?.stats?.totalHours ?? 0,
+        detail: 'Total shared session time logged so far.',
+        icon: Target,
+      },
+    ];
+  }, [details]);
 
-  const formatDate = (date) => {
-    return date.toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    });
-  };
-
-  if (!student) return null;
+  if (!student) {
+    return null;
+  }
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-        {/* Header */}
-        <div className="bg-gradient-to-r from-sky-600 to-purple-600 text-white p-6 rounded-t-xl">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <div className="bg-white bg-opacity-20 rounded-full h-16 w-16 flex items-center justify-center text-2xl font-bold">
-                {student.name?.charAt(0).toUpperCase() || 'S'}
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/72 p-4 backdrop-blur-sm">
+      <div className="surface-card relative w-full max-w-5xl overflow-hidden">
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-red-500/10 via-transparent to-blue-500/10" />
+
+        <div className="relative border-b border-white/10 px-6 py-5 md:px-8">
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex min-w-0 items-start gap-4">
+              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-white/15 bg-white/8 text-xl font-black text-white">
+                {(details?.student?.name || student?.name || 'S').charAt(0).toUpperCase()}
               </div>
-              <div>
-                <h2 className="text-2xl font-bold">{student.name || 'Unknown Student'}</h2>
-                <p className="text-sky-100">Learning {skill?.name || 'Unknown Skill'}</p>
-                <p className="text-sm text-sky-200">
-                  Student since {studentDetails?.joinDate ? formatDate(studentDetails.joinDate) : 'Unknown'}
+              <div className="min-w-0">
+                <p className="text-sm font-semibold uppercase tracking-[0.26em] text-zinc-400">
+                  Student Snapshot
+                </p>
+                <h2 className="mt-2 truncate text-3xl font-black tracking-tight text-white">
+                  {details?.student?.name || student?.name || 'Unknown student'}
+                </h2>
+                <p className="mt-2 text-sm leading-6 text-zinc-300">
+                  {skill?.name ? `Focused on ${skill.name}. ` : ''}
+                  Student since {formatDate(details?.student?.joinDate)}.
                 </p>
               </div>
             </div>
+
             <button
+              type="button"
               onClick={onClose}
-              className="text-white hover:bg-white hover:bg-opacity-20 rounded-full p-2 transition-colors"
+              className="glass-icon-btn shrink-0"
+              aria-label="Close student details"
             >
-              <span className="text-2xl">×</span>
+              <X size={18} />
             </button>
           </div>
         </div>
 
         {loading ? (
-          <div className="p-8 text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-sky-600 mx-auto mb-4"></div>
-            <p className="text-gray-600">Loading student details...</p>
+          <div className="relative flex flex-col items-center justify-center gap-4 px-6 py-16 text-center md:px-8">
+            <LoaderCircle className="h-10 w-10 animate-spin text-red-300" />
+            <div>
+              <p className="text-lg font-semibold text-white">Loading student details</p>
+              <p className="mt-2 text-sm text-zinc-400">
+                Pulling in booked sessions, learning goals, and live progress.
+              </p>
+            </div>
+          </div>
+        ) : error ? (
+          <div className="relative px-6 py-16 text-center md:px-8">
+            <p className="text-sm font-semibold uppercase tracking-[0.26em] text-red-300">
+              Student details unavailable
+            </p>
+            <p className="mx-auto mt-4 max-w-xl text-sm leading-7 text-zinc-300">{error}</p>
+            <div className="mt-8 flex justify-center gap-3">
+              <button type="button" onClick={fetchStudentDetails} className="glass-cta">
+                Retry
+              </button>
+              <button type="button" onClick={onClose} className="glass-outline-btn">
+                Close
+              </button>
+            </div>
           </div>
         ) : (
-          <div className="p-6">
-            {/* Stats Overview */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-              <div className="bg-blue-50 p-4 rounded-lg text-center">
-                <p className="text-2xl font-bold text-blue-600">{studentDetails?.totalSessions || 0}</p>
-                <p className="text-sm text-gray-600">Total Sessions</p>
-              </div>
-              <div className="bg-green-50 p-4 rounded-lg text-center">
-                <p className="text-2xl font-bold text-green-600">{studentDetails?.completedSessions || 0}</p>
-                <p className="text-sm text-gray-600">Completed</p>
-              </div>
-              <div className="bg-yellow-50 p-4 rounded-lg text-center">
-                <p className="text-2xl font-bold text-yellow-600">{studentDetails?.averageRating || '0.0'}</p>
-                <p className="text-sm text-gray-600">Avg Rating</p>
-              </div>
-              <div className="bg-purple-50 p-4 rounded-lg text-center">
-                <p className="text-2xl font-bold text-purple-600">{studentDetails?.currentStreak || 0}</p>
-                <p className="text-sm text-gray-600">Day Streak</p>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Learning Progress */}
-              <div className="bg-gray-50 p-6 rounded-lg">
-                <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
-                  <span className="material-icons-outlined text-xl mr-2">📊</span>
-                  Learning Progress
-                </h3>
-
-                {studentDetails?.learningGoals?.map((goal, index) => (
-                  <div key={index} className="mb-4">
-                    <div className="flex justify-between items-center mb-2">
-                      <p className="font-medium text-gray-700">{goal.skill}</p>
-                      <span className="text-sm text-gray-500">Target: {goal.target}</span>
-                    </div>
-                    <div className="w-full bg-gray-200 rounded-full h-3">
-                      <div
-                        className={`h-3 rounded-full ${getProgressColor(goal.progress)}`}
-                        style={{ width: `${goal.progress}%` }}
-                      ></div>
-                    </div>
-                    <p className="text-xs text-gray-600 mt-1">{goal.progress}% Complete</p>
+          <div className="relative max-h-[85vh] overflow-y-auto px-6 py-6 md:px-8">
+            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+              {metrics.map((metric) => (
+                <div key={metric.label} className="rounded-[24px] border border-white/10 bg-white/[0.04] p-5">
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">
+                      {metric.label}
+                    </p>
+                    <metric.icon size={16} className="text-red-300" />
                   </div>
-                ))}
-              </div>
-
-              {/* Achievements */}
-              <div className="bg-gray-50 p-6 rounded-lg">
-                <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
-                  <span className="material-icons-outlined text-xl mr-2">🏆</span>
-                  Achievements
-                </h3>
-
-                <div className="space-y-2">
-                  {studentDetails?.achievements?.map((achievement, index) => (
-                    <div key={index} className="flex items-center space-x-3 p-3 bg-white rounded-lg">
-                      <div className="bg-yellow-100 text-yellow-600 rounded-full p-2">
-                        <span className="text-lg">🏆</span>
-                      </div>
-                      <p className="font-medium text-gray-700">{achievement}</p>
-                    </div>
-                  ))}
+                  <p className="mt-3 text-3xl font-black text-white">{metric.value}</p>
+                  <p className="mt-2 text-sm leading-6 text-zinc-300">{metric.detail}</p>
                 </div>
-              </div>
+              ))}
             </div>
 
-            {/* Session History */}
-            <div className="mt-6">
-              <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
-                <span className="material-icons-outlined text-xl mr-2">📅</span>
-                Session History
-              </h3>
-
-              <div className="space-y-3">
-                {sessions.map((session) => (
-                  <div key={session.id} className="bg-white border border-gray-200 rounded-lg p-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-4">
-                        <div className={`w-3 h-3 rounded-full ${session.status === 'completed' ? 'bg-green-500' :
-                            session.status === 'scheduled' ? 'bg-blue-500' : 'bg-gray-400'
-                          }`}></div>
-                        <div>
-                          <p className="font-medium text-gray-800">{session.skill}</p>
-                          <p className="text-sm text-gray-600">{formatDate(session.date)}</p>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-sm text-gray-600">{session.duration} minutes</p>
-                        {session.rating && (
-                          <div className="flex items-center">
-                            <span className="text-yellow-500 mr-1">⭐</span>
-                            <span className="text-sm text-gray-600">{session.rating}/5</span>
-                          </div>
-                        )}
-                      </div>
+            <div className="mt-6 grid gap-6 lg:grid-cols-[0.95fr_1.05fr]">
+              <div className="space-y-6">
+                <section className="rounded-[28px] border border-white/10 bg-white/[0.035] p-6">
+                  <div className="flex items-center gap-3">
+                    <div className="rounded-2xl border border-red-400/20 bg-red-500/10 p-3 text-red-200">
+                      <GraduationCap size={18} />
                     </div>
-                    {session.notes && (
-                      <p className="text-sm text-gray-500 mt-2 pl-7">{session.notes}</p>
-                    )}
+                    <div>
+                      <h3 className="text-xl font-bold text-white">Learning goals</h3>
+                      <p className="text-sm text-zinc-400">
+                        Live progress pulled from the student’s active skill goals.
+                      </p>
+                    </div>
                   </div>
-                ))}
+
+                  {details?.learningGoals?.length ? (
+                    <div className="mt-5 space-y-4">
+                      {details.learningGoals.map((goal) => (
+                        <div key={goal.id || goal.skill} className="rounded-[22px] border border-white/8 bg-black/20 p-4">
+                          <div className="flex items-center justify-between gap-4">
+                            <div>
+                              <p className="font-semibold text-white">{goal.skill}</p>
+                              <p className="mt-1 text-xs uppercase tracking-[0.2em] text-zinc-500">
+                                {goal.currentInstructor?.name
+                                  ? `Learning with ${goal.currentInstructor.name}`
+                                  : 'Instructor not assigned'}
+                              </p>
+                            </div>
+                            <p className="text-lg font-black text-white">{goal.progress}%</p>
+                          </div>
+                          <div className="mt-3 h-2 overflow-hidden rounded-full bg-white/8">
+                            <div
+                              className="h-full rounded-full bg-gradient-to-r from-red-400 via-red-500 to-blue-400"
+                              style={{ width: `${goal.progress}%` }}
+                            />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="mt-5 text-sm leading-7 text-zinc-300">
+                      This student has not added trackable learning goals yet. Their session history is still available below.
+                    </p>
+                  )}
+                </section>
+
+                <section className="rounded-[28px] border border-white/10 bg-white/[0.035] p-6">
+                  <h3 className="text-xl font-bold text-white">Session timing</h3>
+                  <div className="mt-4 grid gap-3 md:grid-cols-2">
+                    <div className="rounded-[22px] border border-white/8 bg-black/20 p-4">
+                      <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-500">
+                        Last session
+                      </p>
+                      <p className="mt-3 text-base font-semibold text-white">
+                        {formatDateTime(details?.stats?.lastSessionAt)}
+                      </p>
+                    </div>
+                    <div className="rounded-[22px] border border-white/8 bg-black/20 p-4">
+                      <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-500">
+                        Next session
+                      </p>
+                      <p className="mt-3 text-base font-semibold text-white">
+                        {formatDateTime(details?.stats?.nextSessionAt)}
+                      </p>
+                    </div>
+                  </div>
+                </section>
               </div>
+
+              <section className="rounded-[28px] border border-white/10 bg-white/[0.035] p-6">
+                <h3 className="text-xl font-bold text-white">Session history</h3>
+                <p className="mt-2 text-sm text-zinc-400">
+                  Shared session records between you and this student.
+                </p>
+
+                {details?.sessionHistory?.length ? (
+                  <div className="mt-5 space-y-3">
+                    {details.sessionHistory.map((session) => (
+                      <div key={session.id} className="rounded-[22px] border border-white/8 bg-black/20 p-4">
+                        <div className="flex flex-wrap items-start justify-between gap-3">
+                          <div>
+                            <p className="font-semibold text-white">{session.skill}</p>
+                            <p className="mt-1 text-sm text-zinc-400">{formatDateTime(session.date)}</p>
+                          </div>
+                          <span
+                            className={`inline-flex rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] ${
+                              statusClassMap[session.status] || statusClassMap.pending
+                            }`}
+                          >
+                            {session.status}
+                          </span>
+                        </div>
+
+                        <div className="mt-3 flex flex-wrap gap-3 text-xs uppercase tracking-[0.18em] text-zinc-500">
+                          <span>{session.duration} min</span>
+                          {session.rating ? <span>Rating {session.rating}/5</span> : null}
+                        </div>
+
+                        {session.notes ? (
+                          <p className="mt-3 text-sm leading-6 text-zinc-300">{session.notes}</p>
+                        ) : null}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="mt-5 text-sm leading-7 text-zinc-300">
+                    No shared session history has been recorded yet.
+                  </p>
+                )}
+              </section>
             </div>
 
-            {/* Action Buttons */}
-            <div className="mt-6 flex justify-end space-x-4">
-              <button
-                onClick={onClose}
-                className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-              >
+            <div className="mt-6 flex flex-wrap justify-end gap-3 border-t border-white/10 pt-6">
+              <button type="button" onClick={onClose} className="glass-outline-btn">
                 Close
               </button>
               <button
-                onClick={() => onMessage && onMessage(student)}
-                className="px-4 py-2 bg-sky-600 text-white rounded-lg hover:bg-sky-700 transition-colors"
+                type="button"
+                onClick={() => onMessage?.(student)}
+                className="glass-cta"
               >
-                Send Message
-              </button>
-              <button className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
-                Schedule Session
+                <MessageSquare size={16} />
+                Message student
               </button>
             </div>
           </div>
@@ -285,6 +318,4 @@ const StudentInfoModal = ({ student, skill, onClose, onMessage }) => {
       </div>
     </div>
   );
-};
-
-export default StudentInfoModal;
+}

@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const Booking = require('../models/Booking');
+const Skill = require('../models/Skill');
 const auth = require('../middleware/auth');
 const { validateBody, validateParams, schemas } = require('../middleware/validation');
 const multer = require('multer');
@@ -12,6 +13,7 @@ const {
   isValidBookingStatus,
   isValidParticipantRole
 } = require('../utils/bookingAccess');
+const { isOneToOneBooking, isSingleSessionCount } = require('../utils/bookingRules');
 
 const storage = multer.diskStorage({
   destination(req, file, cb) {
@@ -103,13 +105,39 @@ router.post('/', validateBody(schemas.booking.createBooking), async (req, res) =
       });
     }
 
+    if (!isOneToOneBooking({ instructorId: instructor, studentId: student })) {
+      return res.status(400).json({
+        success: false,
+        message: '1:1 bookings require different instructor and student accounts.'
+      });
+    }
+
+    const skillRecord = await Skill.findById(skill).select('user isOffering isPosted');
+    if (!skillRecord || !skillRecord.isOffering || !skillRecord.isPosted) {
+      return res.status(400).json({
+        success: false,
+        message: 'Bookings can only be created for active teaching skills.'
+      });
+    }
+
+    if (String(skillRecord.user) !== String(instructor)) {
+      return res.status(400).json({
+        success: false,
+        message: 'The selected skill does not belong to the chosen instructor.'
+      });
+    }
+
     const booking = new Booking({
       instructor,
       student,
       skill,
       date,
       duration,
-      notes
+      notes,
+      sessionCount: {
+        current: 1,
+        total: 1
+      }
     });
 
     await booking.save();
@@ -368,10 +396,6 @@ router.post('/:id/complete-session', validateParams(schemas.booking.bookingIdPar
       };
     }
 
-    if (booking.sessionCount && booking.sessionCount.current < booking.sessionCount.total) {
-      booking.sessionCount.current += 1;
-    }
-
     await booking.save();
 
     res.json({
@@ -387,62 +411,9 @@ router.post('/:id/complete-session', validateParams(schemas.booking.bookingIdPar
 
 router.post('/complete-course', validateBody(schemas.booking.completeCourse), async (req, res) => {
   try {
-    const { skillId, userId, rating, review } = req.body;
-
-    if (
-      !canAccessUserScopedResource({
-        requestedUserId: userId,
-        authUserId: req.userId,
-        authUserRole: req.userRole
-      })
-    ) {
-      return res.status(403).json({
-        success: false,
-        message: 'You are not authorized to complete this course.'
-      });
-    }
-
-    if (!skillId || !userId || !isValidRating(rating)) {
-      return res.status(400).json({
-        success: false,
-        message: 'Skill, user, and a rating between 1 and 5 are required.'
-      });
-    }
-
-    const sessions = await Booking.find({
-      $or: [
-        { instructor: userId, skill: skillId },
-        { student: userId, skill: skillId }
-      ]
-    });
-
-    if (sessions.length === 0) {
-      return res.status(404).json({ message: 'No sessions found for this course' });
-    }
-
-    const updatePromises = sessions.map((session) => {
-      session.status = 'completed';
-      session.courseCompleted = true;
-      session.courseRating = {
-        rating: Number(rating),
-        review: String(review || '').trim(),
-        completedAt: new Date(),
-        completedBy: userId
-      };
-
-      if (!session.completedAt) {
-        session.completedAt = new Date();
-      }
-
-      return session.save();
-    });
-
-    await Promise.all(updatePromises);
-
-    res.json({
-      success: true,
-      message: 'Course completed successfully',
-      completedSessions: sessions.length
+    res.status(410).json({
+      success: false,
+      message: 'Course-wide completion is unavailable. Complete each 1:1 booking individually.'
     });
   } catch (error) {
     res.status(500).json({ message: 'Error completing course', error: error.message });
@@ -457,15 +428,15 @@ router.patch('/:id/session-count', validateParams(schemas.booking.bookingIdParam
     const current = Number(req.body?.current);
     const total = Number(req.body?.total);
 
-    if (!Number.isInteger(current) || !Number.isInteger(total) || current < 0 || total < 1 || current > total) {
+    if (!isSingleSessionCount({ current, total })) {
       return res.status(400).json({
         success: false,
-        message: 'Session counts must be valid integers and current cannot exceed total.'
+        message: 'CollabLearn currently supports only 1:1 single-session bookings.'
       });
     }
 
-    booking.sessionCount.current = current;
-    booking.sessionCount.total = total;
+    booking.sessionCount.current = 1;
+    booking.sessionCount.total = 1;
     await booking.save();
 
     res.json({ success: true, booking });

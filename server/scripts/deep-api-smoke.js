@@ -180,15 +180,6 @@ async function main() {
   record('ai_provider', studioStatus.payload.provider);
   record('ai_live_status', studioStatus.payload.liveStatus || 'unknown');
 
-  const studioTest = await request('/api/ai/studio-test', {
-    method: 'POST',
-    allowStatuses: [200, 429]
-  });
-  record('ai_test_status', studioTest.status);
-  if (studioTest.status === 429) {
-    record('ai_test_note', 'quota limited');
-  }
-
   const unauthorizedUsers = await request('/api/users', {
     allowStatuses: [401, 403]
   });
@@ -231,6 +222,16 @@ async function main() {
   const mentorId = registerMentor.payload?.user?.id;
   assert(mentorToken && mentorId, 'Mentor registration did not return token/user', registerMentor.payload);
   created.userIds.push(mentorId);
+
+  const studioTest = await request('/api/ai/studio-test', {
+    method: 'POST',
+    token: mentorToken,
+    allowStatuses: [200, 429]
+  });
+  record('ai_test_status', studioTest.status);
+  if (studioTest.status === 429) {
+    record('ai_test_note', 'quota limited');
+  }
 
   const registerStudent = await request('/api/auth/register', {
     method: 'POST',
