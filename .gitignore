@@ -77,6 +77,10 @@ uploads/
 # Gatsby files
 .cache/
 public
+!client/public/
+client/public/*
+!client/public/pretext/
+!client/public/pretext/**
 
 # Storybook build outputs
 .out

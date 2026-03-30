@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<pretext xml:id="collablearn-pretext-demo">
+  <article>
+    <title>Using exported lesson content inside CollabLearn</title>
+    <introduction>
+      <p>
+        This source file is a minimal placeholder showing where true PreTeXt-authored lesson
+        content would live before export into the web application.
+      </p>
+    </introduction>
+    <section>
+      <title>What this MVP proves</title>
+      <p>
+        CollabLearn can point modules at exported PreTeXt HTML while the existing website remains
+        responsible for product behavior such as authentication, navigation, progress, and AI.
+      </p>
+    </section>
+  </article>
+</pretext>

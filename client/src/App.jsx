@@ -24,6 +24,7 @@ const BookingSessionPage = lazy(() => import('./components/user/bookSession'));
 const SettingsPage = lazy(() => import('./components/user/settingsPage'));
 const ModuleDashboard = lazy(() => import('./components/ModuleDashboard'));
 const ModuleEditor = lazy(() => import('./components/ModuleEditor'));
+const ModuleViewer = lazy(() => import('./components/ModuleViewer'));
 const ManageUsers = lazy(() => import('./components/admin/manageUser'));
 const ManagePosts = lazy(() => import('./components/admin/ManagePosts'));
 const AnalyticsDashboard = lazy(() => import('./components/admin/Analytics'));
@@ -64,6 +65,7 @@ function App() {
           <Route path="/dashboard" element={<ProtectedRoute requiredRole="user"><Dashboard /></ProtectedRoute>} />
           <Route path="/modules" element={<ProtectedRoute><ModuleDashboard /></ProtectedRoute>} />
           <Route path="/modules/create" element={<ProtectedRoute><ModuleEditor /></ProtectedRoute>} />
+          <Route path="/modules/:id/view" element={<ModuleViewer />} />
           <Route path="/modules/:id" element={<ProtectedRoute><ModuleEditor /></ProtectedRoute>} />
           <Route path="/browse-skills" element={<ProtectedRoute><BrowseSkills /></ProtectedRoute>} />
           <Route path="/skill-recommendations" element={<ProtectedRoute><SkillRecommendations /></ProtectedRoute>} />

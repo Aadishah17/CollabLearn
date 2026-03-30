@@ -38,6 +38,15 @@ const moduleSchema = new mongoose.Schema({
         type: String,
         default: ''
     },
+    contentType: {
+        type: String,
+        enum: ['richtext', 'pretext'],
+        default: 'richtext'
+    },
+    contentUrl: {
+        type: String,
+        default: ''
+    },
     visibility: {
         type: String,
         enum: ['public', 'private', 'link'],
@@ -64,6 +73,7 @@ const moduleSchema = new mongoose.Schema({
 moduleSchema.index({ owner: 1 });
 moduleSchema.index({ 'collaborators.user': 1 });
 moduleSchema.index({ visibility: 1 });
+moduleSchema.index({ contentType: 1 });
 moduleSchema.index({ title: 'text', description: 'text', tags: 'text' }); // Text search
 
 module.exports = mongoose.model('Module', moduleSchema);
