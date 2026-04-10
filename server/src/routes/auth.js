@@ -1,19 +1,17 @@
 const express = require('express');
 const path = require('path');
-const fs = require('fs');
 const multer = require('multer');
 const authController = require('../controllers/authController');
 const auth = require('../middleware/auth');
+const { avatarUploadsPath, ensureUploadDirectories } = require('../config/storage');
+const { validateBody, validateParams, schemas } = require('../middleware/validation');
 
 const router = express.Router();
 
-const avatarUploadDir = path.join(__dirname, '..', '..', 'uploads', 'avatars');
-if (!fs.existsSync(avatarUploadDir)) {
-  fs.mkdirSync(avatarUploadDir, { recursive: true });
-}
+ensureUploadDirectories();
 
 const avatarStorage = multer.diskStorage({
-  destination: (_req, _file, cb) => cb(null, avatarUploadDir),
+  destination: (_req, _file, cb) => cb(null, avatarUploadsPath),
   filename: (_req, file, cb) => {
     const safeOriginal = String(file.originalname || 'avatar')
       .replace(/[^\w.\-]+/g, '_')
@@ -61,17 +59,20 @@ const runAvatarUpload = (req, res, next) => {
 // ===== PUBLIC ROUTES (No authentication required) =====
 
 // POST /api/auth/register - Create new user account
-router.post('/register', authController.register);
+router.post('/register', validateBody(schemas.auth.register), authController.register);
 
 // POST /api/auth/login - User login
 // POST /api/auth/login - User login
-router.post('/login', authController.login);
+router.post('/login', validateBody(schemas.auth.login), authController.login);
 
 // POST /api/auth/google - Google login
-router.post('/google', authController.googleLogin);
+router.post('/google', validateBody(schemas.auth.googleLogin), authController.googleLogin);
+
+// POST /api/auth/logout - Clear the active session cookie
+router.post('/logout', authController.logout);
 
 // GET /api/auth/user/:userId - Get user by ID (public for profile viewing)
-router.get('/user/:userId', authController.getUserById);
+router.get('/user/:userId', validateParams(schemas.auth.userIdParam), authController.getUserById);
 
 // ===== PROTECTED ROUTES (Authentication required) =====
 
@@ -79,7 +80,7 @@ router.get('/user/:userId', authController.getUserById);
 router.get('/me', auth, authController.getCurrentUser);
 
 // PUT /api/auth/profile - Update user profile
-router.put('/profile', auth, authController.updateProfile);
+router.put('/profile', auth, validateBody(schemas.auth.updateProfile), authController.updateProfile);
 
 // POST /api/auth/avatar - Upload profile avatar image
 router.post('/avatar', auth, runAvatarUpload, authController.uploadAvatar);
@@ -112,10 +113,15 @@ router.get('/', (req, res) => {
           password: 'string (required)'
         }
       },
+      logout: {
+        method: 'POST',
+        url: '/api/auth/logout',
+        description: 'Clear the active session cookie'
+      },
       getCurrentUser: {
         method: 'GET',
         url: '/api/auth/me',
-        description: 'Get current user profile (requires token)',
+        description: 'Get current user profile (accepts cookie or bearer token)',
         headers: {
           Authorization: 'Bearer your-jwt-token'
         }
@@ -123,7 +129,7 @@ router.get('/', (req, res) => {
       updateProfile: {
         method: 'PUT',
         url: '/api/auth/profile',
-        description: 'Update user profile (requires token)',
+        description: 'Update user profile (accepts cookie or bearer token)',
         headers: {
           Authorization: 'Bearer your-jwt-token'
         },
@@ -134,7 +140,7 @@ router.get('/', (req, res) => {
         }
       }
     },
-    note: 'Skill management endpoints are now available at /api/skills/'
+    note: 'Session authentication supports both httpOnly cookies and Authorization Bearer tokens.'
   });
 });
 

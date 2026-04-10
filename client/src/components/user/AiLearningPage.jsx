@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { Suspense, lazy, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Sparkles,
@@ -16,9 +16,13 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import MainNavbar from '../../navbar/mainNavbar';
-import AiChatbot from './AiChatbot';
-import LearningStudio from './LearningStudio';
 import { requestJson } from '../../services/apiClient';
+import {
+  applySavedPlanProgress,
+  buildRoadmapRequestPayload,
+  createSavedPlanSnapshot,
+  upsertSavedPlanSnapshot
+} from '../../utils/aiLearningRoadmap';
 import {
   formatProviderLabel,
   formatStatusTimestamp,
@@ -26,6 +30,9 @@ import {
   getStudioModelLabel,
   getToneClasses
 } from '../../utils/status';
+
+const AiChatbot = lazy(() => import('./AiChatbot'));
+const LearningStudio = lazy(() => import('./LearningStudio'));
 
 const levelOptions = ['Beginner', 'Intermediate', 'Advanced'];
 
@@ -52,6 +59,19 @@ const sanitizeCoachNote = (note) =>
     .trim();
 
 const formatSourceLabel = (source) => (source === 'ai' ? 'Engine-generated plan' : 'Fallback plan');
+
+const LearningStudioFallback = () => (
+  <div className="glass-panel p-6">
+    <div className="animate-pulse space-y-4">
+      <div className="h-5 w-40 rounded bg-white/10" />
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <div className="h-24 rounded-xl bg-white/5 border border-white/10" />
+        <div className="h-24 rounded-xl bg-white/5 border border-white/10" />
+        <div className="h-24 rounded-xl bg-white/5 border border-white/10" />
+      </div>
+    </div>
+  </div>
+);
 
 const AiLearningPage = () => {
   const [formState, setFormState] = useState(defaultFormState);
@@ -167,20 +187,14 @@ const AiLearningPage = () => {
     setError('');
 
     try {
-      const payload = {
-        skill: formState.skill.trim(),
-        learnerLevel: formState.learnerLevel,
-        weeklyHours: Number(formState.weeklyHours),
-        targetWeeks: Number(formState.targetWeeks),
-        focusAreas: parseFocusAreas(formState.focusAreas),
-        savePlan: true
-      };
-
+      const payload = buildRoadmapRequestPayload(formState, savedPlanId);
       const data = await requestJson('/api/ai/roadmap', {
         method: 'POST',
         body: payload,
         auth: true
       });
+
+      const nextSavedPlanId = data.savedPlanId || savedPlanId || null;
 
       setRoadmap(data.roadmap);
       setRoadmapMeta({
@@ -188,15 +202,27 @@ const AiLearningPage = () => {
         provider: data.provider || null,
         model: data.model || null
       });
-      setSavedPlanId(data.savedPlanId || null);
+      setSavedPlanId(nextSavedPlanId);
       setCompletedStepIndexes([]);
       setStudySession(null);
       setStudySessionError('');
       setStepCoachNotes({});
       toast.success('Personalized roadmap generated');
 
-      if (data.savedPlanId) {
-        fetchSavedPlans();
+      if (nextSavedPlanId) {
+        const updatedPlan = createSavedPlanSnapshot({
+          planId: nextSavedPlanId,
+          formState,
+          roadmap: data.roadmap,
+          source: data.source,
+          provider: data.provider,
+          model: data.model,
+          completedStepIndexes: []
+        });
+
+        if (updatedPlan) {
+          setSavedPlans((prev) => upsertSavedPlanSnapshot(prev, updatedPlan));
+        }
       }
     } catch (err) {
       console.error('Roadmap generation error:', err);
@@ -238,7 +264,9 @@ const AiLearningPage = () => {
         body: { completedStepIndexes: nextIndexes },
         auth: true
       });
-      fetchSavedPlans();
+      setSavedPlans((prev) =>
+        applySavedPlanProgress(prev, savedPlanId, nextIndexes, roadmap?.steps?.length || 0)
+      );
     } catch (err) {
       console.error('Progress sync error:', err);
       toast.error('Could not sync progress to server');
@@ -298,7 +326,7 @@ const AiLearningPage = () => {
     setCheckingStudio(true);
 
     try {
-      const data = await requestJson('/api/ai/studio-test', { method: 'POST' });
+      const data = await requestJson('/api/ai/studio-test', { method: 'POST', auth: true });
       toast.success(`${formatProviderLabel(data.provider)} live check passed`);
     } catch (err) {
       toast.error(err.message || 'Could not verify the learning engine');
@@ -677,15 +705,17 @@ const AiLearningPage = () => {
                   </div>
                 )}
 
-                <LearningStudio
-                  skill={formState.skill}
-                  learnerLevel={formState.learnerLevel}
-                  roadmapSummary={roadmap?.summary || ''}
-                  currentStepTitle={nextStep?.title || ''}
-                  currentStepDescription={nextStep?.description || ''}
-                  focusAreas={parseFocusAreas(formState.focusAreas)}
-                  hasRoadmap={Boolean(roadmap?.steps?.length)}
-                />
+                <Suspense fallback={<LearningStudioFallback />}>
+                  <LearningStudio
+                    skill={formState.skill}
+                    learnerLevel={formState.learnerLevel}
+                    roadmapSummary={roadmap?.summary || ''}
+                    currentStepTitle={nextStep?.title || ''}
+                    currentStepDescription={nextStep?.description || ''}
+                    focusAreas={parseFocusAreas(formState.focusAreas)}
+                    hasRoadmap={Boolean(roadmap?.steps?.length)}
+                  />
+                </Suspense>
 
                 {studySession && (
                   <div className="glass-panel p-6">
@@ -837,7 +867,9 @@ const AiLearningPage = () => {
         </div>
       </main>
 
-      <AiChatbot defaultSkill={formState.skill} context={aiChatContext} />
+      <Suspense fallback={null}>
+        <AiChatbot defaultSkill={formState.skill} context={aiChatContext} />
+      </Suspense>
     </div>
   );
 };

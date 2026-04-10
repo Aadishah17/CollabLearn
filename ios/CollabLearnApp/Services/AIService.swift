@@ -20,9 +20,14 @@ enum APIError: Error, LocalizedError {
 
 final class AIService {
     private let session: URLSession
+    private let tokenProvider: () -> String?
 
-    init(session: URLSession = .shared) {
+    init(
+        session: URLSession = .shared,
+        tokenProvider: @escaping () -> String? = { UserDefaults.standard.string(forKey: "token") }
+    ) {
         self.session = session
+        self.tokenProvider = tokenProvider
     }
 
     func generateRoadmap(request: RoadmapRequest) async throws -> RoadmapResponse {
@@ -43,6 +48,9 @@ final class AIService {
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        if let token = tokenProvider(), !token.isEmpty {
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
         request.httpBody = try JSONEncoder().encode(payload)
 
         let (data, response): (Data, URLResponse)

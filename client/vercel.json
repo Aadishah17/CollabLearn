@@ -1,0 +1,16 @@
+{
+  "rewrites": [
+    {
+      "source": "/api/(.*)",
+      "destination": "https://collablearn-api.vercel.app/api/$1"
+    },
+    {
+      "source": "/uploads/(.*)",
+      "destination": "https://collablearn-api.vercel.app/uploads/$1"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
+}

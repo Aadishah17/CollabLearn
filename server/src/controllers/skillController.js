@@ -406,15 +406,6 @@ const searchSkills = async (req, res) => {
       .sort({ createdAt: -1 })
       .limit(50);
 
-    // Debug: Log the populated user data and process avatars
-    console.log('Found skills with user data:', skills.map(skill => ({
-      skillName: skill.name,
-      userName: skill.user?.name,
-      userAvatarUrl: skill.user?.getAvatarUrl?.() || null,
-      userAvatarType: skill.user?.avatar?.type,
-      userId: skill.user?._id
-    })));
-
     // Process skills to include computed avatar URLs
     const processedSkills = skills.map(skill => {
       const skillObj = skill.toObject();

@@ -1,783 +1,688 @@
-import React, { useCallback, useState, useEffect } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
 import {
-  Calendar,
-  Users,
-  Clock,
-  BookOpen,
   ArrowLeft,
-  Star,
-  Award,
-  CheckCircle,
-  User,
-  Upload,
-  FileText,
+  CalendarClock,
+  CheckCircle2,
+  Clock3,
   Download,
+  FileText,
+  LoaderCircle,
+  ShieldCheck,
+  Sparkles,
   Trash2,
-  MessageCircle,
-  Plus,
-  X
+  Upload,
+  UserRound,
 } from 'lucide-react';
 import MainNavbar from '../../navbar/mainNavbar';
-import { formatINR } from '../../utils/currencyUtils';
 import { API_URL } from '../../config';
+import { requestJson } from '../../services/apiClient';
+import { formatINR } from '../../utils/currencyUtils';
+import { deriveSkillSessionView, getBookingStatusTone } from '../../utils/skillSessionsView';
 
+const getBaseUrl = () => String(API_URL || '').replace(/\/$/, '');
 
-const SkillSessions = () => {
+const formatDateTime = (value) => {
+  if (!value) return 'Not scheduled';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return 'Not scheduled';
+
+  return date.toLocaleString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  });
+};
+
+const getParticipant = (session, userRole) =>
+  userRole === 'instructor' ? session?.student : session?.instructor;
+
+const canCompleteSession = (session) => {
+  if (!session || ['completed', 'cancelled'].includes(session.status)) {
+    return false;
+  }
+
+  const sessionDate = new Date(session.date);
+  if (Number.isNaN(sessionDate.getTime())) {
+    return false;
+  }
+
+  return session.status === 'ongoing' || sessionDate.getTime() <= Date.now();
+};
+
+const readJsonSafely = async (response) => {
+  const text = await response.text();
+  if (!text) return null;
+
+  try {
+    return JSON.parse(text);
+  } catch {
+    return null;
+  }
+};
+
+export default function SkillSessions() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { skill } = location.state || {};
+  const skill = location.state?.skill || null;
+  const skillId = skill?._id || skill?.id || '';
 
-  const [sessions, setSessions] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [activeTab, setActiveTab] = useState('ongoing');
   const [currentUser, setCurrentUser] = useState(null);
-  const [userRole, setUserRole] = useState(null);
-  const [instructorInfo, setInstructorInfo] = useState(null);
-  const [showFinishCourseModal, setShowFinishCourseModal] = useState(false);
-  const [courseRating, setCourseRating] = useState(5);
-  const [courseReview, setCourseReview] = useState('');
-
-  // Skill-level document upload states
-  const [showUploadModal, setShowUploadModal] = useState(false);
+  const [view, setView] = useState(() =>
+    deriveSkillSessionView({
+      currentUserId: '',
+      skillId,
+    }),
+  );
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [uploadTitle, setUploadTitle] = useState('');
   const [selectedFile, setSelectedFile] = useState(null);
-  const [documentTitle, setDocumentTitle] = useState('');
-  const [uploadingFile, setUploadingFile] = useState(false);
-  const [skillDocuments, setSkillDocuments] = useState([]);
-
-  const token = localStorage.getItem('token');
+  const [uploading, setUploading] = useState(false);
+  const [actionSessionId, setActionSessionId] = useState('');
 
   const fetchSessions = useCallback(async () => {
+    if (!skillId) {
+      setError('Open a skill from the dashboard or marketplace to view its 1:1 bookings.');
+      setLoading(false);
+      return;
+    }
+
     try {
       setLoading(true);
+      setError('');
 
-      // Get current user
-      const userResponse = await fetch(`${API_URL}/api/auth/me`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
+      const authPayload = await requestJson('/api/auth/me', { auth: true });
+      const user = authPayload?.user || null;
+      const userId = user?._id || user?.id || '';
 
-      if (!userResponse.ok) throw new Error('Failed to fetch user data');
-      const userData = await userResponse.json();
-      setCurrentUser(userData.user);
-
-      // Determine user role for this skill by checking if user appears as instructor in any session
-      // Try both endpoints to determine role
-      const instructorResponse = await fetch(`${API_URL}/api/booking/instructor/${userData.user.id}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      const studentResponse = await fetch(`${API_URL}/api/booking/student/${userData.user.id}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      let role = 'student'; // default
-      let allSessions = [];
-      let instructor = null;
-
-      if (instructorResponse.ok) {
-        const instructorData = await instructorResponse.json();
-        const instructorSessions = instructorData.bookings?.filter(
-          booking => booking && booking.skill && booking.skill._id === skill._id
-        ) || [];
-
-        if (instructorSessions.length > 0) {
-          role = 'instructor';
-          allSessions = instructorSessions;
-        }
+      if (!userId) {
+        throw new Error('Unable to identify the current user for this session thread.');
       }
 
-      if (allSessions.length === 0 && studentResponse.ok) {
-        const studentData = await studentResponse.json();
-        const studentSessions = studentData.bookings?.filter(
-          booking => booking && booking.skill && booking.skill._id === skill._id
-        ) || [];
+      setCurrentUser(user);
 
-        if (studentSessions.length > 0) {
-          role = 'student';
-          allSessions = studentSessions;
-          // Get instructor info from the first session
-          if (studentSessions[0] && studentSessions[0].instructor) {
-            instructor = studentSessions[0].instructor;
-          }
-        }
+      const [teachingResult, learningResult] = await Promise.allSettled([
+        requestJson(`/api/booking/instructor/${userId}`, { auth: true }),
+        requestJson(`/api/booking/student/${userId}`, { auth: true }),
+      ]);
+
+      const instructorBookings =
+        teachingResult.status === 'fulfilled' ? teachingResult.value?.bookings || [] : [];
+      const studentBookings =
+        learningResult.status === 'fulfilled' ? learningResult.value?.bookings || [] : [];
+
+      if (
+        teachingResult.status === 'rejected' &&
+        learningResult.status === 'rejected' &&
+        instructorBookings.length === 0 &&
+        studentBookings.length === 0
+      ) {
+        throw teachingResult.reason || learningResult.reason;
       }
 
-      setUserRole(role);
-      setSessions(allSessions);
-      setInstructorInfo(instructor);
-
-      // Get skill-level documents from the first session (they're shared across all sessions for this skill)
-      if (allSessions.length > 0 && allSessions[0].sessionDocuments) {
-        setSkillDocuments(allSessions[0].sessionDocuments);
-      }
-    } catch (err) {
-      setError(err.message);
+      setView(
+        deriveSkillSessionView({
+          currentUserId: userId,
+          skillId,
+          instructorBookings,
+          studentBookings,
+        }),
+      );
+    } catch (fetchError) {
+      console.error('SkillSessions error:', fetchError);
+      setError(fetchError.message || 'Failed to load the session thread.');
     } finally {
       setLoading(false);
     }
-  }, [skill, token]);
+  }, [skillId]);
 
   useEffect(() => {
-    if (!skill || !skill._id) {
-      console.error('Invalid skill data received:', skill);
-      setError('Invalid skill data. Please try again from the dashboard.');
-      setLoading(false);
-      return;
-    }
     fetchSessions();
-  }, [fetchSessions, skill]);
+  }, [fetchSessions]);
 
-  const getFilteredSessions = () => {
-    return sessions.filter(() => {
-      if (activeTab === 'ongoing') {
-        return true; // Show all sessions
-      } else if (activeTab === 'completed') {
-        return true; // Show all sessions (for progress view)
-      }
-      return true;
-    });
-  };
+  const headerCopy = useMemo(() => {
+    if (view.userRole === 'instructor') {
+      return `Manage active 1:1 bookings, shared prep material, and post-session follow-up for ${skill?.name || 'this skill'}.`;
+    }
 
-  const formatDate = (dateString) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  };
+    if (view.userRole === 'student' && view.primaryParticipant?.name) {
+      return `Track your 1:1 sessions with ${view.primaryParticipant.name}, keep shared material in one place, and close the loop after each session.`;
+    }
 
-  const handleUploadSkillDocument = () => {
-    setShowUploadModal(true);
-  };
+    return 'This page now tracks single-session bookings only. New bookings will appear here once a learner or instructor confirms the first 1:1 session.';
+  }, [skill?.name, view.primaryParticipant?.name, view.userRole]);
 
-  const handleFileSelect = (event) => {
-    const file = event.target.files[0];
-    if (file) {
-      setSelectedFile(file);
-      setDocumentTitle(file.name.split('.').slice(0, -1).join('.'));
+  const metrics = useMemo(
+    () => [
+      {
+        label: 'Booked',
+        value: view.stats.totalSessions,
+        detail: '1:1 sessions tied to this skill.',
+        icon: CalendarClock,
+      },
+      {
+        label: 'Upcoming',
+        value: view.stats.upcomingSessions,
+        detail: 'Still scheduled or awaiting completion.',
+        icon: Clock3,
+      },
+      {
+        label: 'Completed',
+        value: view.stats.completedSessions,
+        detail: 'Closed out individually, not course-wide.',
+        icon: CheckCircle2,
+      },
+      {
+        label: 'Resources',
+        value: view.sharedDocuments.length,
+        detail: 'Shared files attached to the session thread.',
+        icon: FileText,
+      },
+    ],
+    [view.sharedDocuments.length, view.stats.completedSessions, view.stats.totalSessions, view.stats.upcomingSessions],
+  );
+
+  const handleFileChange = (event) => {
+    const file = event.target.files?.[0] || null;
+    setSelectedFile(file);
+    if (file && !uploadTitle.trim()) {
+      const nextTitle = file.name.replace(/\.[^.]+$/, '');
+      setUploadTitle(nextTitle || file.name);
     }
   };
 
-  const uploadSkillDocument = async () => {
-    if (!selectedFile || !documentTitle.trim()) {
-      setError('Please select a file and enter a title');
+  const handleUpload = async (event) => {
+    event.preventDefault();
+
+    if (!view.resourceHostSessionId) {
+      toast.error('A session must exist before shared resources can be uploaded.');
       return;
     }
 
-    if (sessions.length === 0) {
-      setError('No sessions available to upload documents to');
+    if (!selectedFile || !uploadTitle.trim()) {
+      toast.error('Choose a file and provide a title.');
       return;
     }
-
-    setUploadingFile(true);
-    const formData = new FormData();
-    formData.append('document', selectedFile);
-    formData.append('title', documentTitle.trim());
-    formData.append('uploadedBy', userRole);
 
     try {
-      // Upload to the first session (skill-level documents)
-      const response = await fetch(`${API_URL}/api/booking/${sessions[0]._id}/upload-document`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-        body: formData
-      });
-
-      if (response.ok) {
-        const result = await response.json();
-        setSkillDocuments(result.sessionDocuments);
-        setShowUploadModal(false);
-        setSelectedFile(null);
-        setDocumentTitle('');
-        fetchSessions(); // Refresh sessions
-        alert('Skill resource uploaded successfully!');
-      } else {
-        throw new Error('Failed to upload document');
+      setUploading(true);
+      const formData = new FormData();
+      formData.append('document', selectedFile);
+      formData.append('title', uploadTitle.trim());
+      if (view.userRole) {
+        formData.append('uploadedBy', view.userRole);
       }
-    } catch (err) {
-      setError('Failed to upload document: ' + err.message);
+
+      const token = localStorage.getItem('token');
+      const response = await fetch(
+        `${getBaseUrl()}/api/booking/${view.resourceHostSessionId}/upload-document`,
+        {
+          method: 'POST',
+          credentials: 'include',
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+          body: formData,
+        },
+      );
+
+      const payload = await readJsonSafely(response);
+      if (!response.ok || payload?.success === false) {
+        throw new Error(payload?.message || 'Failed to upload the file.');
+      }
+
+      setSelectedFile(null);
+      setUploadTitle('');
+      toast.success('Shared resource uploaded.');
+      await fetchSessions();
+    } catch (uploadError) {
+      console.error(uploadError);
+      toast.error(uploadError.message || 'Upload failed.');
     } finally {
-      setUploadingFile(false);
+      setUploading(false);
     }
   };
 
-  const deleteSkillDocument = async (documentId) => {
-    if (!confirm('Are you sure you want to delete this skill resource?')) return;
+  const handleDeleteDocument = async (documentId) => {
+    if (!view.resourceHostSessionId || !documentId) {
+      return;
+    }
 
     try {
-      const response = await fetch(`${API_URL}/api/booking/${sessions[0]._id}/delete-document/${documentId}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      if (response.ok) {
-        const result = await response.json();
-        setSkillDocuments(result.sessionDocuments);
-        fetchSessions(); // Refresh sessions
-        alert('Skill resource deleted successfully!');
-      } else {
-        throw new Error('Failed to delete document');
-      }
-    } catch (err) {
-      setError('Failed to delete document: ' + err.message);
-    }
-  };
-
-  const downloadDocument = (doc) => {
-    const downloadUrl = `${API_URL}/uploads/session-documents/${doc.filename}`;
-    const link = window.document.createElement('a');
-    link.href = downloadUrl;
-    link.download = doc.title || doc.filename;
-    link.click();
-  };
-
-  const getFileIcon = (filename) => {
-    const extension = filename?.split('.').pop()?.toLowerCase();
-    switch (extension) {
-      case 'pdf': return '📄';
-      case 'doc':
-      case 'docx': return '📝';
-      case 'jpg':
-      case 'jpeg':
-      case 'png':
-      case 'gif': return '🖼️';
-      case 'mp4':
-      case 'mov':
-      case 'avi': return '🎥';
-      default: return '📎';
-    }
-  };
-
-  const handleFinishCourse = () => {
-    setShowFinishCourseModal(true);
-  };
-
-  const submitCourseRating = async () => {
-    try {
-      const response = await fetch(`${API_URL}/api/booking/complete-course`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
+      setActionSessionId(documentId);
+      const token = localStorage.getItem('token');
+      const response = await fetch(
+        `${getBaseUrl()}/api/booking/${view.resourceHostSessionId}/delete-document/${documentId}`,
+        {
+          method: 'DELETE',
+          credentials: 'include',
+          headers: {
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            Accept: 'application/json',
+          },
         },
-        body: JSON.stringify({
-          skillId: skill._id,
-          userId: currentUser.id,
-          rating: courseRating,
-          review: courseReview
-        })
-      });
+      );
 
-      if (response.ok) {
-        setShowFinishCourseModal(false);
-        alert('Course completed successfully! Thank you for your feedback.');
-        fetchSessions(); // Refresh sessions
-      } else {
-        throw new Error('Failed to complete course');
+      const payload = await readJsonSafely(response);
+      if (!response.ok || payload?.success === false) {
+        throw new Error(payload?.message || 'Failed to delete the file.');
       }
-    } catch {
-      setError('Failed to complete course');
+
+      toast.success('Shared resource removed.');
+      await fetchSessions();
+    } catch (deleteError) {
+      console.error(deleteError);
+      toast.error(deleteError.message || 'Delete failed.');
+    } finally {
+      setActionSessionId('');
+    }
+  };
+
+  const handleCompleteSession = async (bookingId) => {
+    if (!bookingId || !view.userRole) {
+      return;
+    }
+
+    try {
+      setActionSessionId(bookingId);
+      await requestJson(`/api/booking/${bookingId}/complete-session`, {
+        method: 'POST',
+        auth: true,
+        body: {
+          completedBy: view.userRole,
+        },
+      });
+      toast.success('Session marked complete.');
+      await fetchSessions();
+    } catch (completionError) {
+      console.error(completionError);
+      toast.error(completionError.message || 'Could not complete the session.');
+    } finally {
+      setActionSessionId('');
     }
   };
 
   if (loading) {
     return (
-      <div className="flex h-screen bg-black items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-red-600 mx-auto mb-4"></div>
-          <p className="text-gray-400">Loading sessions...</p>
-        </div>
+      <div className="glass-page min-h-screen text-zinc-100">
+        <MainNavbar />
+        <main className="mx-auto flex min-h-screen max-w-3xl items-center justify-center px-4 pt-24">
+          <div className="surface-card w-full p-8 text-center">
+            <LoaderCircle className="mx-auto h-12 w-12 animate-spin text-red-300" />
+            <p className="mt-5 text-sm font-semibold uppercase tracking-[0.3em] text-red-300/80">
+              Session thread
+            </p>
+            <h1 className="mt-3 text-2xl font-bold text-white">Loading skill bookings</h1>
+          </div>
+        </main>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="flex h-screen bg-black items-center justify-center">
-        <div className="text-center">
-          <h2 className="text-2xl font-bold text-red-600 mb-4">Error</h2>
-          <p className="text-gray-400 mb-4">{error}</p>
-          <button
-            onClick={() => navigate('/dashboard')}
-            className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
-          >
-            Back to Dashboard
-          </button>
-        </div>
+      <div className="glass-page min-h-screen text-zinc-100">
+        <MainNavbar />
+        <main className="mx-auto flex min-h-screen max-w-3xl items-center justify-center px-4 pt-24">
+          <div className="surface-card w-full p-8 text-center">
+            <p className="text-sm font-semibold uppercase tracking-[0.3em] text-red-300/80">
+              Session thread error
+            </p>
+            <h1 className="mt-3 text-2xl font-bold text-white">This skill view did not load cleanly</h1>
+            <p className="mt-4 text-sm leading-7 text-zinc-300">{error}</p>
+            <div className="mt-6 flex flex-col justify-center gap-3 sm:flex-row">
+              <button type="button" onClick={fetchSessions} className="glass-cta">
+                Retry
+              </button>
+              <button type="button" onClick={() => navigate('/dashboard')} className="glass-outline-btn">
+                Return to dashboard
+              </button>
+            </div>
+          </div>
+        </main>
       </div>
     );
   }
 
-  const filteredSessions = getFilteredSessions();
-
   return (
-    <div className="flex h-screen bg-black font-sans">
-      <div className="flex-1 flex flex-col overflow-auto">
-        <MainNavbar />
+    <div className="glass-page min-h-screen text-zinc-100">
+      <MainNavbar />
 
-        <main className="flex-1 p-6 bg-black pt-24">
-          {/* Header */}
-          <div className="mb-8">
-            <div className="flex items-center mb-4">
-              <button
-                onClick={() => navigate('/dashboard')}
-                className="mr-4 p-2 hover:bg-gray-800 rounded-full transition-colors"
-              >
-                <ArrowLeft className="w-6 h-6 text-white" />
-              </button>
-              <div>
-                <h1 className="text-3xl font-bold text-white mb-2">
-                  {skill?.name} Sessions
-                </h1>
-                <p className="text-gray-400">
-                  {userRole === 'instructor'
-                    ? 'Manage your teaching sessions and course materials for this skill'
-                    : instructorInfo
-                      ? `Learning from ${instructorInfo.name}`
-                      : 'Learning sessions for this skill'
-                  }
-                </p>
+      <main className="mx-auto max-w-7xl px-4 pb-12 pt-28 sm:px-6">
+        <div className="mb-5">
+          <Link
+            to="/dashboard"
+            className="inline-flex items-center gap-2 rounded-full border border-white/12 bg-white/[0.04] px-4 py-2 text-sm font-semibold text-zinc-100 transition-colors hover:border-red-300/35 hover:bg-red-500/10"
+          >
+            <ArrowLeft size={16} />
+            Back to dashboard
+          </Link>
+        </div>
+
+        <section className="surface-card surface-card-shimmer relative overflow-hidden p-7 md:p-8">
+          <div className="ambient-grid pointer-events-none absolute inset-0 opacity-20" />
+          <div className="pointer-events-none absolute left-[-4%] top-10 h-48 w-48 rounded-full bg-red-500/15 blur-[120px]" />
+          <div className="pointer-events-none absolute right-[-5%] top-4 h-56 w-56 rounded-full bg-blue-500/10 blur-[130px]" />
+
+          <div className="relative grid gap-6 xl:grid-cols-[0.98fr_0.52fr]">
+            <div className="reveal-up">
+              <div className="eyebrow">
+                <Sparkles size={14} className="text-red-300" />
+                1:1 session thread
               </div>
+              <h1 className="mt-6 max-w-4xl text-4xl font-black tracking-tight text-white md:text-5xl">
+                {skill?.name || 'Skill sessions'}
+              </h1>
+              <p className="mt-4 max-w-3xl text-base leading-7 text-zinc-300 md:text-lg">
+                {headerCopy}
+              </p>
             </div>
 
-            {/* Skill Info Card */}
-            <div className={`bg-black p-6 rounded-xl shadow-md border-l-4 mb-6 ${userRole === 'instructor' ? 'border-red-600' : 'border-red-600'
-              } border-white border text-white custom-card-border`}>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-4">
-                  <div className={`text-white rounded-full h-16 w-16 flex items-center justify-center font-bold text-xl ${userRole === 'instructor' ? 'bg-red-600' : 'bg-red-600'
-                    }`}>
-                    {skill?.name?.split(' ').map(word => word.charAt(0).toUpperCase()).join('').substring(0, 2)}
-                  </div>
-                  <div>
-                    <h3 className="text-xl font-semibold text-white">{skill?.name}</h3>
-                    <div className="flex items-center space-x-4 text-sm text-gray-400 mt-1">
-                      <span className="flex items-center">
-                        <span className={`w-2 h-2 rounded-full mr-1 ${userRole === 'instructor' ? 'bg-blue-500' : 'bg-purple-500'
-                          }`}></span>
-                        {userRole === 'instructor' ? 'Teaching' : 'Learning'}
-                        {userRole === 'student' && instructorInfo &&
-                          ` from ${instructorInfo.name}`
-                        }
-                        {userRole === 'instructor' && sessions.length > 0 && sessions[0].student &&
-                          ` with ${sessions[0].student.name}`
-                        }
-                      </span>
-                      <span className="flex items-center">
-                        <span className="w-2 h-2 bg-green-500 rounded-full mr-1"></span>
-                        {sessions.length} total sessions
-                      </span>
-                      <span className="flex items-center">
-                        <Star className="w-4 h-4 text-yellow-500 mr-1" />
-                        {skill?.offering?.rating?.toFixed(1) || '0.0'} rating
-                      </span>
-                    </div>
-                    {/* Show instructor info prominently for students */}
-                    {userRole === 'student' && instructorInfo && (
-                      <div className="mt-2 p-2 bg-gray-900 rounded-lg border border-gray-700">
-                        <div className="flex items-center space-x-2">
-                          <div className="bg-red-600 text-white rounded-full h-8 w-8 flex items-center justify-center font-semibold text-sm">
-                            {instructorInfo.name?.charAt(0).toUpperCase()}
-                          </div>
-                          <div>
-                            <p className="text-sm font-medium text-red-500">Your Instructor</p>
-                            <p className="text-sm text-gray-300">{instructorInfo.name}</p>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                  </div>
+            <div className="reveal-up rounded-[28px] border border-white/10 bg-black/35 p-5 backdrop-blur">
+              <div className="grid gap-4">
+                <div className="rounded-[24px] border border-white/10 bg-white/[0.05] p-4">
+                  <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">
+                    Access mode
+                  </p>
+                  <p className="mt-2 text-xl font-black text-white">
+                    {view.userRole === 'instructor'
+                      ? 'Teaching 1:1'
+                      : view.userRole === 'student'
+                        ? 'Learning 1:1'
+                        : 'No active bookings'}
+                  </p>
                 </div>
-                <div className="flex items-center space-x-4">
-                  <div className="text-right">
-                    <p className="text-2xl font-bold text-red-600">
-                      {userRole === 'instructor'
-                        ? `${formatINR(skill?.offering?.price || 0)}/hr`
-                        : `${sessions.filter(s => s.status === 'completed').length}/${sessions.length}`
-                      }
-                    </p>
-                    <p className="text-sm text-gray-500">
-                      {userRole === 'instructor' ? 'Rate' : 'Progress'}
-                    </p>
-                  </div>
-
-                  {/* Skill-level Action Buttons - Available to Both Roles */}
-                  <div className="flex items-center space-x-3">
-                    <button
-                      onClick={handleUploadSkillDocument}
-                      className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
-                    >
-                      <Upload className="w-4 h-4" />
-                      <span>Upload Resource</span>
-                    </button>
-
-                    {/* Finish Course Button for Both Roles */}
-                    <button
-                      onClick={handleFinishCourse}
-                      className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors flex items-center space-x-2"
-                    >
-                      <Award className="w-4 h-4" />
-                      <span>
-                        {userRole === 'instructor' ? 'Mark Complete' : 'Finish Course'}
-                      </span>
-                    </button>
-                  </div>
+                <div className="rounded-[24px] border border-white/10 bg-white/[0.05] p-4">
+                  <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">
+                    Session rate
+                  </p>
+                  <p className="mt-2 text-xl font-black text-white">
+                    {skill?.offering?.price ? `${formatINR(skill.offering.price)}/hr` : 'Flexible or free'}
+                  </p>
                 </div>
-              </div>
-            </div>
-
-            {/* Tab Navigation */}
-            <div className="bg-black rounded-lg shadow-md border border-white">
-              <div className="flex border-b border-white">
-                <button
-                  onClick={() => setActiveTab('ongoing')}
-                  className={`flex-1 py-4 px-6 text-sm font-medium transition-colors ${activeTab === 'ongoing'
-                    ? 'border-b-2 border-red-500 text-red-500 bg-red-900/30'
-                    : 'text-gray-400 hover:text-white'
-                    }`}
-                >
-                  <div className="flex items-center justify-center space-x-2">
-                    <Calendar className="w-4 h-4" />
-                    <span>All Sessions</span>
-                    <span className="bg-red-900/30 text-red-200 text-xs px-2 py-1 rounded-full">
-                      {sessions.length}
-                    </span>
-                  </div>
-                </button>
-                <button
-                  onClick={() => setActiveTab('completed')}
-                  className={`flex-1 py-4 px-6 text-sm font-medium transition-colors ${activeTab === 'completed'
-                    ? 'border-b-2 border-indigo-500 text-indigo-600 bg-indigo-50'
-                    : 'text-gray-500 hover:text-gray-700'
-                    }`}
-                >
-                  <div className="flex items-center justify-center space-x-2">
-                    <BookOpen className="w-4 h-4" />
-                    <span>Course Progress</span>
-                    <span className="bg-gray-100 text-gray-800 text-xs px-2 py-1 rounded-full">
-                      {Math.round((sessions.filter(s => s.status === 'completed').length / sessions.length) * 100) || 0}%
-                    </span>
-                  </div>
-                </button>
+                <div className="rounded-[24px] border border-white/10 bg-white/[0.05] p-4">
+                  <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">
+                    You are signed in as
+                  </p>
+                  <p className="mt-2 text-base font-semibold text-white">
+                    {currentUser?.name || 'Current user'}
+                  </p>
+                </div>
               </div>
             </div>
           </div>
+        </section>
 
-          {/* Skill Resources Section */}
-          {skillDocuments.length > 0 && (
-            <div className="mb-8">
-              <div className="bg-black rounded-xl shadow-md p-6 border border-white">
-                <h3 className="text-xl font-semibold text-white mb-4 flex items-center">
-                  <FileText className="w-6 h-6 mr-2 text-red-600" />
-                  Course Resources ({skillDocuments.length})
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {skillDocuments.map((doc, index) => (
-                    <div
-                      key={doc._id || index}
-                      className="border border-gray-200 rounded-lg p-4 hover:border-indigo-300 transition-colors"
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-3 flex-1 min-w-0">
-                          <span className="text-2xl flex-shrink-0">
-                            {getFileIcon(doc.filename)}
-                          </span>
-                          <div className="min-w-0 flex-1">
-                            <h4 className="font-medium text-white truncate" title={doc.title}>
-                              {doc.title}
-                            </h4>
-                            <div className="flex items-center space-x-2 text-sm text-gray-400 mt-1">
-                              <span>Uploaded by {doc.uploadedBy}</span>
-                              <span>•</span>
-                              <span>{new Date(doc.uploadedAt).toLocaleDateString()}</span>
-                            </div>
-                            <div className="mt-1">
-                              <span className="text-xs bg-gray-800 text-gray-200 px-2 py-1 rounded">
-                                {doc.filename?.split('.').pop()?.toUpperCase()}
-                              </span>
-                            </div>
-                          </div>
+        <section className="mt-6 grid gap-6 md:grid-cols-2 xl:grid-cols-4">
+          {metrics.map((metric) => (
+            <div key={metric.label} className="glass-panel p-5">
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">
+                  {metric.label}
+                </p>
+                <metric.icon size={16} className="text-red-300" />
+              </div>
+              <p className="mt-3 text-3xl font-black text-white">{metric.value}</p>
+              <p className="mt-2 text-sm leading-6 text-zinc-300">{metric.detail}</p>
+            </div>
+          ))}
+        </section>
+
+        <section className="mt-6 grid gap-6 xl:grid-cols-[0.65fr_0.35fr]">
+          <div className="space-y-6">
+            <section className="glass-panel p-6">
+              <div className="mb-4 flex items-center gap-3">
+                <div className="rounded-2xl border border-red-400/20 bg-red-500/10 p-3 text-red-200">
+                  <FileText size={18} />
+                </div>
+                <div>
+                  <h2 className="text-xl font-semibold text-white">Shared resources</h2>
+                  <p className="text-sm text-zinc-400">
+                    Material attached to this skill’s 1:1 session thread.
+                  </p>
+                </div>
+              </div>
+
+              <form onSubmit={handleUpload} className="rounded-[24px] border border-white/8 bg-black/20 p-4">
+                <div className="grid gap-4 md:grid-cols-[0.55fr_0.45fr]">
+                  <label className="grid gap-2">
+                    <span className="text-sm font-semibold text-zinc-200">Resource title</span>
+                    <input
+                      type="text"
+                      value={uploadTitle}
+                      onChange={(event) => setUploadTitle(event.target.value)}
+                      className="glass-input"
+                      placeholder="Session brief, worksheet, feedback notes..."
+                    />
+                  </label>
+                  <label className="grid gap-2">
+                    <span className="text-sm font-semibold text-zinc-200">Choose file</span>
+                    <input
+                      type="file"
+                      onChange={handleFileChange}
+                      className="glass-input file:mr-3 file:rounded-full file:border-0 file:bg-red-500/15 file:px-3 file:py-1 file:text-sm file:font-semibold file:text-red-100"
+                    />
+                  </label>
+                </div>
+
+                <div className="mt-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                  <p className="text-sm text-zinc-400">
+                    {selectedFile ? `Ready to upload ${selectedFile.name}` : 'PDFs, docs, images, and text files are supported.'}
+                  </p>
+                  <button
+                    type="submit"
+                    disabled={!view.resourceHostSessionId || uploading}
+                    className="glass-cta disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    <Upload size={16} />
+                    {uploading ? 'Uploading resource' : 'Upload resource'}
+                  </button>
+                </div>
+              </form>
+
+              {view.sharedDocuments.length ? (
+                <div className="mt-5 space-y-3">
+                  {view.sharedDocuments.map((document) => (
+                    <div key={document._id || document.filename} className="rounded-[22px] border border-white/8 bg-black/20 p-4">
+                      <div className="flex flex-wrap items-start justify-between gap-4">
+                        <div>
+                          <p className="font-semibold text-white">{document.title || document.originalName || 'Untitled file'}</p>
+                          <p className="mt-1 text-sm text-zinc-400">
+                            Uploaded by {document.uploadedBy || 'participant'} on {formatDateTime(document.uploadedAt)}
+                          </p>
                         </div>
 
-                        <div className="flex items-center space-x-2 flex-shrink-0">
-                          <button
-                            onClick={() => downloadDocument(doc)}
-                            className="p-2 text-red-500 hover:bg-gray-800 rounded-lg transition-colors"
-                            title="Download"
+                        <div className="flex items-center gap-2">
+                          <a
+                            href={`${getBaseUrl()}/uploads/session-documents/${document.filename}`}
+                            download={document.originalName || document.title || document.filename}
+                            className="glass-outline-btn px-4 py-2"
                           >
-                            <Download className="w-5 h-5" />
-                          </button>
+                            <Download size={16} />
+                            Download
+                          </a>
                           <button
-                            onClick={() => deleteSkillDocument(doc._id)}
-                            className="p-2 text-red-600 hover:bg-red-900/30 rounded-lg transition-colors"
-                            title="Delete"
+                            type="button"
+                            onClick={() => handleDeleteDocument(document._id)}
+                            disabled={actionSessionId === document._id}
+                            className="glass-icon-btn disabled:cursor-not-allowed disabled:opacity-60"
+                            aria-label={`Delete ${document.title || document.originalName || 'document'}`}
                           >
-                            <Trash2 className="w-5 h-5" />
+                            <Trash2 size={16} />
                           </button>
                         </div>
                       </div>
                     </div>
                   ))}
                 </div>
+              ) : (
+                <div className="mt-5 rounded-[22px] border border-dashed border-white/15 bg-white/[0.03] p-6 text-sm leading-7 text-zinc-300">
+                  Shared resources will appear here after the first upload. There is no separate course library anymore; files now stay with the live 1:1 booking thread.
+                </div>
+              )}
+            </section>
+
+            <section className="glass-panel p-6">
+              <div className="mb-4 flex items-center gap-3">
+                <div className="rounded-2xl border border-blue-400/20 bg-blue-500/10 p-3 text-blue-200">
+                  <CalendarClock size={18} />
+                </div>
+                <div>
+                  <h2 className="text-xl font-semibold text-white">Session timeline</h2>
+                  <p className="text-sm text-zinc-400">
+                    Each booking stands on its own and closes individually.
+                  </p>
+                </div>
               </div>
-            </div>
-          )}
 
-          {/* Sessions List */}
-          <div className="space-y-4">
-            {filteredSessions.length > 0 ? (
-              filteredSessions.map((session, index) => {
-                if (!session || !session.student || !session.skill) {
-                  return null;
-                }
+              {view.sessions.length ? (
+                <div className="space-y-3">
+                  {view.sessions.map((session) => {
+                    const otherParticipant = getParticipant(session, view.userRole);
+                    const canComplete = canCompleteSession(session);
 
-                const otherParticipant = userRole === 'instructor' ? session.student : session.instructor;
-
-                return (
-                  <div
-                    key={session._id || index}
-                    className="bg-black p-6 rounded-xl shadow-md border border-white hover:border-red-500"
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-4">
-                        <div className={`text-white rounded-full h-12 w-12 flex items-center justify-center font-semibold text-lg ${userRole === 'instructor'
-                          ? 'bg-gradient-to-r from-red-600 to-red-800'
-                          : 'bg-gradient-to-r from-red-600 to-red-800'
-                          }`}>
-                          {otherParticipant?.name?.charAt(0).toUpperCase() || (userRole === 'instructor' ? 'S' : 'T')}
-                        </div>
-                        <div>
-                          <h4 className="text-lg font-semibold text-white">
-                            {userRole === 'instructor'
-                              ? `Session with ${otherParticipant?.name || 'Unknown Student'}`
-                              : `Learning from ${otherParticipant?.name || 'Unknown Instructor'}`
-                            }
-                          </h4>
-                          <div className="flex items-center space-x-4 text-sm text-gray-400 mt-1">
-                            <span className="flex items-center">
-                              <Calendar className="w-4 h-4 mr-1" />
-                              {formatDate(session.date)}
-                            </span>
-                            <span className="flex items-center">
-                              <Clock className="w-4 h-4 mr-1" />
-                              {session.duration} minutes
-                            </span>
-                            {session.sessionCount && (
-                              <span className="flex items-center">
-                                <Users className="w-4 h-4 mr-1" />
-                                Session {session.sessionCount.current || 1} of {session.sessionCount.total || 1}
+                    return (
+                      <div key={session._id} className="rounded-[24px] border border-white/8 bg-black/20 p-5">
+                        <div className="flex flex-wrap items-start justify-between gap-4">
+                          <div>
+                            <div className="flex flex-wrap items-center gap-2">
+                              <p className="text-lg font-semibold text-white">
+                                {view.userRole === 'instructor'
+                                  ? `Session with ${otherParticipant?.name || 'student'}`
+                                  : `Session with ${otherParticipant?.name || 'instructor'}`}
+                              </p>
+                              <span
+                                className={`inline-flex rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] ${
+                                  getBookingStatusTone(session.status)
+                                }`}
+                              >
+                                {session.status || 'pending'}
                               </span>
+                            </div>
+
+                            <div className="mt-3 flex flex-wrap gap-3 text-xs uppercase tracking-[0.18em] text-zinc-500">
+                              <span>{formatDateTime(session.date)}</span>
+                              <span>{session.duration} min</span>
+                              {otherParticipant?.email ? <span>{otherParticipant.email}</span> : null}
+                            </div>
+
+                            {session.notes ? (
+                              <p className="mt-4 text-sm leading-7 text-zinc-300">{session.notes}</p>
+                            ) : (
+                              <p className="mt-4 text-sm text-zinc-500">No session notes were added.</p>
                             )}
+
+                            {(session.sessionRating?.student?.rating || session.sessionRating?.instructor?.rating) ? (
+                              <div className="mt-4 flex flex-wrap gap-2">
+                                {session.sessionRating?.student?.rating ? (
+                                  <span className="glass-chip border-emerald-400/25 bg-emerald-500/10 text-emerald-200">
+                                    Student rated {session.sessionRating.student.rating}/5
+                                  </span>
+                                ) : null}
+                                {session.sessionRating?.instructor?.rating ? (
+                                  <span className="glass-chip border-sky-400/25 bg-sky-500/10 text-sky-200">
+                                    Instructor rated {session.sessionRating.instructor.rating}/5
+                                  </span>
+                                ) : null}
+                              </div>
+                            ) : null}
+                          </div>
+
+                          <div className="flex flex-col items-stretch gap-2 sm:items-end">
+                            <button
+                              type="button"
+                              onClick={() => handleCompleteSession(session._id)}
+                              disabled={!canComplete || actionSessionId === session._id}
+                              className="glass-cta min-w-[170px] disabled:cursor-not-allowed disabled:opacity-60"
+                            >
+                              {actionSessionId === session._id ? 'Updating' : 'Mark complete'}
+                            </button>
+                            {!canComplete && session.status !== 'completed' && session.status !== 'cancelled' ? (
+                              <p className="max-w-[220px] text-right text-xs leading-5 text-zinc-500">
+                                Completion stays locked until the scheduled session time has started or passed.
+                              </p>
+                            ) : null}
                           </div>
                         </div>
                       </div>
-
-                      <div className="flex items-center space-x-3">
-                        <span className={`px-3 py-1 rounded-full text-sm font-medium ${session.status === 'completed'
-                          ? 'bg-green-900/30 text-green-200'
-                          : session.status === 'ongoing'
-                            ? 'bg-blue-900/30 text-blue-200'
-                            : 'bg-yellow-900/30 text-yellow-200'
-                          }`}>
-                          {session.status?.charAt(0).toUpperCase() + session.status?.slice(1) || 'Unknown'}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })
-            ) : (
-              <div className="text-center py-12 bg-black rounded-xl shadow-md border border-white">
-                <div className="bg-gray-800 text-gray-400 rounded-full h-16 w-16 flex items-center justify-center mx-auto mb-4">
-                  <Calendar className="w-8 h-8" />
+                    );
+                  })}
                 </div>
-                <h3 className="text-xl font-semibold text-white mb-2">
-                  No sessions found
-                </h3>
-                <p className="text-gray-400">
-                  You don't have any sessions for this skill yet.
+              ) : (
+                <div className="rounded-[22px] border border-dashed border-white/15 bg-white/[0.03] p-8 text-center">
+                  <p className="text-lg font-semibold text-white">No 1:1 bookings yet</p>
+                  <p className="mt-2 text-sm text-zinc-400">
+                    Create or accept the first session and this skill thread will start tracking it here.
+                  </p>
+                  <div className="mt-5 flex justify-center gap-3">
+                    <button type="button" onClick={() => navigate('/calendar')} className="glass-outline-btn">
+                      Open calendar
+                    </button>
+                    <button type="button" onClick={() => navigate('/browse-skills')} className="glass-cta">
+                      Browse skills
+                    </button>
+                  </div>
+                </div>
+              )}
+            </section>
+          </div>
+
+          <div className="space-y-6">
+            <div className="glass-panel p-5">
+              <div className="flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.22em] text-zinc-400">
+                <UserRound size={14} className="text-red-300" />
+                Participant focus
+              </div>
+
+              <div className="mt-4 rounded-[24px] border border-white/10 bg-white/[0.04] p-4">
+                <p className="text-xs uppercase tracking-[0.22em] text-zinc-500">Primary counterpart</p>
+                <p className="mt-2 text-lg font-semibold text-white">
+                  {view.primaryParticipant?.name || 'No active counterpart yet'}
+                </p>
+                <p className="mt-2 text-sm leading-6 text-zinc-300">
+                  {view.userRole === 'instructor'
+                    ? 'You are viewing the teaching side of this skill. Shared resources and completion states are available per booking.'
+                    : view.userRole === 'student'
+                      ? 'You are viewing the learner side of this skill. Each booked call is independent and should be completed separately.'
+                      : 'This skill does not have a live 1:1 booking thread yet.'}
                 </p>
               </div>
-            )}
-          </div>
-        </main>
-      </div>
 
-      {/* Fixed Finish Course Button at Bottom - Visible for Both Roles */}
-      <div className="fixed bottom-6 right-6 z-50">
-        <button
-          onClick={handleFinishCourse}
-          className="bg-gradient-to-r from-green-500 to-green-600 text-white px-6 py-3 rounded-full hover:from-green-600 hover:to-green-700 transition-all duration-300 shadow-lg hover:shadow-xl flex items-center space-x-2 text-base font-semibold border-2 border-green-400"
-        >
-          <Award className="w-5 h-5" />
-          <span>
-            {userRole === 'instructor' ? 'Mark Course Complete' : 'Finish Course'}
-          </span>
-        </button>
-        {/* Debug info */}
-        <div className="absolute -top-8 left-0 bg-black border border-white text-white text-xs px-2 py-1 rounded">
-          Role: {userRole || 'loading...'}
-        </div>
-      </div>
+              <div className="mt-4 rounded-[24px] border border-white/10 bg-white/[0.04] p-4">
+                <p className="text-xs uppercase tracking-[0.22em] text-zinc-500">Unique participants</p>
+                <p className="mt-2 text-2xl font-black text-white">{view.stats.uniqueParticipantCount}</p>
+                <p className="mt-2 text-sm leading-6 text-zinc-300">
+                  Counted from the other side of the booking relation for this skill only.
+                </p>
+              </div>
+            </div>
 
-      {/* Finish Course Modal - Available for Both Roles */}
-      {showFinishCourseModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
-          <div className="bg-black border border-white rounded-lg p-6 max-w-md w-full mx-4">
-            <h3 className="text-xl font-semibold text-white mb-4">
-              {userRole === 'instructor' ? 'Mark Course as Complete' : 'Finish Course'}
-            </h3>
-            <p className="text-gray-400 mb-4">
-              {userRole === 'instructor'
-                ? `You're about to mark the ${skill?.name} course as complete. Please provide your overall assessment of the teaching experience.`
-                : `You're about to complete your learning journey for ${skill?.name}${instructorInfo ? ` with ${instructorInfo.name}` : ''}. Please rate your overall experience with this course.`
-              }
-            </p>
+            <div className="glass-panel p-5">
+              <div className="flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.22em] text-zinc-400">
+                <ShieldCheck size={14} className="text-red-300" />
+                1:1 rules
+              </div>
 
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                Overall {userRole === 'instructor' ? 'Teaching Experience' : 'Course'} Rating
-              </label>
-              <div className="flex space-x-1">
-                {[1, 2, 3, 4, 5].map((star) => (
-                  <button
-                    key={star}
-                    onClick={() => setCourseRating(star)}
-                    className={`text-2xl ${star <= courseRating ? 'text-yellow-500' : 'text-gray-600'
-                      }`}
+              <div className="mt-4 space-y-3">
+                {[
+                  'Bookings now stay single-session only. The old course-wide completion flow has been removed.',
+                  'A learner cannot book their own teaching listing, and a booking must point at the actual instructor who owns the skill.',
+                  'Shared resources live on the active booking thread instead of a separate course container.',
+                ].map((item) => (
+                  <div
+                    key={item}
+                    className="rounded-[22px] border border-white/10 bg-white/[0.04] p-4 text-sm leading-7 text-zinc-300"
                   >
-                    ★
-                  </button>
+                    {item}
+                  </div>
                 ))}
               </div>
             </div>
-
-            <div className="mb-6">
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                {userRole === 'instructor' ? 'Teaching Experience Review' : 'Course Review'} (Optional)
-              </label>
-              <textarea
-                value={courseReview}
-                onChange={(e) => setCourseReview(e.target.value)}
-                className="w-full p-3 bg-black border border-gray-700 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
-                rows="4"
-                placeholder={
-                  userRole === 'instructor'
-                    ? "Share your experience teaching this course..."
-                    : "Share your overall experience with this course..."
-                }
-              />
-            </div>
-
-            <div className="flex space-x-3">
-              <button
-                onClick={() => setShowFinishCourseModal(false)}
-                className="flex-1 px-4 py-2 border border-gray-700 text-gray-300 rounded-lg hover:bg-gray-800 transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={submitCourseRating}
-                className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-              >
-                {userRole === 'instructor' ? 'Mark Complete' : 'Complete Course'}
-              </button>
-            </div>
           </div>
-        </div>
-      )}
-
-      {/* Upload Skill Resource Modal */}
-      {showUploadModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-xl font-semibold text-gray-800">Upload Course Resource</h3>
-              <button
-                onClick={() => {
-                  setShowUploadModal(false);
-                  setSelectedFile(null);
-                  setDocumentTitle('');
-                }}
-                className="text-gray-400 hover:text-gray-600"
-              >
-                <X className="w-6 h-6" />
-              </button>
-            </div>
-
-            <p className="text-gray-600 mb-4">
-              Upload a resource for the entire {skill?.name} course. This will be accessible to all participants.
-            </p>
-
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Resource Title
-                </label>
-                <input
-                  type="text"
-                  value={documentTitle}
-                  onChange={(e) => setDocumentTitle(e.target.value)}
-                  placeholder="Enter resource title..."
-                  className="w-full p-3 bg-black border border-gray-700 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Select File
-                </label>
-                <input
-                  type="file"
-                  onChange={handleFileSelect}
-                  className="w-full p-3 bg-black border border-gray-700 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
-                />
-              </div>
-            </div>
-
-            <div className="flex space-x-3 mt-6">
-              <button
-                onClick={() => {
-                  setShowUploadModal(false);
-                  setSelectedFile(null);
-                  setDocumentTitle('');
-                }}
-                className="flex-1 px-4 py-2 border border-gray-700 text-gray-300 rounded-lg hover:bg-gray-800 transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={uploadSkillDocument}
-                disabled={!selectedFile || !documentTitle.trim() || uploadingFile}
-                className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:bg-red-900 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {uploadingFile ? 'Uploading...' : 'Upload Resource'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+        </section>
+      </main>
     </div>
   );
-};
-
-export default SkillSessions;
+}

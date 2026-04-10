@@ -15,11 +15,14 @@ import {
 import { GoogleLogin } from '@react-oauth/google';
 import CollabLearnLogo from '../assets/collablearn-logo.svg';
 import AuthShowcase from '../components/auth/AuthShowcase.jsx';
-import { API_URL, GOOGLE_AUTH_ENABLED } from '../config';
+import { GOOGLE_AUTH_ENABLED } from '../config';
 import { resolveNextRoute } from './access.js';
-import { emitProfileUpdated, persistSession } from '../utils/session.js';
+import { emitProfileUpdated, hasStoredSession, persistSession } from '../utils/session.js';
+import { requestJson } from '../services/apiClient.js';
 
-const rememberedEmail = localStorage.getItem('rememberedEmail') || '';
+const rememberedEmail = typeof localStorage === 'undefined'
+  ? ''
+  : localStorage.getItem('rememberedEmail') || '';
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -58,10 +61,9 @@ export default function LoginPage() {
   ];
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    const storedRole = localStorage.getItem('userRole');
+    const storedRole = typeof localStorage === 'undefined' ? null : localStorage.getItem('userRole');
 
-    if (token) {
+    if (hasStoredSession()) {
       navigate(resolveNextRoute(redirectPath, storedRole), { replace: true });
     }
   }, [navigate, redirectPath]);
@@ -119,7 +121,11 @@ export default function LoginPage() {
   );
 
   const completeLogin = (responseData) => {
-    persistSession({ token: responseData.token, user: responseData.user });
+    persistSession({
+      token: responseData.token,
+      user: responseData.user,
+      authMode: responseData.token ? 'token' : 'cookie',
+    });
 
     emitProfileUpdated({
       name: responseData.user?.name || 'Learner',
@@ -130,9 +136,13 @@ export default function LoginPage() {
     });
 
     if (rememberEmail) {
-      localStorage.setItem('rememberedEmail', email.trim().toLowerCase());
+      if (typeof localStorage !== 'undefined') {
+        localStorage.setItem('rememberedEmail', email.trim().toLowerCase());
+      }
     } else {
-      localStorage.removeItem('rememberedEmail');
+      if (typeof localStorage !== 'undefined') {
+        localStorage.removeItem('rememberedEmail');
+      }
     }
 
     toast.success(
@@ -150,23 +160,14 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      const response = await fetch(`${API_URL}/api/auth/login`, {
+      const data = await requestJson('/api/auth/login', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
+        body: {
           email: email.trim().toLowerCase(),
           password,
           role: selectedRole,
-        }),
+        },
       });
-
-      const data = await response.json().catch(() => ({}));
-
-      if (!response.ok) {
-        throw new Error(data.message || 'Login failed.');
-      }
 
       completeLogin(data);
     } catch (error) {
@@ -186,19 +187,10 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      const response = await fetch(`${API_URL}/api/auth/google`, {
+      const data = await requestJson('/api/auth/google', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ token: credentialResponse.credential }),
+        body: { token: credentialResponse.credential },
       });
-
-      const data = await response.json().catch(() => ({}));
-
-      if (!response.ok) {
-        throw new Error(data.message || 'Google login failed.');
-      }
 
       completeLogin(data);
     } catch (error) {

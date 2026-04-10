@@ -1,9 +1,15 @@
 const express = require('express');
 const router = express.Router();
 const Booking = require('../models/Booking');
+const Skill = require('../models/Skill');
 const auth = require('../middleware/auth');
+const { validateBody, validateParams, schemas } = require('../middleware/validation');
 const multer = require('multer');
 const path = require('path');
+const {
+  ensureUploadDirectories,
+  sessionDocumentUploadsPath
+} = require('../config/storage');
 const {
   canAccessBooking,
   canAccessUserScopedResource,
@@ -11,10 +17,13 @@ const {
   isValidBookingStatus,
   isValidParticipantRole
 } = require('../utils/bookingAccess');
+const { isOneToOneBooking, isSingleSessionCount } = require('../utils/bookingRules');
+
+ensureUploadDirectories();
 
 const storage = multer.diskStorage({
   destination(req, file, cb) {
-    cb(null, 'uploads/session-documents/');
+    cb(null, sessionDocumentUploadsPath);
   },
   filename(req, file, cb) {
     const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
@@ -86,13 +95,9 @@ const ensureUserScopedAccess = (req, res) => {
   return true;
 };
 
-router.post('/', async (req, res) => {
+router.post('/', validateBody(schemas.booking.createBooking), async (req, res) => {
   try {
     const { instructor, student, skill, date, duration, notes } = req.body;
-
-    if (!instructor || !student || !skill || !date || !duration) {
-      return res.status(400).json({ message: 'Missing required booking fields.' });
-    }
 
     const requesterIsParticipant =
       String(req.userId) === String(instructor) ||
@@ -106,13 +111,39 @@ router.post('/', async (req, res) => {
       });
     }
 
+    if (!isOneToOneBooking({ instructorId: instructor, studentId: student })) {
+      return res.status(400).json({
+        success: false,
+        message: '1:1 bookings require different instructor and student accounts.'
+      });
+    }
+
+    const skillRecord = await Skill.findById(skill).select('user isOffering isPosted');
+    if (!skillRecord || !skillRecord.isOffering || !skillRecord.isPosted) {
+      return res.status(400).json({
+        success: false,
+        message: 'Bookings can only be created for active teaching skills.'
+      });
+    }
+
+    if (String(skillRecord.user) !== String(instructor)) {
+      return res.status(400).json({
+        success: false,
+        message: 'The selected skill does not belong to the chosen instructor.'
+      });
+    }
+
     const booking = new Booking({
       instructor,
       student,
       skill,
       date,
       duration,
-      notes
+      notes,
+      sessionCount: {
+        current: 1,
+        total: 1
+      }
     });
 
     await booking.save();
@@ -127,7 +158,7 @@ router.post('/', async (req, res) => {
   }
 });
 
-router.get('/student/:id', async (req, res) => {
+router.get('/student/:id', validateParams(schemas.booking.bookingIdParam), async (req, res) => {
   try {
     if (!ensureUserScopedAccess(req, res)) {
       return;
@@ -147,7 +178,7 @@ router.get('/student/:id', async (req, res) => {
   }
 });
 
-router.get('/instructor/:id', async (req, res) => {
+router.get('/instructor/:id', validateParams(schemas.booking.bookingIdParam), async (req, res) => {
   try {
     if (!ensureUserScopedAccess(req, res)) {
       return;
@@ -167,7 +198,7 @@ router.get('/instructor/:id', async (req, res) => {
   }
 });
 
-router.patch('/:id', async (req, res) => {
+router.patch('/:id', validateParams(schemas.booking.bookingIdParam), validateBody(schemas.booking.updateStatus), async (req, res) => {
   try {
     const booking = await getAuthorizedBooking(req, res);
     if (!booking) return;
@@ -189,7 +220,7 @@ router.patch('/:id', async (req, res) => {
   }
 });
 
-router.get('/session/:id', async (req, res) => {
+router.get('/session/:id', validateParams(schemas.booking.bookingIdParam), async (req, res) => {
   try {
     const booking = await getAuthorizedBooking(req, res);
     if (!booking) return;
@@ -216,7 +247,7 @@ router.get('/session/:id', async (req, res) => {
   }
 });
 
-router.post('/:id/upload-document', upload.single('document'), async (req, res) => {
+router.post('/:id/upload-document', validateParams(schemas.booking.bookingIdParam), upload.single('document'), validateBody(schemas.booking.uploadDocument), async (req, res) => {
   try {
     const booking = await getAuthorizedBooking(req, res);
     if (!booking) return;
@@ -260,7 +291,10 @@ router.post('/:id/upload-document', upload.single('document'), async (req, res) 
   }
 });
 
-router.delete('/:id/delete-document/:docId', async (req, res) => {
+router.delete('/:id/delete-document/:docId', validateParams({
+  id: schemas.booking.bookingIdParam.id,
+  docId: schemas.booking.documentIdParam.docId
+}), async (req, res) => {
   try {
     const booking = await getAuthorizedBooking(req, res);
     if (!booking) return;
@@ -285,7 +319,7 @@ router.delete('/:id/delete-document/:docId', async (req, res) => {
   }
 });
 
-router.post('/:id/complete', async (req, res) => {
+router.post('/:id/complete', validateParams(schemas.booking.bookingIdParam), validateBody(schemas.booking.completeBooking), async (req, res) => {
   try {
     const booking = await getAuthorizedBooking(req, res);
     if (!booking) return;
@@ -339,7 +373,7 @@ router.post('/:id/complete', async (req, res) => {
   }
 });
 
-router.post('/:id/complete-session', async (req, res) => {
+router.post('/:id/complete-session', validateParams(schemas.booking.bookingIdParam), validateBody(schemas.booking.completeSession), async (req, res) => {
   try {
     const booking = await getAuthorizedBooking(req, res);
     if (!booking) return;
@@ -368,10 +402,6 @@ router.post('/:id/complete-session', async (req, res) => {
       };
     }
 
-    if (booking.sessionCount && booking.sessionCount.current < booking.sessionCount.total) {
-      booking.sessionCount.current += 1;
-    }
-
     await booking.save();
 
     res.json({
@@ -385,71 +415,18 @@ router.post('/:id/complete-session', async (req, res) => {
   }
 });
 
-router.post('/complete-course', async (req, res) => {
+router.post('/complete-course', validateBody(schemas.booking.completeCourse), async (req, res) => {
   try {
-    const { skillId, userId, rating, review } = req.body;
-
-    if (
-      !canAccessUserScopedResource({
-        requestedUserId: userId,
-        authUserId: req.userId,
-        authUserRole: req.userRole
-      })
-    ) {
-      return res.status(403).json({
-        success: false,
-        message: 'You are not authorized to complete this course.'
-      });
-    }
-
-    if (!skillId || !userId || !isValidRating(rating)) {
-      return res.status(400).json({
-        success: false,
-        message: 'Skill, user, and a rating between 1 and 5 are required.'
-      });
-    }
-
-    const sessions = await Booking.find({
-      $or: [
-        { instructor: userId, skill: skillId },
-        { student: userId, skill: skillId }
-      ]
-    });
-
-    if (sessions.length === 0) {
-      return res.status(404).json({ message: 'No sessions found for this course' });
-    }
-
-    const updatePromises = sessions.map((session) => {
-      session.status = 'completed';
-      session.courseCompleted = true;
-      session.courseRating = {
-        rating: Number(rating),
-        review: String(review || '').trim(),
-        completedAt: new Date(),
-        completedBy: userId
-      };
-
-      if (!session.completedAt) {
-        session.completedAt = new Date();
-      }
-
-      return session.save();
-    });
-
-    await Promise.all(updatePromises);
-
-    res.json({
-      success: true,
-      message: 'Course completed successfully',
-      completedSessions: sessions.length
+    res.status(410).json({
+      success: false,
+      message: 'Course-wide completion is unavailable. Complete each 1:1 booking individually.'
     });
   } catch (error) {
     res.status(500).json({ message: 'Error completing course', error: error.message });
   }
 });
 
-router.patch('/:id/session-count', async (req, res) => {
+router.patch('/:id/session-count', validateParams(schemas.booking.bookingIdParam), validateBody(schemas.booking.sessionCount), async (req, res) => {
   try {
     const booking = await getAuthorizedBooking(req, res);
     if (!booking) return;
@@ -457,15 +434,15 @@ router.patch('/:id/session-count', async (req, res) => {
     const current = Number(req.body?.current);
     const total = Number(req.body?.total);
 
-    if (!Number.isInteger(current) || !Number.isInteger(total) || current < 0 || total < 1 || current > total) {
+    if (!isSingleSessionCount({ current, total })) {
       return res.status(400).json({
         success: false,
-        message: 'Session counts must be valid integers and current cannot exceed total.'
+        message: 'CollabLearn currently supports only 1:1 single-session bookings.'
       });
     }
 
-    booking.sessionCount.current = current;
-    booking.sessionCount.total = total;
+    booking.sessionCount.current = 1;
+    booking.sessionCount.total = 1;
     await booking.save();
 
     res.json({ success: true, booking });
@@ -474,7 +451,10 @@ router.patch('/:id/session-count', async (req, res) => {
   }
 });
 
-router.delete('/:id/document/:docIndex', async (req, res) => {
+router.delete('/:id/document/:docIndex', validateParams({
+  id: schemas.booking.bookingIdParam.id,
+  docIndex: schemas.booking.documentIndexParam.docIndex
+}), async (req, res) => {
   try {
     const booking = await getAuthorizedBooking(req, res);
     if (!booking) return;

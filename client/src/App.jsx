@@ -24,6 +24,7 @@ const BookingSessionPage = lazy(() => import('./components/user/bookSession'));
 const SettingsPage = lazy(() => import('./components/user/settingsPage'));
 const ModuleDashboard = lazy(() => import('./components/ModuleDashboard'));
 const ModuleEditor = lazy(() => import('./components/ModuleEditor'));
+const ModuleViewer = lazy(() => import('./components/ModuleViewer'));
 const ManageUsers = lazy(() => import('./components/admin/manageUser'));
 const ManagePosts = lazy(() => import('./components/admin/ManagePosts'));
 const AnalyticsDashboard = lazy(() => import('./components/admin/Analytics'));
@@ -38,6 +39,20 @@ const CoursePlayer = lazy(() => import('./components/user/CoursePlayer'));
 const Teach = lazy(() => import('./components/user/Teach'));
 const AiLearningPage = lazy(() => import('./components/user/AiLearningPage'));
 const StatusPage = lazy(() => import('./components/user/StatusPage'));
+const CompetitionsPage = lazy(() =>
+  import('./components/public/CompetitionsPage').then((module) => ({ default: module.CompetitionsPage })),
+);
+const CompetitionDetailPage = lazy(() =>
+  import('./components/public/CompetitionDetailPage').then((module) => ({
+    default: module.CompetitionDetailPage,
+  })),
+);
+const CareerPage = lazy(() =>
+  import('./components/public/CareerPage').then((module) => ({ default: module.CareerPage })),
+);
+const CareerTrackPage = lazy(() =>
+  import('./components/public/CareerTrackPage').then((module) => ({ default: module.CareerTrackPage })),
+);
 const NotFoundPage = lazy(() => import('./components/user/NotFoundPage'));
 
 function App() {
@@ -60,10 +75,15 @@ function App() {
           <Route path="/login" element={<LoginPage />} />
           <Route path="/signup" element={<SignupPage />} />
           <Route path="/status" element={<StatusPage />} />
+          <Route path="/competitions" element={<CompetitionsPage />} />
+          <Route path="/competitions/:slug" element={<CompetitionDetailPage />} />
+          <Route path="/career" element={<CareerPage />} />
+          <Route path="/career/:trackSlug" element={<CareerTrackPage />} />
           <Route path="/admin" element={<ProtectedRoute requiredRole="admin"><AdminDashboard /></ProtectedRoute>} />
-          <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+          <Route path="/dashboard" element={<ProtectedRoute requiredRole="user"><Dashboard /></ProtectedRoute>} />
           <Route path="/modules" element={<ProtectedRoute><ModuleDashboard /></ProtectedRoute>} />
           <Route path="/modules/create" element={<ProtectedRoute><ModuleEditor /></ProtectedRoute>} />
+          <Route path="/modules/:id/view" element={<ModuleViewer />} />
           <Route path="/modules/:id" element={<ProtectedRoute><ModuleEditor /></ProtectedRoute>} />
           <Route path="/browse-skills" element={<ProtectedRoute><BrowseSkills /></ProtectedRoute>} />
           <Route path="/skill-recommendations" element={<ProtectedRoute><SkillRecommendations /></ProtectedRoute>} />

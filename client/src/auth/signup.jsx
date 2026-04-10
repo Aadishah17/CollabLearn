@@ -16,9 +16,10 @@ import {
 import { GoogleLogin } from '@react-oauth/google';
 import CollabLearnLogo from '../assets/collablearn-logo.svg';
 import AuthShowcase from '../components/auth/AuthShowcase.jsx';
-import { API_URL, GOOGLE_AUTH_ENABLED } from '../config';
+import { GOOGLE_AUTH_ENABLED } from '../config';
 import { resolveNextRoute } from './access.js';
-import { emitProfileUpdated, persistSession } from '../utils/session.js';
+import { emitProfileUpdated, hasStoredSession, persistSession } from '../utils/session.js';
+import { requestJson } from '../services/apiClient.js';
 
 export default function SignupPage() {
   const navigate = useNavigate();
@@ -48,10 +49,9 @@ export default function SignupPage() {
   ];
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    const storedRole = localStorage.getItem('userRole');
+    const storedRole = typeof localStorage === 'undefined' ? null : localStorage.getItem('userRole');
 
-    if (token) {
+    if (hasStoredSession()) {
       navigate(resolveNextRoute(null, storedRole), { replace: true });
     }
   }, [navigate]);
@@ -107,7 +107,11 @@ export default function SignupPage() {
   );
 
   const completeSignup = (responseData, successMessage) => {
-    persistSession({ token: responseData.token, user: responseData.user });
+    persistSession({
+      token: responseData.token,
+      user: responseData.user,
+      authMode: responseData.token ? 'token' : 'cookie',
+    });
     emitProfileUpdated({
       name: responseData.user?.name || username.trim(),
       email: responseData.user?.email || email.trim().toLowerCase(),
@@ -135,23 +139,14 @@ export default function SignupPage() {
     setLoading(true);
 
     try {
-      const response = await fetch(`${API_URL}/api/auth/register`, {
+      const data = await requestJson('/api/auth/register', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
+        body: {
           name: username.trim(),
           email: email.trim().toLowerCase(),
           password,
-        }),
+        },
       });
-
-      const data = await response.json().catch(() => ({}));
-
-      if (!response.ok) {
-        throw new Error(data.message || 'Signup failed.');
-      }
 
       completeSignup(data, 'Account created. Your workspace is ready.');
     } catch (error) {
@@ -171,19 +166,10 @@ export default function SignupPage() {
     setLoading(true);
 
     try {
-      const response = await fetch(`${API_URL}/api/auth/google`, {
+      const data = await requestJson('/api/auth/google', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ token: credentialResponse.credential }),
+        body: { token: credentialResponse.credential },
       });
-
-      const data = await response.json().catch(() => ({}));
-
-      if (!response.ok) {
-        throw new Error(data.message || 'Google signup failed.');
-      }
 
       completeSignup(data, 'Account created with Google.');
     } catch (error) {

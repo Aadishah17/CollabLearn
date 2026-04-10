@@ -85,7 +85,7 @@ export default function StatusPage() {
     setCheckingLive(true);
 
     try {
-      const data = await requestJson('/api/ai/studio-test', { method: 'POST' });
+      const data = await requestJson('/api/ai/studio-test', { method: 'POST', auth: true });
       await loadStatus({ silent: true });
       toast.success(`${formatProviderLabel(data.provider)} responded successfully`);
     } catch (error) {

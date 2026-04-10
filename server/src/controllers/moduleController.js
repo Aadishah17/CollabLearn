@@ -1,17 +1,21 @@
 const Module = require('../models/Module');
 const User = require('../models/User');
+const { ModuleInputError, normalizeModuleInput } = require('../utils/moduleContent');
 
 // @desc    Create a new module
 // @route   POST /api/modules
 // @access  Private
 exports.createModule = async (req, res) => {
     try {
-        const { title, description, content, tags, visibility } = req.body;
+        const { title, description, content, contentType, contentUrl, tags, visibility } =
+            normalizeModuleInput(req.body);
 
         const newModule = await Module.create({
             title,
             description,
             content,
+            contentType,
+            contentUrl,
             tags,
             visibility,
             owner: req.userId,
@@ -23,6 +27,12 @@ exports.createModule = async (req, res) => {
             data: newModule
         });
     } catch (error) {
+        if (error instanceof ModuleInputError) {
+            return res.status(400).json({
+                success: false,
+                message: error.message
+            });
+        }
         console.error('Error creating module:', error);
         res.status(500).json({
             success: false,
@@ -131,7 +141,9 @@ exports.updateModule = async (req, res) => {
             return res.status(403).json({ success: false, message: 'Not authorized to update this module' });
         }
 
-        module = await Module.findByIdAndUpdate(req.params.id, req.body, {
+        const payload = normalizeModuleInput(req.body);
+
+        module = await Module.findByIdAndUpdate(req.params.id, payload, {
             new: true,
             runValidators: true
         });
@@ -141,6 +153,12 @@ exports.updateModule = async (req, res) => {
             data: module
         });
     } catch (error) {
+        if (error instanceof ModuleInputError) {
+            return res.status(400).json({
+                success: false,
+                message: error.message
+            });
+        }
         res.status(500).json({
             success: false,
             message: 'Server Error',

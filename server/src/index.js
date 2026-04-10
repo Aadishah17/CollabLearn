@@ -1,17 +1,15 @@
 const express = require('express');
 const mongoose = require('mongoose');
-const fs = require('fs');
 const path = require('path');
 const compression = require('compression');
 const cors = require('cors');
 const helmet = require('helmet');
 require('dotenv').config();
-const { connectDB, resolveMongoUri } = require('./db');
+const { connectDB, resolveMongoUri, getMongoConnectionState } = require('./db');
 const { assertJwtSecretConfigured } = require('./config/auth');
+const { ensureUploadDirectories, uploadsPath } = require('./config/storage');
 const auth = require('./middleware/auth');
 const { createRateLimiter } = require('./middleware/rateLimit');
-
-assertJwtSecretConfigured();
 
 const app = express();
 const http = require('http');
@@ -19,9 +17,36 @@ const { Server } = require('socket.io');
 
 const PORT = Number(process.env.PORT) || 5001;
 const isProduction = String(process.env.NODE_ENV || '').trim() === 'production';
-const uploadsPath = path.join(__dirname, '..', 'uploads');
-const avatarUploadsPath = path.join(uploadsPath, 'avatars');
-const sessionDocumentUploadsPath = path.join(uploadsPath, 'session-documents');
+const isTruthyEnv = (value) => /^(1|true|yes|on)$/i.test(String(value || '').trim());
+const debugStartupLogs = isTruthyEnv(process.env.DEBUG_SERVER_STARTUP_LOGS);
+const debugSocketLogs = isTruthyEnv(process.env.DEBUG_SOCKET_LOGS);
+const logStartup = (...args) => {
+  if (debugStartupLogs) {
+    console.log(...args);
+  }
+};
+const logSocket = (...args) => {
+  if (debugSocketLogs) {
+    console.log(...args);
+  }
+};
+
+const normalizeOriginEntry = (origin) => {
+  const trimmed = String(origin || '').trim().replace(/\/+$/, '');
+  if (!trimmed) {
+    return '';
+  }
+
+  if (/^https?:\/\//i.test(trimmed)) {
+    return trimmed;
+  }
+
+  if (trimmed.startsWith('//')) {
+    return `https:${trimmed}`;
+  }
+
+  return `https://${trimmed}`;
+};
 
 const parseAllowedOrigins = () => {
   const defaults = [
@@ -43,7 +68,7 @@ const parseAllowedOrigins = () => {
 
   const configured = String(process.env.CORS_ORIGINS || '')
     .split(',')
-    .map((origin) => origin.trim())
+    .map((origin) => normalizeOriginEntry(origin))
     .filter(Boolean);
 
   return configured.length > 0 ? configured : defaults;
@@ -92,22 +117,19 @@ const aiRateLimiter = createRateLimiter({
   message: 'Too many AI requests. Please slow down and try again shortly.'
 });
 
-if (!fs.existsSync(uploadsPath)) {
-  fs.mkdirSync(uploadsPath, { recursive: true });
-}
-if (!fs.existsSync(avatarUploadsPath)) {
-  fs.mkdirSync(avatarUploadsPath, { recursive: true });
-}
-if (!fs.existsSync(sessionDocumentUploadsPath)) {
-  fs.mkdirSync(sessionDocumentUploadsPath, { recursive: true });
-}
+ensureUploadDirectories();
 
-console.log('-----------------------------------------');
-console.log('DEBUG: SERVER STARTUP');
-console.log('DEBUG: Loaded .env via dotenv');
-console.log('DEBUG: External AI provider key present?', !!process.env.GEMINI_API_KEY);
-console.log('DEBUG: CORS_ORIGINS:', allowedOrigins.join(', '));
-console.log('-----------------------------------------');
+const initializeApp = (options = {}) => {
+  assertJwtSecretConfigured();
+  return connectDB(options);
+};
+
+logStartup('-----------------------------------------');
+logStartup('DEBUG: SERVER STARTUP');
+logStartup('DEBUG: Loaded .env via dotenv');
+logStartup('DEBUG: External AI provider key present?', !!process.env.GEMINI_API_KEY);
+logStartup('DEBUG: CORS_ORIGINS:', allowedOrigins.join(', '));
+logStartup('-----------------------------------------');
 
 const server = http.createServer(app);
 const io = new Server(server, {
@@ -132,7 +154,7 @@ io.on('connection', (socket) => {
   socket.on('user_online', (userId) => {
     if (!userId) return;
 
-    console.log(`User online: ${userId} (Socket: ${socket.id})`);
+    logSocket(`User online: ${userId} (Socket: ${socket.id})`);
     onlineUsers.set(userId, socket.id);
     socket.userId = userId;
 
@@ -167,7 +189,7 @@ io.on('connection', (socket) => {
 
   socket.on('disconnect', () => {
     if (!socket.userId) return;
-    console.log(`User disconnected: ${socket.userId}`);
+    logSocket(`User disconnected: ${socket.userId}`);
     onlineUsers.delete(socket.userId);
     socket.broadcast.emit('user_status_change', { userId: socket.userId, isOnline: false });
   });
@@ -203,11 +225,8 @@ app.use(
   })
 );
 
-console.log('Attempting to connect to MongoDB:', resolveMongoUri());
-connectDB();
-
 mongoose.connection.on('error', (error) => console.error('MongoDB error:', error));
-mongoose.connection.on('disconnected', () => console.log('MongoDB disconnected'));
+mongoose.connection.on('disconnected', () => console.warn('MongoDB disconnected'));
 
 app.get('/api/users', auth, async (_req, res) => {
   try {
@@ -228,7 +247,8 @@ app.get('/api/messages/:chatId', auth, async (req, res) => {
 });
 
 app.get('/api/health', (_req, res) => {
-  const dbState = mongoose.connection.readyState;
+  const mongoState = getMongoConnectionState();
+  const dbState = mongoState.readyState;
   const dbStateLabelMap = {
     0: 'disconnected',
     1: 'connected',
@@ -245,6 +265,7 @@ app.get('/api/health', (_req, res) => {
     environment: process.env.NODE_ENV || 'development',
     db: dbStatus,
     dbStatus,
+    mongo: mongoState,
     services: {
       api: 'ok',
       database: dbStatus
@@ -259,16 +280,25 @@ app.use('/api/booking', require('./routes/booking'));
 app.use('/api/dashboard', require('./routes/dashboard'));
 app.use('/api/admin', require('./routes/admin'));
 app.use('/api/courses', require('./routes/courses'));
+app.use('/api/public', require('./routes/public'));
 app.use('/api/ai', aiRateLimiter, require('./routes/ai'));
 app.use('/api/modules', require('./routes/moduleRoutes'));
-
-console.log('All routes loaded');
 
 app.get('/', (_req, res) => {
   res.json({ message: 'CollabLearn API Running!' });
 });
 
-server.listen(PORT, '0.0.0.0', () => {
-  console.log(`Server running on port ${PORT}`);
-  console.log(`Local: http://localhost:${PORT}`);
-});
+if (require.main === module) {
+  logStartup('Attempting to connect to MongoDB:', resolveMongoUri());
+  void initializeApp();
+
+  server.listen(PORT, '0.0.0.0', () => {
+    logStartup(`Server running on port ${PORT}`);
+    logStartup(`Local: http://localhost:${PORT}`);
+  });
+}
+
+app.initializeApp = initializeApp;
+app.server = server;
+
+module.exports = app;

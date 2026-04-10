@@ -1,0 +1,89 @@
+services:
+  - type: web
+    name: collablearn-api
+    runtime: node
+    plan: free
+    region: oregon
+    branch: codex/auth-cookie-session
+    autoDeploy: true
+    buildCommand: npm ci --prefix server
+    startCommand: npm run start --prefix server
+    healthCheckPath: /api/health
+    buildFilter:
+      paths:
+        - server/**
+        - package.json
+        - package-lock.json
+        - render.yaml
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: TRUST_PROXY
+        value: 1
+      - key: AUTH_COOKIE_SECURE
+        value: true
+      - key: AUTH_COOKIE_SAMESITE
+        value: lax
+      - key: CORS_ORIGINS
+        fromService:
+          name: collablearn-web
+          type: web
+          property: host
+      - key: SUPER_ADMIN_EMAILS
+        value: shahaadi285@gmail.com
+      - key: MONGODB_URI
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: NVIDIA_API_KEY
+        sync: false
+      - key: NVIDIA_MODEL
+        value: meta/llama-3.1-8b-instruct
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: GEMINI_MODEL
+        value: gemini-2.5-flash
+
+  - type: web
+    name: collablearn-web
+    runtime: static
+    plan: free
+    region: oregon
+    branch: codex/auth-cookie-session
+    autoDeploy: true
+    buildCommand: npm ci --prefix client && npm run build --prefix client
+    staticPublishPath: ./client/dist
+    buildFilter:
+      paths:
+        - client/**
+        - package.json
+        - package-lock.json
+        - render.yaml
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    headers:
+      - path: /assets/*
+        name: Cache-Control
+        value: public, max-age=3600
+      - path: /index.html
+        name: Cache-Control
+        value: no-cache, no-store, must-revalidate
+      - path: /*
+        name: X-Frame-Options
+        value: SAMEORIGIN
+      - path: /*
+        name: X-Content-Type-Options
+        value: nosniff
+      - path: /*
+        name: Referrer-Policy
+        value: strict-origin-when-cross-origin
+    envVars:
+      - key: VITE_API_URL
+        fromService:
+          name: collablearn-api
+          type: web
+          property: host
+      - key: VITE_GOOGLE_CLIENT_ID
+        sync: false

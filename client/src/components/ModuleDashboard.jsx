@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import MainNavbar from '../navbar/mainNavbar.jsx';
 import { API_URL } from '../config';
+import { buildModuleViewTarget, isPretextModule } from '../utils/moduleViewer.js';
 
 const FILTERS = [
   { key: 'all', label: 'All modules' },
@@ -50,6 +51,7 @@ const TEMPLATES = [
 const getMockModules = () => [
   {
     _id: 'mod-1',
+    fixture: true,
     title: 'Frontend Interview Prep',
     description: 'A curated list of typical frontend interview questions and system design tips, along with live coding practice outlines.',
     updatedAt: new Date().toISOString(),
@@ -60,6 +62,7 @@ const getMockModules = () => [
   },
   {
     _id: 'mod-2',
+    fixture: true,
     title: 'Guitar Chords Masterclass',
     description: 'Learn the CAGED system and advanced chord voicings effortlessly. A step-by-step roadmap for all skill levels.',
     updatedAt: new Date(Date.now() - 86400000).toISOString(),
@@ -70,6 +73,7 @@ const getMockModules = () => [
   },
   {
     _id: 'mod-3',
+    fixture: true,
     title: 'Data Science Bootcamp',
     description: 'Python code snippets, Pandas cheat sheets, and machine learning models for fast reference during analytics sprints.',
     updatedAt: new Date(Date.now() - 345600000).toISOString(),
@@ -77,6 +81,20 @@ const getMockModules = () => [
     isPublic: true,
     collaborators: ['1'],
     content: 'Pandas setup...'
+  },
+  {
+    _id: 'mod-pretext',
+    fixture: true,
+    title: 'PreTeXt Lesson Demo',
+    description: 'A sample exported PreTeXt-style lesson rendered through the website viewer.',
+    updatedAt: new Date(Date.now() - 172800000).toISOString(),
+    tags: ['PreTeXt', 'Lesson', 'Demo'],
+    visibility: 'public',
+    owner: { _id: 'demo-owner', name: 'CollabLearn' },
+    collaborators: [],
+    contentType: 'pretext',
+    contentUrl: '/pretext/collablearn-intro.html',
+    content: ''
   }
 ];
 
@@ -98,6 +116,9 @@ function estimateReadingMinutes(module) {
     .replace(/<[^>]*>/g, ' ')
     .trim();
   const words = plainText ? plainText.split(/\s+/).length : 0;
+  if (isPretextModule(module)) {
+    return Math.max(3, Math.round(words / 160));
+  }
   return Math.max(1, Math.round(words / 180));
 }
 
@@ -424,6 +445,11 @@ export default function ModuleDashboard() {
                       <span className="glass-chip border-white/15 bg-white/5 text-zinc-200">
                         {visibilityLabel}
                       </span>
+                      {isPretextModule(module) ? (
+                        <span className="glass-chip border-blue-400/35 bg-blue-500/12 text-blue-100">
+                          PreTeXt
+                        </span>
+                      ) : null}
                       {isOwner ? (
                         <span className="glass-chip border-red-400/45 bg-red-500/15 text-red-100">
                           Owner
@@ -487,9 +513,17 @@ export default function ModuleDashboard() {
                       </p>
                     </div>
 
-                    <Link to={`/modules/${module._id}`} className="glass-cta px-4 py-2">
+                    <Link to={buildModuleViewTarget(module)} className="glass-cta px-4 py-2">
                       Open
                     </Link>
+                    {isOwner ? (
+                      <Link
+                        to={`/modules/${module._id}`}
+                        className="glass-chip border-white/15 bg-white/5 px-4 py-2"
+                      >
+                        Edit
+                      </Link>
+                    ) : null}
                   </div>
                 </article>
               );

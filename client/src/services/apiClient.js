@@ -1,4 +1,4 @@
-import { API_URL } from '../config';
+import { API_URL } from '../config.js';
 
 const DEFAULT_TIMEOUT_MS = 15000;
 
@@ -13,6 +13,14 @@ export class ApiError extends Error {
 }
 
 const getBaseUrl = () => String(API_URL || '').replace(/\/$/, '');
+
+const getStoredToken = () => {
+  if (typeof localStorage === 'undefined') {
+    return null;
+  }
+
+  return localStorage.getItem('token');
+};
 
 const resolveUrl = (input) => {
   const value = String(input || '').trim();
@@ -37,13 +45,17 @@ const toErrorMessage = (payload, fallback) => {
 };
 
 const parseResponseBody = async (response) => {
-  const contentType = response.headers.get('content-type') || '';
-  if (contentType.includes('application/json')) {
-    return response.json();
-  }
-
   const text = await response.text();
   if (!text) return null;
+
+  const contentType = response.headers.get('content-type') || '';
+  if (contentType.includes('application/json')) {
+    try {
+      return JSON.parse(text);
+    } catch {
+      return text;
+    }
+  }
 
   try {
     return JSON.parse(text);
@@ -62,6 +74,17 @@ export const normalizeApiError = (error, fallbackMessage = 'Request failed') => 
   }
 
   if (error instanceof Error) {
+    const normalizedMessage = String(error.message || '').trim().toLowerCase();
+    if (
+      normalizedMessage === 'failed to fetch' ||
+      normalizedMessage === 'load failed' ||
+      normalizedMessage.includes('networkerror')
+    ) {
+      return new ApiError('Unable to reach the server. Please try again later.', {
+        code: 'network_unavailable'
+      });
+    }
+
     return new ApiError(error.message || fallbackMessage, {
       code: error.code || 'request_failed'
     });
@@ -78,7 +101,7 @@ export const buildJsonHeaders = (headers = {}, { auth = false } = {}) => {
   };
 
   if (auth) {
-    const token = localStorage.getItem('token');
+    const token = getStoredToken();
     if (token) {
       nextHeaders.Authorization = `Bearer ${token}`;
     }
@@ -93,12 +116,13 @@ export const requestJson = async (input, options = {}) => {
     body,
     headers = {},
     auth = false,
+    credentials = 'include',
     timeoutMs = DEFAULT_TIMEOUT_MS,
     signal
   } = options;
 
   const controller = new AbortController();
-  const timeoutId = window.setTimeout(() => controller.abort(), timeoutMs);
+  const timeoutId = globalThis.setTimeout(() => controller.abort(), timeoutMs);
 
   if (signal) {
     if (signal.aborted) {
@@ -113,6 +137,7 @@ export const requestJson = async (input, options = {}) => {
       method,
       headers: buildJsonHeaders(headers, { auth }),
       body: body === undefined ? undefined : JSON.stringify(body),
+      credentials,
       signal: controller.signal
     });
 
@@ -144,6 +169,6 @@ export const requestJson = async (input, options = {}) => {
   } catch (error) {
     throw normalizeApiError(error);
   } finally {
-    window.clearTimeout(timeoutId);
+    globalThis.clearTimeout(timeoutId);
   }
 };

@@ -77,6 +77,7 @@ The project includes several root-level scripts for development and maintenance:
 | `fix_deps.bat` | Resolves common dependency issues. |
 | `debug_*.bat` | Various scripts for debugging client, server, and environment. |
 | `run_flutter.bat` | Helper for the secondary Flutter codebase. |
+| `server/scripts/seed-mock-data.js` | Seeds deterministic demo data into the active MongoDB database. |
 
 ## CI / Quality
 
@@ -89,14 +90,46 @@ Keep local changes aligned with that same bar before opening a PR:
 - `npm run build --prefix client`
 - `npm run lint --prefix client`
 - `npm run db:ping --prefix server`
+- `npm run seed:mock --prefix server`
 
 ## Production Notes
 
 - Set a strong `JWT_SECRET` in `server/.env`. The server now refuses placeholder secrets.
+- Browser auth now supports an `httpOnly` session cookie alongside bearer-token compatibility. Tune cookie behavior with `AUTH_COOKIE_*` variables in `server/.env`.
 - Keep `CORS_ORIGINS` restricted to trusted frontend hosts in production.
 - Set `TRUST_PROXY=1` when the API is deployed behind a reverse proxy or platform load balancer.
+- Optionally set `REDIS_URL` to share rate-limit counters across multiple API instances. If Redis is unavailable, the server falls back to local in-memory counters instead of failing requests.
+- Use `DB_CONNECT_MAX_ATTEMPTS`, `DB_CONNECT_RETRY_BASE_MS`, and `DB_CONNECT_RETRY_MAX_MS` if you need to tune MongoDB retry behavior for slower environments.
+- MongoDB connection failures no longer terminate the process immediately. The API stays up, retries in the background, and exposes the current readiness state through `/api/health`.
 - Runtime uploads are served from `server/uploads/` and should stay out of version control.
 - The AI model is configurable through `GEMINI_MODEL`; if omitted, the server falls back to `gemini-2.0-flash`.
+
+## Render Deployment
+
+The repo now includes a root-level [render.yaml](./render.yaml) blueprint for a two-service Render setup:
+
+- `collablearn-web`: static frontend built from `client/`
+- `collablearn-api`: Node/Express API built from `server/`
+
+Before applying the blueprint, set these secret values in Render:
+
+- `MONGODB_URI`
+- `JWT_SECRET`
+- `NVIDIA_API_KEY`
+- `GEMINI_API_KEY` if you want Gemini enabled
+- `VITE_GOOGLE_CLIENT_ID` if you want Google auth enabled in the frontend
+
+The blueprint wires the frontend to the API automatically through Render service references. `VITE_API_URL` and `CORS_ORIGINS` can now consume bare Render hostnames and normalize them to HTTPS at runtime.
+
+## Mock Data
+
+The server includes a deterministic seed script for local development and CI smoke runs:
+
+```bash
+npm run seed:mock --prefix server
+```
+
+Use `npm run seed:mock:reset --prefix server` to rebuild the demo dataset from scratch on a non-production database. The seeded credentials are printed by the script after it finishes.
 
 ## AI Integration
 

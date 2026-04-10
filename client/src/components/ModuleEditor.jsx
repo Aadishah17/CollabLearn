@@ -14,6 +14,7 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { API_URL } from '../config';
+import { getModuleViewPath, isPretextModule } from '../utils/moduleViewer.js';
 
 const MODULE_TEMPLATES = {
   'study-guide': {
@@ -82,6 +83,15 @@ const MODULE_TEMPLATES = {
       <p>Capture who owns what and what should happen next.</p>
     `,
   },
+  'pretext-lesson': {
+    title: 'PreTeXt Lesson',
+    description: 'A module shell that points to an exported PreTeXt HTML lesson.',
+    visibility: 'public',
+    tags: ['pretext', 'lesson', 'reading'],
+    contentType: 'pretext',
+    contentUrl: '/pretext/collablearn-intro.html',
+    content: '',
+  },
 };
 
 const quillModules = {
@@ -133,6 +143,8 @@ export default function ModuleEditor() {
   const [description, setDescription] = useState('');
   const [visibility, setVisibility] = useState('private');
   const [tagsText, setTagsText] = useState('');
+  const [contentType, setContentType] = useState('richtext');
+  const [contentUrl, setContentUrl] = useState('');
   const [loading, setLoading] = useState(!isCreating);
   const [saving, setSaving] = useState(false);
   const [previewMode, setPreviewMode] = useState(false);
@@ -151,6 +163,8 @@ export default function ModuleEditor() {
             setDescription(parsedDraft.description || '');
             setVisibility(parsedDraft.visibility || 'private');
             setTagsText(parsedDraft.tagsText || '');
+            setContentType(parsedDraft.contentType || 'richtext');
+            setContentUrl(parsedDraft.contentUrl || '');
             setLoading(false);
             return;
           } catch (draftError) {
@@ -164,6 +178,8 @@ export default function ModuleEditor() {
           setDescription(template.description);
           setVisibility(template.visibility);
           setTagsText(template.tags.join(', '));
+          setContentType(template.contentType || 'richtext');
+          setContentUrl(template.contentUrl || '');
         }
 
         setLoading(false);
@@ -185,6 +201,8 @@ export default function ModuleEditor() {
         setDescription(moduleData.description || '');
         setVisibility(moduleData.visibility || 'private');
         setTagsText(Array.isArray(moduleData.tags) ? moduleData.tags.join(', ') : '');
+        setContentType(moduleData.contentType || 'richtext');
+        setContentUrl(moduleData.contentUrl || '');
       } catch (loadError) {
         console.error('Error loading module:', loadError);
         toast.error('Failed to load this module.');
@@ -203,9 +221,9 @@ export default function ModuleEditor() {
 
     localStorage.setItem(
       draftKey,
-      JSON.stringify({ title, content, description, visibility, tagsText }),
+      JSON.stringify({ title, content, description, visibility, tagsText, contentType, contentUrl }),
     );
-  }, [content, description, draftKey, isCreating, loading, tagsText, title, visibility]);
+  }, [content, contentType, contentUrl, description, draftKey, isCreating, loading, tagsText, title, visibility]);
 
   const stats = useMemo(() => {
     const plainText = getPlainText(content);
@@ -229,6 +247,8 @@ export default function ModuleEditor() {
       content,
       description: description.trim(),
       visibility,
+      contentType,
+      contentUrl: contentType === 'pretext' ? contentUrl.trim() : '',
       tags: tagsText
         .split(',')
         .map((tag) => tag.trim())
@@ -243,7 +263,7 @@ export default function ModuleEditor() {
         const response = await axios.post(`${API_URL}/api/modules`, payload, config);
         localStorage.removeItem(draftKey);
         toast.success('Module created.');
-        navigate(`/modules/${response.data?.data?._id}`);
+        navigate(getModuleViewPath(response.data?.data?._id));
         return;
       }
 
@@ -265,7 +285,7 @@ export default function ModuleEditor() {
     }
 
     try {
-      await navigator.clipboard.writeText(`${window.location.origin}/modules/${id}`);
+      await navigator.clipboard.writeText(`${window.location.origin}${getModuleViewPath(id)}`);
       toast.success('Module link copied.');
     } catch (copyError) {
       console.error('Copy link failed:', copyError);
@@ -374,6 +394,20 @@ export default function ModuleEditor() {
                 </div>
 
                 <div>
+                  <label className="mb-2 block text-sm font-semibold text-zinc-300">
+                    Content type
+                  </label>
+                  <select
+                    value={contentType}
+                    onChange={(event) => setContentType(event.target.value)}
+                    className="glass-input appearance-none"
+                  >
+                    <option value="richtext">Rich text</option>
+                    <option value="pretext">PreTeXt lesson</option>
+                  </select>
+                </div>
+
+                <div>
                   <label className="mb-2 block text-sm font-semibold text-zinc-300">Tags</label>
                   <input
                     type="text"
@@ -385,24 +419,73 @@ export default function ModuleEditor() {
                 </div>
               </div>
             </div>
+
+            {isPretextModule({ contentType }) ? (
+              <div className="mt-4 rounded-[24px] border border-blue-400/25 bg-blue-500/8 p-4">
+                <label className="mb-2 block text-sm font-semibold text-zinc-200">
+                  PreTeXt lesson URL
+                </label>
+                <input
+                  type="text"
+                  value={contentUrl}
+                  onChange={(event) => setContentUrl(event.target.value)}
+                  className="glass-input"
+                  placeholder="/pretext/collablearn-intro.html or https://..."
+                />
+                <p className="mt-2 text-xs leading-6 text-zinc-400">
+                  Use a root-relative exported lesson inside this website or a full external URL.
+                </p>
+              </div>
+            ) : null}
           </div>
 
           <div className="surface-card overflow-hidden">
             {previewMode ? (
               <div className="min-h-[70vh] px-6 py-8 md:px-10">
-                <div className="prose prose-invert max-w-none">
-                  <div dangerouslySetInnerHTML={{ __html: content || '<p>Nothing to preview yet.</p>' }} />
-                </div>
+                {isPretextModule({ contentType }) ? (
+                  contentUrl.trim() ? (
+                    <iframe
+                      title={title || 'PreTeXt lesson preview'}
+                      src={contentUrl.trim()}
+                      className="h-[72vh] w-full rounded-[24px] border border-white/10 bg-white"
+                    />
+                  ) : (
+                    <p className="text-sm leading-7 text-zinc-300">
+                      Add a PreTeXt lesson URL to preview the exported lesson here.
+                    </p>
+                  )
+                ) : (
+                  <div className="prose prose-invert max-w-none">
+                    <div dangerouslySetInnerHTML={{ __html: content || '<p>Nothing to preview yet.</p>' }} />
+                  </div>
+                )}
               </div>
             ) : (
-              <ReactQuill
-                ref={quillRef}
-                theme="snow"
-                value={content}
-                onChange={setContent}
-                modules={quillModules}
-                className="module-quill min-h-[70vh] text-zinc-100"
-              />
+              isPretextModule({ contentType }) ? (
+                <div className="flex min-h-[70vh] items-center justify-center px-8 py-16">
+                  <div className="max-w-2xl rounded-[28px] border border-white/10 bg-white/[0.03] p-8 text-center">
+                    <p className="text-xs font-semibold uppercase tracking-[0.24em] text-blue-300">
+                      PreTeXt mode
+                    </p>
+                    <h2 className="mt-4 text-3xl font-black text-white">
+                      This module points to an exported lesson instead of inline editor content.
+                    </h2>
+                    <p className="mt-4 text-sm leading-7 text-zinc-300">
+                      Keep the summary, tags, and visibility here, then use preview mode to verify
+                      the embedded lesson output.
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <ReactQuill
+                  ref={quillRef}
+                  theme="snow"
+                  value={content}
+                  onChange={setContent}
+                  modules={quillModules}
+                  className="module-quill min-h-[70vh] text-zinc-100"
+                />
+              )
             )}
           </div>
         </section>
