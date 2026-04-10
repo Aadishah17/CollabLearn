@@ -4,7 +4,7 @@ import { ArrowRight, Menu, Moon, Sparkles, Sun, X } from 'lucide-react';
 import { useTheme } from '../components/user/useTheme.js';
 import logo from '../assets/collablearn-logo.svg';
 import { hasStoredSession } from '../utils/session.js';
-import { resolvePublicWebsiteEntry } from './navLinks.js';
+import { buildPublicDiscoveryLinks, resolvePublicWebsiteEntry } from './navLinks.js';
 
 export default function LandingNavbar() {
   const { isDarkMode, toggleDarkMode } = useTheme();
@@ -21,6 +21,7 @@ export default function LandingNavbar() {
     { href: '#how-it-works', label: 'Learning Loop' },
     { href: '#features', label: 'Features' },
     { href: '#teach', label: 'Teach' },
+    ...buildPublicDiscoveryLinks().map((link) => ({ to: link.path, label: link.label })),
     { to: '/status', label: 'Status' },
   ];
 

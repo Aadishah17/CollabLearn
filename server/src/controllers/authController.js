@@ -8,6 +8,7 @@ const path = require('path');
 const { OAuth2Client } = require('google-auth-library');
 const Setting = require('../models/Setting');
 const { getAccessProfile, normalizeEmail } = require('../config/access');
+const { avatarUploadsPath } = require('../config/storage');
 const {
   clearAuthCookie,
   resolveJwtSecret,
@@ -85,7 +86,7 @@ const buildSessionUser = ({ account, accountType, role, isSuperAdmin }) => {
   };
 };
 
-const findLoginAccount = async (email, requestedRole, isSuperAdmin) => {
+const findLoginCandidates = async (email, requestedRole, isSuperAdmin) => {
   const lookupOrder = [];
 
   if (requestedRole === 'admin') {
@@ -100,20 +101,19 @@ const findLoginAccount = async (email, requestedRole, isSuperAdmin) => {
     }
   }
 
+  const candidates = [];
+
   for (const lookup of lookupOrder) {
     const account = await lookup.model.findOne({ email });
     if (account) {
-      return {
+      candidates.push({
         account,
         accountType: lookup.accountType
-      };
+      });
     }
   }
 
-  return {
-    account: null,
-    accountType: null
-  };
+  return candidates;
 };
 
 const authController = {
@@ -219,19 +219,37 @@ const authController = {
         });
       }
 
-      const { account, accountType } = await findLoginAccount(
+      const candidates = await findLoginCandidates(
         normalizedEmail,
         requestedRole,
         accessProfile.isSuperAdmin
       );
 
-      if (!account) {
+      if (!candidates.length) {
         return res.status(401).json({
           success: false,
           message: requestedRole === 'admin' ? 'Invalid admin credentials' : 'Invalid email or password'
         });
       }
 
+      let matchedCandidate = null;
+
+      for (const candidate of candidates) {
+        const isPasswordValid = await bcrypt.compare(password, candidate.account.password);
+        if (isPasswordValid) {
+          matchedCandidate = candidate;
+          break;
+        }
+      }
+
+      if (!matchedCandidate) {
+        return res.status(401).json({
+          success: false,
+          message: requestedRole === 'admin' ? 'Invalid admin credentials' : 'Invalid email or password'
+        });
+      }
+
+      const { account, accountType } = matchedCandidate;
       const sessionRole = accountType === 'admin' ? 'admin' : accessProfile.role;
 
       if (!account.isActive) {
@@ -241,14 +259,6 @@ const authController = {
             sessionRole === 'admin'
               ? 'Admin account is deactivated. Please contact support.'
               : 'Account is deactivated. Please contact support.'
-        });
-      }
-
-      const isPasswordValid = await bcrypt.compare(password, account.password);
-      if (!isPasswordValid) {
-        return res.status(401).json({
-          success: false,
-          message: requestedRole === 'admin' ? 'Invalid admin credentials' : 'Invalid email or password'
         });
       }
 
@@ -522,7 +532,7 @@ const authController = {
         previousAvatarFilename !== req.file.filename
       ) {
         const oldFilename = path.basename(String(previousAvatarFilename));
-        const oldFilePath = path.join(__dirname, '..', '..', 'uploads', 'avatars', oldFilename);
+        const oldFilePath = path.join(avatarUploadsPath, oldFilename);
         fs.unlink(oldFilePath, (_error) => {
           // Ignore cleanup failures to avoid breaking successful upload flow.
         });

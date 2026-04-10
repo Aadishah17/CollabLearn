@@ -8,6 +8,7 @@ import {
   LoaderCircle,
   Lock,
   MessageSquare,
+  RefreshCw,
   Sparkles,
   Target,
   TrendingUp,
@@ -111,6 +112,7 @@ export default function Dashboard() {
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [selectedSkill, setSelectedSkill] = useState(null);
   const [showStudentModal, setShowStudentModal] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState(null);
 
   const fetchDashboardData = useCallback(
     async ({ bypassCache = false } = {}) => {
@@ -122,6 +124,7 @@ export default function Dashboard() {
           const cached = readCachedDashboard();
           if (cached) {
             setDashboardData(cached);
+            setLastUpdated(new Date());
             setLoading(false);
             return;
           }
@@ -130,6 +133,7 @@ export default function Dashboard() {
         const payload = await getDashboardStats();
         setDashboardData(payload);
         writeCachedDashboard(payload);
+        setLastUpdated(new Date());
       } catch (fetchError) {
         console.error('Dashboard error:', fetchError);
 
@@ -329,12 +333,30 @@ export default function Dashboard() {
             <div className="relative reveal-up">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div className="eyebrow">
-                  <Sparkles size={14} className="text-red-300" />
+                  <Sparkles size={14} className="text-red-300" aria-hidden="true" />
                   Authenticated workspace
                 </div>
-                <div className="inline-flex items-center gap-2 rounded-full border border-emerald-400/20 bg-emerald-500/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.24em] text-emerald-200">
-                  <span className="h-2 w-2 animate-pulse rounded-full bg-emerald-300" />
-                  Live data
+                <div className="flex items-center gap-2">
+                  <div className="inline-flex items-center gap-2 rounded-full border border-emerald-400/20 bg-emerald-500/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.24em] text-emerald-200">
+                    <span className="h-2 w-2 animate-pulse rounded-full bg-emerald-300" aria-hidden="true" />
+                    Live data
+                  </div>
+                  {lastUpdated && (
+                    <div className="hidden sm:flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-400">
+                      <Clock3 size={10} aria-hidden="true" />
+                      {lastUpdated.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </div>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => fetchDashboardData({ bypassCache: true })}
+                    disabled={loading}
+                    className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-400 transition-colors hover:border-red-400/30 hover:text-red-300 disabled:cursor-not-allowed disabled:opacity-50"
+                    aria-label="Refresh dashboard data"
+                  >
+                    <RefreshCw size={12} className={loading ? 'animate-spin' : ''} aria-hidden="true" />
+                    <span className="hidden sm:inline">Refresh</span>
+                  </button>
                 </div>
               </div>
 

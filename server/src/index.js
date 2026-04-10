@@ -1,6 +1,5 @@
 const express = require('express');
 const mongoose = require('mongoose');
-const fs = require('fs');
 const path = require('path');
 const compression = require('compression');
 const cors = require('cors');
@@ -8,10 +7,9 @@ const helmet = require('helmet');
 require('dotenv').config();
 const { connectDB, resolveMongoUri, getMongoConnectionState } = require('./db');
 const { assertJwtSecretConfigured } = require('./config/auth');
+const { ensureUploadDirectories, uploadsPath } = require('./config/storage');
 const auth = require('./middleware/auth');
 const { createRateLimiter } = require('./middleware/rateLimit');
-
-assertJwtSecretConfigured();
 
 const app = express();
 const http = require('http');
@@ -22,9 +20,6 @@ const isProduction = String(process.env.NODE_ENV || '').trim() === 'production';
 const isTruthyEnv = (value) => /^(1|true|yes|on)$/i.test(String(value || '').trim());
 const debugStartupLogs = isTruthyEnv(process.env.DEBUG_SERVER_STARTUP_LOGS);
 const debugSocketLogs = isTruthyEnv(process.env.DEBUG_SOCKET_LOGS);
-const uploadsPath = path.join(__dirname, '..', 'uploads');
-const avatarUploadsPath = path.join(uploadsPath, 'avatars');
-const sessionDocumentUploadsPath = path.join(uploadsPath, 'session-documents');
 const logStartup = (...args) => {
   if (debugStartupLogs) {
     console.log(...args);
@@ -122,15 +117,12 @@ const aiRateLimiter = createRateLimiter({
   message: 'Too many AI requests. Please slow down and try again shortly.'
 });
 
-if (!fs.existsSync(uploadsPath)) {
-  fs.mkdirSync(uploadsPath, { recursive: true });
-}
-if (!fs.existsSync(avatarUploadsPath)) {
-  fs.mkdirSync(avatarUploadsPath, { recursive: true });
-}
-if (!fs.existsSync(sessionDocumentUploadsPath)) {
-  fs.mkdirSync(sessionDocumentUploadsPath, { recursive: true });
-}
+ensureUploadDirectories();
+
+const initializeApp = (options = {}) => {
+  assertJwtSecretConfigured();
+  return connectDB(options);
+};
 
 logStartup('-----------------------------------------');
 logStartup('DEBUG: SERVER STARTUP');
@@ -233,9 +225,6 @@ app.use(
   })
 );
 
-logStartup('Attempting to connect to MongoDB:', resolveMongoUri());
-void connectDB();
-
 mongoose.connection.on('error', (error) => console.error('MongoDB error:', error));
 mongoose.connection.on('disconnected', () => console.warn('MongoDB disconnected'));
 
@@ -291,16 +280,25 @@ app.use('/api/booking', require('./routes/booking'));
 app.use('/api/dashboard', require('./routes/dashboard'));
 app.use('/api/admin', require('./routes/admin'));
 app.use('/api/courses', require('./routes/courses'));
+app.use('/api/public', require('./routes/public'));
 app.use('/api/ai', aiRateLimiter, require('./routes/ai'));
 app.use('/api/modules', require('./routes/moduleRoutes'));
-
-logStartup('All routes loaded');
 
 app.get('/', (_req, res) => {
   res.json({ message: 'CollabLearn API Running!' });
 });
 
-server.listen(PORT, '0.0.0.0', () => {
-  logStartup(`Server running on port ${PORT}`);
-  logStartup(`Local: http://localhost:${PORT}`);
-});
+if (require.main === module) {
+  logStartup('Attempting to connect to MongoDB:', resolveMongoUri());
+  void initializeApp();
+
+  server.listen(PORT, '0.0.0.0', () => {
+    logStartup(`Server running on port ${PORT}`);
+    logStartup(`Local: http://localhost:${PORT}`);
+  });
+}
+
+app.initializeApp = initializeApp;
+app.server = server;
+
+module.exports = app;

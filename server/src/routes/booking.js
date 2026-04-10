@@ -7,6 +7,10 @@ const { validateBody, validateParams, schemas } = require('../middleware/validat
 const multer = require('multer');
 const path = require('path');
 const {
+  ensureUploadDirectories,
+  sessionDocumentUploadsPath
+} = require('../config/storage');
+const {
   canAccessBooking,
   canAccessUserScopedResource,
   getBookingParticipantRole,
@@ -15,9 +19,11 @@ const {
 } = require('../utils/bookingAccess');
 const { isOneToOneBooking, isSingleSessionCount } = require('../utils/bookingRules');
 
+ensureUploadDirectories();
+
 const storage = multer.diskStorage({
   destination(req, file, cb) {
-    cb(null, 'uploads/session-documents/');
+    cb(null, sessionDocumentUploadsPath);
   },
   filename(req, file, cb) {
     const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;

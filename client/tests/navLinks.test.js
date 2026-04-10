@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import { ADMIN_ROLE, USER_ROLE } from '../src/auth/access.js';
 import {
   buildMainNavLinks,
+  buildPublicDiscoveryLinks,
   resolveAdminWebsiteRoute,
   resolveMainNavbarHomePath,
   resolvePublicWebsiteEntry,
@@ -80,4 +81,15 @@ test('resolvePublicWebsiteEntry sends non-super admins back to admin console', (
       label: 'Return to admin console',
     },
   );
+});
+
+test('buildPublicDiscoveryLinks exposes competitions and career discovery routes', () => {
+  const links = buildPublicDiscoveryLinks();
+
+  assert.deepEqual(
+    links.map((link) => link.path),
+    ['/competitions', '/career'],
+  );
+  assert.equal(links[0].label, 'Competitions');
+  assert.equal(links[1].label, 'Career');
 });

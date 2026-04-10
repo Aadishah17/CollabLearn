@@ -71,10 +71,6 @@ export default defineConfig(({ mode }) => {
               return 'dashjs';
             }
 
-            if (['react-quill-new', 'quill', 'parchment', 'quill-delta'].includes(packageName)) {
-              return 'editor';
-            }
-
             if (['socket.io-client', 'socket.io-parser', 'engine.io-client'].includes(packageName)) {
               return 'realtime';
             }

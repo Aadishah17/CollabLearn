@@ -37,6 +37,21 @@ const resolveMongoUri = () => {
   return primary || legacy || DEFAULT_LOCAL_MONGO_URI;
 };
 
+const redactMongoUri = (mongoUri) => {
+  const normalized = String(mongoUri || '').trim();
+  if (!normalized) {
+    return normalized;
+  }
+
+  return normalized.replace(/\/\/([^:/@]+)(?::([^@]*))?@/, (_match, username, password) => {
+    if (password === undefined) {
+      return `//${username}@`;
+    }
+
+    return `//${username}:***@`;
+  });
+};
+
 const buildMongoConnectOptions = (mongoUri) => {
   const options = {
     serverSelectionTimeoutMS: 10000
@@ -60,7 +75,7 @@ const sleep = (ms) =>
 const snapshotConnectionState = () => ({
   ...connectionState,
   readyState: mongoose.connection.readyState,
-  mongoUri: resolveMongoUri()
+  mongoUri: redactMongoUri(resolveMongoUri())
 });
 
 const ensureConnectionListeners = () => {
@@ -196,6 +211,7 @@ module.exports = {
   buildMongoConnectOptions,
   connectDB,
   resolveMongoUri,
+  redactMongoUri,
   DEFAULT_LOCAL_MONGO_URI,
   getMongoConnectionState: snapshotConnectionState
 };

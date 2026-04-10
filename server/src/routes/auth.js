@@ -1,20 +1,17 @@
 const express = require('express');
 const path = require('path');
-const fs = require('fs');
 const multer = require('multer');
 const authController = require('../controllers/authController');
 const auth = require('../middleware/auth');
+const { avatarUploadsPath, ensureUploadDirectories } = require('../config/storage');
 const { validateBody, validateParams, schemas } = require('../middleware/validation');
 
 const router = express.Router();
 
-const avatarUploadDir = path.join(__dirname, '..', '..', 'uploads', 'avatars');
-if (!fs.existsSync(avatarUploadDir)) {
-  fs.mkdirSync(avatarUploadDir, { recursive: true });
-}
+ensureUploadDirectories();
 
 const avatarStorage = multer.diskStorage({
-  destination: (_req, _file, cb) => cb(null, avatarUploadDir),
+  destination: (_req, _file, cb) => cb(null, avatarUploadsPath),
   filename: (_req, file, cb) => {
     const safeOriginal = String(file.originalname || 'avatar')
       .replace(/[^\w.\-]+/g, '_')

@@ -74,6 +74,17 @@ export const normalizeApiError = (error, fallbackMessage = 'Request failed') => 
   }
 
   if (error instanceof Error) {
+    const normalizedMessage = String(error.message || '').trim().toLowerCase();
+    if (
+      normalizedMessage === 'failed to fetch' ||
+      normalizedMessage === 'load failed' ||
+      normalizedMessage.includes('networkerror')
+    ) {
+      return new ApiError('Unable to reach the server. Please try again later.', {
+        code: 'network_unavailable'
+      });
+    }
+
     return new ApiError(error.message || fallbackMessage, {
       code: error.code || 'request_failed'
     });

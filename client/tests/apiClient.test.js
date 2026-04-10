@@ -84,3 +84,26 @@ test('requestJson omits bearer auth when no token is stored', async () => {
     assert.equal(Object.hasOwn(capturedRequest.headers, 'Authorization'), false);
   });
 });
+
+test('requestJson turns raw fetch failures into a user-friendly network error', async () => {
+  await withEnvironment(async () => {
+    globalThis.fetch = async () => {
+      throw new TypeError('Failed to fetch');
+    };
+
+    await assert.rejects(
+      requestJson('/api/auth/login', {
+        method: 'POST',
+        body: {
+          email: 'user@example.com',
+          password: 'secret'
+        }
+      }),
+      (error) => {
+        assert.equal(error.message, 'Unable to reach the server. Please try again later.');
+        assert.equal(error.code, 'network_unavailable');
+        return true;
+      }
+    );
+  });
+});

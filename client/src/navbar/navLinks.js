@@ -1,4 +1,5 @@
 import {
+  Briefcase,
   Calendar,
   GraduationCap,
   Home,
@@ -23,6 +24,11 @@ const workspaceLinks = [
   { path: '/calendar', label: 'Calendar', icon: Calendar },
   { path: '/messages', label: 'Messages', icon: MessageSquare },
   { path: '/teach', label: 'Teach', icon: GraduationCap },
+];
+
+const publicDiscoveryLinks = [
+  { path: '/competitions', label: 'Competitions', icon: Trophy },
+  { path: '/career', label: 'Career', icon: Briefcase },
 ];
 
 export function buildMainNavLinks({ isPremium, isSuperAdmin, userRole }) {
@@ -57,6 +63,10 @@ export function resolveMainNavbarHomePath({ isGuest, userRole }) {
 
 export function resolveAdminWebsiteRoute() {
   return '/';
+}
+
+export function buildPublicDiscoveryLinks() {
+  return publicDiscoveryLinks;
 }
 
 export function resolvePublicWebsiteEntry({ hasSession, userRole, isSuperAdmin }) {

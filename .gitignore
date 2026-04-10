@@ -81,6 +81,8 @@ public
 client/public/*
 !client/public/pretext/
 !client/public/pretext/**
+!client/src/components/public/
+!client/src/components/public/**
 
 # Storybook build outputs
 .out
@@ -109,6 +111,7 @@ Thumbs.db
 # Playwright CLI artifacts
 .playwright-cli/
 output/playwright/
+.netlify/
 
 # Android/Gradle caches
 android/.gradle/

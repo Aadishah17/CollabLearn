@@ -407,6 +407,73 @@ test('login and logout use the httpOnly auth cookie', async () => {
   );
 });
 
+test('super admin login falls back to the matching user account when admin password does not match', async () => {
+  await withEnv(
+    {
+      JWT_SECRET: 'test-secret',
+      AUTH_COOKIE_NAME: 'collablearn_access_token',
+      AUTH_COOKIE_PATH: '/',
+      AUTH_COOKIE_SAMESITE: 'lax',
+      AUTH_COOKIE_SECURE: 'false',
+      SUPER_ADMIN_EMAILS: 'shahaadi285@gmail.com'
+    },
+    async () => {
+      const userAccount = {
+        _id: '66f000000000000000000010',
+        email: 'shahaadi285@gmail.com',
+        password: 'user-hash',
+        isActive: true,
+        name: 'Shahaadi',
+        avatar: null,
+        isPremium: false,
+        getAvatarUrl() {
+          return null;
+        }
+      };
+      const adminAccount = {
+        _id: '66f000000000000000000011',
+        email: 'shahaadi285@gmail.com',
+        password: 'admin-hash',
+        isActive: true,
+        createdAt: new Date('2026-01-01T00:00:00.000Z')
+      };
+      const compareCalls = [];
+      const { res, state } = createResponse();
+
+      await withPatched(Admin, 'findOne', async () => adminAccount, async () => {
+        await withPatched(User, 'findOne', async () => userAccount, async () => {
+          await withPatched(bcrypt, 'compare', async (plain, hashed) => {
+            compareCalls.push([plain, hashed]);
+            return hashed === 'user-hash';
+          }, async () => {
+            await authController.login(
+              {
+                body: {
+                  email: 'shahaadi285@gmail.com',
+                  password: 'correct-password',
+                  role: 'admin'
+                }
+              },
+              res
+            );
+          });
+        });
+      });
+
+      assert.equal(state.statusCode, 200);
+      assert.equal(state.jsonBody.success, true);
+      assert.equal(state.jsonBody.user.email, 'shahaadi285@gmail.com');
+      assert.equal(state.jsonBody.user.role, 'admin');
+      assert.equal(state.jsonBody.user.isSuperAdmin, true);
+      assert.equal(state.jsonBody.user.name, 'Shahaadi');
+      assert.deepEqual(compareCalls, [
+        ['correct-password', 'admin-hash'],
+        ['correct-password', 'user-hash']
+      ]);
+    }
+  );
+});
+
 test('register issues the same cookie-backed session as login', async () => {
   await withEnv(
     {

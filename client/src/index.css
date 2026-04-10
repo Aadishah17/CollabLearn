@@ -746,6 +746,35 @@
     }
   }
 
+  @media (max-width: 768px) {
+    .glass-page {
+      animation-duration: 34s;
+    }
+
+    .aurora-orb {
+      filter: blur(44px);
+      opacity: 0.65;
+    }
+
+    .hero-beam::before {
+      opacity: 0.35;
+    }
+
+    .interactive-tile:hover,
+    .metric-rail:hover,
+    .feature-tile:hover,
+    .glass-card:hover,
+    .glass-cta:hover,
+    .glass-outline-btn:hover {
+      transform: none;
+    }
+
+    .surface-card-shimmer::before {
+      animation-duration: 10s;
+      opacity: 0.6;
+    }
+  }
+
   .ambient-grid {
     background-image:
       linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),
