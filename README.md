@@ -2,6 +2,10 @@
 
 CollabLearn is a skill-learning platform centered on the web experience. The active product surface is the React website, backed by an Express and MongoDB API for roadmaps, mentor workflows, community features, and admin tooling.
 
+## Live Website
+
+- Production: [https://client-dun-ten-53.vercel.app/](https://client-dun-ten-53.vercel.app/)
+
 ## Project Architecture
 
 The repository contains:
