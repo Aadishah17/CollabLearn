@@ -77,7 +77,7 @@ The project includes several root-level scripts for development and maintenance:
 | `start.bat` | Main entry point to run the entire stack. |
 | `run_everything.bat` | Quickly starts all services. |
 | `install_dependencies.bat` | Installs all required packages across all directories. |
-| `clean.js` | Utility to clean up temporary files and caches. |
+| `clean.js` | Cleanup utility for generated logs/temp files (`npm run clean`, `npm run clean:deps`). |
 | `fix_deps.bat` | Resolves common dependency issues. |
 | `debug_*.bat` | Various scripts for debugging client, server, and environment. |
 | `run_flutter.bat` | Helper for the secondary Flutter codebase. |

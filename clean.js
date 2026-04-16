@@ -1,27 +1,83 @@
 const fs = require('fs');
+const path = require('path');
 
-try {
-  fs.rmSync('c:/Users/sseja/OneDrive/Desktop/CollabLearn/client/node_modules', { recursive: true, force: true });
-  console.log('Client node_modules deleted.');
-} catch (e) {
-  console.error('Error deleting client node_modules:', e.message);
+const projectRoot = __dirname;
+const args = new Set(process.argv.slice(2));
+const shouldCleanDependencies = args.has('--deps');
+
+const removed = [];
+const failures = [];
+
+function toRelative(targetPath) {
+  return path.relative(projectRoot, targetPath) || '.';
 }
 
-try {
-  fs.rmSync('c:/Users/sseja/OneDrive/Desktop/CollabLearn/server/node_modules', { recursive: true, force: true });
-  console.log('Server node_modules deleted.');
-} catch (e) {
-  console.error('Error deleting server node_modules:', e.message);
+function removePath(targetPath) {
+  if (!fs.existsSync(targetPath)) {
+    return;
+  }
+
+  try {
+    fs.rmSync(targetPath, { recursive: true, force: true });
+    removed.push(toRelative(targetPath));
+  } catch (error) {
+    failures.push({ path: toRelative(targetPath), message: error.message });
+  }
 }
 
-// Also recreate separate directories in D drive
-try {
-  fs.mkdirSync('D:/CollabLearn_Deps_Client', { recursive: true });
-  fs.mkdirSync('D:/CollabLearn_Deps_Server', { recursive: true });
-  console.log('D drive directories created.');
-} catch (e) {
-  console.error(e.message);
+function removeRootGeneratedLogs() {
+  for (const entry of fs.readdirSync(projectRoot, { withFileTypes: true })) {
+    if (!entry.isFile()) {
+      continue;
+    }
+
+    if (entry.name.endsWith('.log')) {
+      removePath(path.join(projectRoot, entry.name));
+    }
+  }
 }
 
-fs.writeFileSync('c:/Users/sseja/OneDrive/Desktop/CollabLearn/client/install.bat', `@echo off\nSET "NODE_PATH=C:\\Program Files\\nodejs"\nSET "PATH=%NODE_PATH%;%PATH%"\ncall npm install --legacy-peer-deps\n`);
-fs.writeFileSync('c:/Users/sseja/OneDrive/Desktop/CollabLearn/server/install.bat', `@echo off\nSET "NODE_PATH=C:\\Program Files\\nodejs"\nSET "PATH=%NODE_PATH%;%PATH%"\ncall npm install\n`);
+function removeDirectoryLogs(relativeDir) {
+  const targetDir = path.join(projectRoot, relativeDir);
+  if (!fs.existsSync(targetDir) || !fs.statSync(targetDir).isDirectory()) {
+    return;
+  }
+
+  for (const entry of fs.readdirSync(targetDir, { withFileTypes: true })) {
+    if (entry.isFile() && entry.name.endsWith('.log')) {
+      removePath(path.join(targetDir, entry.name));
+    }
+  }
+}
+
+removeRootGeneratedLogs();
+removeDirectoryLogs('output');
+removePath(path.join(projectRoot, 'tmp'));
+removePath(path.join(projectRoot, 'temp'));
+
+if (shouldCleanDependencies) {
+  removePath(path.join(projectRoot, 'node_modules'));
+  removePath(path.join(projectRoot, 'client', 'node_modules'));
+  removePath(path.join(projectRoot, 'server', 'node_modules'));
+}
+
+if (removed.length === 0) {
+  console.log('No generated artifacts were removed.');
+} else {
+  console.log('Removed generated artifacts:');
+  for (const target of removed) {
+    console.log(`- ${target}`);
+  }
+}
+
+if (shouldCleanDependencies) {
+  console.log('Dependency cleanup enabled (--deps).');
+}
+
+if (failures.length > 0) {
+  console.error('Failed to remove some paths:');
+  for (const failure of failures) {
+    console.error(`- ${failure.path}: ${failure.message}`);
+  }
+  process.exitCode = 1;
+}
