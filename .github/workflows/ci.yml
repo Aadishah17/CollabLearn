@@ -45,6 +45,15 @@ jobs:
             echo "No root lint script found; skipping."
           fi
 
+      - name: Run format check (if present)
+        shell: bash
+        run: |
+          if node -e "const p=require('./package.json'); process.exit(p.scripts?.['format:check'] ? 0 : 1)"; then
+            npm run format:check
+          else
+            echo "No root format:check script found; skipping."
+          fi
+
       - name: Run tests (if present)
         shell: bash
         run: |

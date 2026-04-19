@@ -136,6 +136,23 @@ Before applying the blueprint, set these secret values in Render:
 
 The blueprint wires the frontend to the API automatically through Render service references. `VITE_API_URL` and `CORS_ORIGINS` can now consume bare Render hostnames and normalize them to HTTPS at runtime.
 
+## Vercel Deployment
+
+The repository now includes a root-level [`vercel.json`](./vercel.json) for monorepo frontend deployments.
+
+- Build/install are pinned to the frontend package:
+  - `installCommand`: `npm install --prefix client`
+  - `buildCommand`: `npm run build --prefix client`
+  - `outputDirectory`: `client/dist`
+- SPA and API/upload rewrites are included so `/api/*` and `/uploads/*` resolve to the deployed API domain.
+
+Recommended setup:
+
+1. Deploy the frontend from the repository root in Vercel (no custom root directory needed).
+2. Set `VITE_GOOGLE_CLIENT_ID` in the frontend project if Google sign-in is enabled.
+3. Deploy the API as a separate Vercel project using `server/` (it already includes `server/vercel.json`).
+4. Set `CORS_ORIGINS` in the API project to include the frontend domain.
+
 ## Mock Data
 
 The server includes a deterministic seed script for local development and CI smoke runs:
