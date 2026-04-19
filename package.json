@@ -8,10 +8,31 @@
     "build": "npm run build --prefix client",
     "test": "npm run test --prefix server && npm run test --prefix client",
     "test:server": "npm run test --prefix server",
-    "test:client": "npm run test --prefix client"
+    "test:client": "npm run test --prefix client",
+    "lint": "npm run lint --prefix client",
+    "lint:fix": "npm run lint --prefix client -- --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "prepare": "husky"
   },
   "license": "ISC",
+  "lint-staged": {
+    "client/**/*.{js,jsx}": [
+      "npm exec --prefix client eslint -- --fix --max-warnings=0",
+      "prettier --write"
+    ],
+    "server/**/*.{js,cjs,mjs}": [
+      "prettier --write"
+    ],
+    "*.{js,cjs,mjs}": [
+      "prettier --write"
+    ],
+    "*.{json,md,css,scss,html,yml,yaml}": "prettier --write"
+  },
   "devDependencies": {
-    "concurrently": "^8.2.2"
+    "concurrently": "^8.2.2",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.2.1",
+    "prettier": "^3.6.2"
   }
 }

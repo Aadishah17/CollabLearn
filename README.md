@@ -40,61 +40,74 @@ The repository contains:
 - **Local Storage**: Shared Preferences
 - **Networking**: Http
 
-## Quick Start (Web)
+## Local Setup
 
-1. **Environment Setup**:
+1. Copy env templates:
 
    ```bash
+   cp .env.example .env
    cp server/.env.example server/.env
    cp client/.env.example client/.env
    ```
 
-   Set your `JWT_SECRET` and `MONGODB_URI` in `server/.env`.
-   `SUPER_ADMIN_EMAILS` is optional; the default super-admin allow list already includes `shahaadi285@gmail.com`.
-   The local default is `mongodb://127.0.0.1:27017/collablearn`, which matches the Windows MongoDB service install better than `localhost`.
-
-2. **Install Dependencies**:
+2. Install dependencies:
 
    ```bash
    npm run setup
    ```
 
-3. **Run Application**:
+3. Start both apps:
 
    ```bash
    npm run dev
    ```
 
-   - Frontend: `http://localhost:5173`
-   - Backend: `http://localhost:5001`
+- Frontend: `http://localhost:5173`
+- Backend: `http://localhost:5001`
+
+## Commands
+
+Run these from the repository root:
+
+- `npm run dev` - run client and server in development mode.
+- `npm run build` - build the client app.
+- `npm run test` - run server and client tests.
+- `npm run lint` / `npm run lint:fix` - run ESLint checks and autofix where possible.
+- `npm run format` / `npm run format:check` - apply or verify Prettier formatting.
+
+## Environment Variables
+
+- Root `.env.example` is a quick reference for commonly used variables.
+- Use `server/.env.example` and `client/.env.example` as canonical templates for each app.
+- Required server variables include `MONGODB_URI` and `JWT_SECRET`.
+- Client variables use the `VITE_` prefix (for example, `VITE_API_URL` and `VITE_GOOGLE_CLIENT_ID`).
 
 ## Utility Scripts
 
 The project includes several root-level scripts for development and maintenance:
 
-| Script | Description |
-|--------|-------------|
-| `start.bat` | Main entry point to run the entire stack. |
-| `run_everything.bat` | Quickly starts all services. |
-| `install_dependencies.bat` | Installs all required packages across all directories. |
-| `clean.js` | Utility to clean up temporary files and caches. |
-| `fix_deps.bat` | Resolves common dependency issues. |
-| `debug_*.bat` | Various scripts for debugging client, server, and environment. |
-| `run_flutter.bat` | Helper for the secondary Flutter codebase. |
+| Script                             | Description                                                     |
+| ---------------------------------- | --------------------------------------------------------------- |
+| `start.bat`                        | Main entry point to run the entire stack.                       |
+| `run_everything.bat`               | Quickly starts all services.                                    |
+| `install_dependencies.bat`         | Installs all required packages across all directories.          |
+| `clean.js`                         | Utility to clean up temporary files and caches.                 |
+| `fix_deps.bat`                     | Resolves common dependency issues.                              |
+| `debug_*.bat`                      | Various scripts for debugging client, server, and environment.  |
+| `run_flutter.bat`                  | Helper for the secondary Flutter codebase.                      |
 | `server/scripts/seed-mock-data.js` | Seeds deterministic demo data into the active MongoDB database. |
 
 ## CI / Quality
 
-Pull requests and pushes to `main` run the GitHub Actions workflow in `./.github/workflows/ci.yml`. It installs the root, server, and client dependencies, then runs `npm test --prefix server`, `npm test --prefix client`, and `npm run build --prefix client`.
+Pull requests to `main` run `./.github/workflows/ci.yml`, which installs dependencies and runs lint/test/build scripts when present.
 
-Keep local changes aligned with that same bar before opening a PR:
+Before opening a PR, run at least:
 
-- `npm test --prefix server`
-- `npm test --prefix client`
-- `npm run build --prefix client`
-- `npm run lint --prefix client`
-- `npm run db:ping --prefix server`
-- `npm run seed:mock --prefix server`
+- `npm run lint`
+- `npm run test`
+- `npm run build`
+
+All three commands should complete successfully before you open or update a pull request.
 
 ## Production Notes
 
@@ -124,6 +137,23 @@ Before applying the blueprint, set these secret values in Render:
 - `VITE_GOOGLE_CLIENT_ID` if you want Google auth enabled in the frontend
 
 The blueprint wires the frontend to the API automatically through Render service references. `VITE_API_URL` and `CORS_ORIGINS` can now consume bare Render hostnames and normalize them to HTTPS at runtime.
+
+## Vercel Deployment
+
+The repository now includes a root-level [`vercel.json`](./vercel.json) for monorepo frontend deployments.
+
+- Build/install are pinned to the frontend package:
+  - `installCommand`: `npm install --prefix client`
+  - `buildCommand`: `npm run build --prefix client`
+  - `outputDirectory`: `client/dist`
+- SPA and API/upload rewrites are included so `/api/*` and `/uploads/*` resolve to the deployed API domain.
+
+Recommended setup:
+
+1. Deploy the frontend from the repository root in Vercel (no custom root directory needed).
+2. Set `VITE_GOOGLE_CLIENT_ID` in the frontend project if Google sign-in is enabled.
+3. Deploy the API as a separate Vercel project using `server/` (it already includes `server/vercel.json`).
+4. Set `CORS_ORIGINS` in the API project to include the frontend domain.
 
 ## Mock Data
 
