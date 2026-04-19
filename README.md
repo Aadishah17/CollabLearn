@@ -107,6 +107,8 @@ Before opening a PR, run at least:
 - `npm run test`
 - `npm run build`
 
+All three commands should complete successfully before you open or update a pull request.
+
 ## Production Notes
 
 - Set a strong `JWT_SECRET` in `server/.env`. The server now refuses placeholder secrets.
