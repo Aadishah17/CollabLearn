@@ -37,7 +37,7 @@
   "devDependencies": {
     "mongodb-memory-server": "^10.4.1",
     "nodemon": "^3.1.10",
-    "vercel": "^50.42.0"
+    "vercel": "^52.2.0"
   },
   "overrides": {
     "minimatch": "^9.0.7",

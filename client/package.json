@@ -14,7 +14,7 @@
   "dependencies": {
     "@google-pay/button-react": "^3.2.1",
     "@react-oauth/google": "^0.12.2",
-    "axios": "^1.13.6",
+    "axios": "^1.15.2",
     "chart.js": "^4.5.1",
     "date-fns": "^4.1.0",
     "lucide-react": "^0.544.0",
@@ -40,9 +40,9 @@
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.20",
     "globals": "^16.4.0",
-    "postcss": "^8.5.6",
+    "postcss": "^8.5.15",
     "tailwindcss": "^4.1.13",
-    "vite": "^7.1.7"
+    "vite": "^7.3.3"
   },
   "overrides": {
     "quill": "2.0.2",
