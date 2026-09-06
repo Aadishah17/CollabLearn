@@ -64,8 +64,8 @@ const availabilitySchema = new mongoose.Schema(
 availabilitySchema.index({ userId: 1, day: 1 });
 availabilitySchema.index({ userId: 1, isAvailable: 1 });
 
-// ============= VALIDATION =====
-availabilitySchema.pre('save', function (next) {
+// ============= VALIDATION =============
+availabilitySchema.pre('save', function () {
   // Ensure end time is after start time
   const start = this.startTime.split(':').map(Number);
   const end = this.endTime.split(':').map(Number);
@@ -73,10 +73,8 @@ availabilitySchema.pre('save', function (next) {
   const endMinutes = end[0] * 60 + end[1];
 
   if (startMinutes >= endMinutes) {
-    return next(new Error('End time must be after start time'));
+    throw new Error('End time must be after start time');
   }
-
-  next();
 });
 
 // ============= STATIC METHODS =============

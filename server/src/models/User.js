@@ -262,7 +262,7 @@ userSchema.methods.setAvatar = function (avatarData) {
 
 // ============= SANITIZE BASE64 AVATARS BEFORE PERSISTING =============
 // Prevent storing base64 avatar payloads in DB for both save and findOneAndUpdate flows.
-userSchema.pre('save', function (next) {
+userSchema.pre('save', function () {
   try {
     if (
       this.avatar &&
@@ -280,11 +280,10 @@ userSchema.pre('save', function (next) {
   } catch (e) {
     // Non-fatal; continue
   }
-  next();
 });
 
 // Handle updates performed with findOneAndUpdate / findByIdAndUpdate
-userSchema.pre('findOneAndUpdate', function (next) {
+userSchema.pre('findOneAndUpdate', function () {
   try {
     const update = this.getUpdate() || {};
 
@@ -317,7 +316,6 @@ userSchema.pre('findOneAndUpdate', function (next) {
   } catch (e) {
     // continue even if sanitation fails
   }
-  next();
 });
 
 // Virtual for backward compatibility

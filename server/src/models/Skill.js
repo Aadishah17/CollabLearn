@@ -146,13 +146,11 @@ const skillSchema = new mongoose.Schema(
 );
 
 // ============= VALIDATION =============
-skillSchema.pre('save', function (next) {
+skillSchema.pre('save', function () {
   // Ensure at least one of isOffering or isSeeking is true
   if (!this.isOffering && !this.isSeeking) {
-    return next(new Error('Skill must be either offering or seeking (or both)'));
+    throw new Error('Skill must be either offering or seeking (or both)');
   }
-
-  next();
 });
 
 // ============= INDEXES FOR PERFORMANCE =============
