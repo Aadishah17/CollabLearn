@@ -1,24 +1,30 @@
-import React, { useState, useEffect } from 'react';
-import { Users, Loader, Crown, X, CheckCircle, AlertCircle } from 'lucide-react';
-import AdminNavbar from '../../navbar/adminNavbar'; // Corrected import path
+import React, { useState, useEffect, useMemo } from 'react';
+import {
+  Users,
+  Loader,
+  Crown,
+  X,
+  CheckCircle,
+  AlertCircle,
+  Shield,
+  Search,
+  UserCheck,
+  UserX,
+  Sparkles,
+} from 'lucide-react';
+import AdminNavbar from '../../navbar/adminNavbar';
 import { API_URL } from '../../config';
 
-// --- Static Theme Classes (Light Mode) ---
-const themeBg = 'bg-gray-100 text-gray-900';
-const subtleText = 'text-gray-600';
-const primaryText = 'text-indigo-600';
-
-// --- Main Component: Manage Users Page ---
 export default function ManageUsers() {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [actionLoading, setActionLoading] = useState(null); // Tracks which user's action is loading
+  const [searchQuery, setSearchQuery] = useState('');
+  const [actionLoading, setActionLoading] = useState(null);
   const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
   const [newSubscription, setNewSubscription] = useState('free');
-  const [notification, setNotification] = useState(null); // For success/error messages
+  const [notification, setNotification] = useState(null);
 
-  // Fetches all users from the backend when the component mounts.
   useEffect(() => {
     const fetchUsers = async () => {
       setLoading(true);
@@ -29,7 +35,7 @@ export default function ManageUsers() {
         });
         const result = await response.json();
         if (result.success) {
-          setUsers(result.data);
+          setUsers(result.data || []);
         } else {
           console.error('Failed to fetch users:', result.message);
         }
@@ -43,7 +49,6 @@ export default function ManageUsers() {
     fetchUsers();
   }, []);
 
-  // --- Admin Actions ---
   const blockUser = async (userId) => {
     setActionLoading(userId);
     try {
@@ -54,8 +59,12 @@ export default function ManageUsers() {
       });
       const result = await response.json();
       if (result.success) {
-        // Update state locally for instant UI feedback
         setUsers(users.map((user) => (user.id === userId ? { ...user, status: 'Blocked' } : user)));
+        setNotification({
+          type: 'success',
+          message: 'User has been blocked from accessing the platform.',
+        });
+        setTimeout(() => setNotification(null), 3000);
       } else {
         console.error('Failed to block user:', result.message);
       }
@@ -76,8 +85,12 @@ export default function ManageUsers() {
       });
       const result = await response.json();
       if (result.success) {
-        // Update state locally for instant UI feedback
         setUsers(users.map((user) => (user.id === userId ? { ...user, status: 'Active' } : user)));
+        setNotification({
+          type: 'success',
+          message: 'User access has been restored.',
+        });
+        setTimeout(() => setNotification(null), 3000);
       } else {
         console.error('Failed to unblock user:', result.message);
       }
@@ -88,7 +101,6 @@ export default function ManageUsers() {
     }
   };
 
-  // --- Subscription Management ---
   const openSubscriptionModal = (user) => {
     setSelectedUser(user);
     setNewSubscription(user.isPremium ? 'premium' : 'free');
@@ -119,7 +131,6 @@ export default function ManageUsers() {
       const result = await response.json();
 
       if (result.success) {
-        // Update state locally for instant UI feedback
         setUsers(
           users.map((user) =>
             user.id === selectedUser.id
@@ -128,18 +139,14 @@ export default function ManageUsers() {
           )
         );
 
-        // Show success notification
         setNotification({
           type: 'success',
-          message: `Successfully updated ${selectedUser.name}'s subscription to ${newSubscription === 'premium' ? 'Premium' : 'Free'}`,
+          message: `Updated ${selectedUser.name}'s plan to ${newSubscription === 'premium' ? 'Premium' : 'Free'}.`,
         });
 
         closeSubscriptionModal();
-
-        // Auto-hide notification after 3 seconds
         setTimeout(() => setNotification(null), 3000);
       } else {
-        console.error('Failed to update subscription:', result.message);
         setNotification({
           type: 'error',
           message: result.message || 'Failed to update subscription',
@@ -158,238 +165,310 @@ export default function ManageUsers() {
     }
   };
 
-  // --- Render ---
+  const filteredUsers = useMemo(() => {
+    if (!searchQuery.trim()) return users;
+    const query = searchQuery.toLowerCase();
+    return users.filter(
+      (user) =>
+        user.name?.toLowerCase().includes(query) ||
+        user.email?.toLowerCase().includes(query) ||
+        user.role?.toLowerCase().includes(query)
+    );
+  }, [users, searchQuery]);
+
   return (
-    <div className={`min-h-screen ${themeBg} font-sans transition-colors duration-500`}>
+    <div className="glass-page min-h-screen text-zinc-100 font-sans">
       <AdminNavbar />
 
       {/* Notification Toast */}
       {notification && (
-        <div className="fixed top-20 right-6 z-50 animate-slide-in-right">
+        <div className="fixed top-24 right-6 z-50 animate-bounce">
           <div
-            className={`flex items-center gap-3 px-6 py-4 rounded-lg shadow-lg ${
-              notification.type === 'success' ? 'bg-green-500 text-white' : 'bg-red-500 text-white'
+            className={`flex items-center gap-3 px-5 py-3.5 rounded-2xl shadow-2xl border backdrop-blur-xl ${
+              notification.type === 'success'
+                ? 'bg-emerald-500/15 border-emerald-400/30 text-emerald-200'
+                : 'bg-rose-500/15 border-rose-400/30 text-rose-200'
             }`}
           >
             {notification.type === 'success' ? (
-              <CheckCircle size={24} />
+              <CheckCircle size={20} />
             ) : (
-              <AlertCircle size={24} />
+              <AlertCircle size={20} />
             )}
-            <p className="font-medium">{notification.message}</p>
+            <p className="text-sm font-semibold">{notification.message}</p>
           </div>
         </div>
       )}
 
-      <div className="pt-24 max-w-7xl mx-auto px-6 py-12">
-        <header className="mb-10">
-          <h1 className="text-4xl font-bold flex items-center">
-            <Users size={30} className={`mr-3 ${primaryText}`} />
-            User Management
-          </h1>
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 pt-28 pb-16">
+        <header className="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-4">
+          <div>
+            <div className="eyebrow mb-3">
+              <Shield size={14} className="text-red-300" />
+              Access Control
+            </div>
+            <h1 className="text-3xl sm:text-4xl font-black text-white tracking-tight">
+              User Management
+            </h1>
+            <p className="mt-2 text-zinc-400 text-sm max-w-xl">
+              Inspect user roles, manage platform subscriptions, and enforce moderation policies
+              across all registered accounts.
+            </p>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <div className="relative">
+              <Search
+                size={16}
+                className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-400"
+              />
+              <input
+                type="text"
+                placeholder="Search name, email, or role..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="glass-input pl-10 pr-4 py-2 text-sm w-64 md:w-80"
+              />
+            </div>
+          </div>
         </header>
 
-        <div className={`shadow-xl rounded-xl p-6 bg-white border border-gray-200 overflow-x-auto`}>
-          <h3 className="text-xl font-bold mb-6">Registered Users ({users.length})</h3>
+        {/* User Table Card */}
+        <div className="surface-card card-spotlight p-6 overflow-hidden">
+          <div className="flex items-center justify-between mb-5">
+            <h2 className="text-lg font-bold text-white flex items-center gap-2">
+              <Users size={18} className="text-red-400" />
+              Registered Accounts
+              <span className="ml-2 text-xs font-semibold px-2.5 py-0.5 rounded-full bg-white/10 text-zinc-300">
+                {filteredUsers.length} total
+              </span>
+            </h2>
+          </div>
 
           {loading ? (
-            <div className="text-center py-10">
-              <Loader size={32} className="animate-spin inline text-indigo-600" />
-              <p className="mt-2">Loading users...</p>
+            <div className="text-center py-16">
+              <Loader size={32} className="animate-spin inline text-red-400" />
+              <p className="mt-3 text-sm text-zinc-400">Loading accounts...</p>
+            </div>
+          ) : filteredUsers.length === 0 ? (
+            <div className="text-center py-16 text-zinc-400 text-sm">
+              No accounts match the current query.
             </div>
           ) : (
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead>
-                <tr>
-                  {[
-                    'Name',
-                    'Email',
-                    'Role',
-                    'Access',
-                    'Subscription',
-                    'Registered',
-                    'Status',
-                    'Actions',
-                  ].map((header) => (
-                    <th
-                      key={header}
-                      className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${subtleText}`}
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-white/10 text-left">
+                <thead>
+                  <tr>
+                    {[
+                      'Name',
+                      'Email',
+                      'Role',
+                      'Access Level',
+                      'Plan',
+                      'Joined',
+                      'Status',
+                      'Actions',
+                    ].map((header) => (
+                      <th
+                        key={header}
+                        className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-zinc-400"
+                      >
+                        {header}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-white/10">
+                  {filteredUsers.map((user) => (
+                    <tr
+                      key={user.id}
+                      className={`transition-colors hover:bg-white/[0.04] ${
+                        user.status === 'Blocked' ? 'bg-rose-500/[0.04]' : ''
+                      }`}
                     >
-                      {header}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200">
-                {users.map((user) => (
-                  <tr
-                    key={user.id}
-                    className={user.status === 'Blocked' ? 'bg-red-50 opacity-70' : ''}
-                  >
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">{user.name}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm">{user.email}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm">
-                      <span
-                        className={`inline-flex px-2 text-xs font-semibold leading-5 rounded-full ${user.role === 'Instructor' ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'}`}
-                      >
-                        {user.role}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm">
-                      <span
-                        className={`inline-flex items-center px-3 py-1 text-xs font-semibold leading-5 rounded-full ${
-                          user.isSuperAdmin
-                            ? 'bg-emerald-100 text-emerald-800'
-                            : user.accessRole === 'admin'
-                              ? 'bg-purple-100 text-purple-800'
-                              : 'bg-gray-100 text-gray-700'
-                        }`}
-                      >
-                        {user.isSuperAdmin
-                          ? 'SUPER ADMIN'
-                          : String(user.accessLevel || 'user').toUpperCase()}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm">
-                      <button
-                        onClick={() => openSubscriptionModal(user)}
-                        className="flex items-center gap-1 group"
-                      >
+                      <td className="px-4 py-3.5 whitespace-nowrap">
+                        <div className="font-semibold text-white text-sm">{user.name}</div>
+                      </td>
+                      <td className="px-4 py-3.5 whitespace-nowrap text-sm text-zinc-300 font-mono text-xs">
+                        {user.email}
+                      </td>
+                      <td className="px-4 py-3.5 whitespace-nowrap text-sm">
                         <span
-                          className={`inline-flex items-center px-3 py-1 text-xs font-semibold leading-5 rounded-full transition-all ${
-                            user.isPremium
-                              ? 'bg-gradient-to-r from-yellow-400 to-amber-500 text-white'
-                              : 'bg-gray-100 text-gray-700 group-hover:bg-gray-200'
+                          className={`inline-flex px-2.5 py-1 text-xs font-semibold rounded-full border ${
+                            user.role === 'Instructor'
+                              ? 'bg-emerald-500/15 text-emerald-200 border-emerald-400/30'
+                              : 'bg-blue-500/15 text-blue-200 border-blue-400/30'
                           }`}
                         >
-                          {user.isPremium && <Crown size={12} className="mr-1" />}
-                          {user.isPremium ? 'PREMIUM' : 'FREE'}
+                          {user.role || 'Student'}
                         </span>
-                        <span className="text-xs text-indigo-600 opacity-0 group-hover:opacity-100 transition-opacity">
-                          Change
+                      </td>
+                      <td className="px-4 py-3.5 whitespace-nowrap text-sm">
+                        <span
+                          className={`inline-flex items-center px-2.5 py-1 text-xs font-semibold rounded-full border ${
+                            user.isSuperAdmin
+                              ? 'bg-amber-500/15 text-amber-200 border-amber-400/30'
+                              : user.accessRole === 'admin'
+                                ? 'bg-purple-500/15 text-purple-200 border-purple-400/30'
+                                : 'bg-white/5 text-zinc-300 border-white/10'
+                          }`}
+                        >
+                          {user.isSuperAdmin
+                            ? 'SUPER ADMIN'
+                            : String(user.accessLevel || 'user').toUpperCase()}
                         </span>
-                      </button>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {new Date(user.registered).toLocaleDateString()}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm">
-                      <span
-                        className={`font-semibold ${user.status === 'Blocked' ? 'text-red-600' : 'text-green-600'}`}
-                      >
-                        {user.status}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                      {user.isSuperAdmin ? (
-                        <span className="text-emerald-700 font-semibold">Protected</span>
-                      ) : user.status === 'Blocked' ? (
+                      </td>
+                      <td className="px-4 py-3.5 whitespace-nowrap text-sm">
                         <button
-                          onClick={() => unblockUser(user.id)}
-                          disabled={actionLoading === user.id}
-                          className="text-indigo-600 hover:text-indigo-900 disabled:opacity-50"
+                          type="button"
+                          onClick={() => openSubscriptionModal(user)}
+                          className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border transition-all hover:scale-105"
+                          style={{
+                            background: user.isPremium
+                              ? 'linear-gradient(135deg, rgba(245,158,11,0.2), rgba(217,119,6,0.1))'
+                              : 'rgba(255,255,255,0.05)',
+                            borderColor: user.isPremium
+                              ? 'rgba(245,158,11,0.4)'
+                              : 'rgba(255,255,255,0.1)',
+                            color: user.isPremium ? '#fbbf24' : '#a1a1aa',
+                          }}
                         >
-                          {actionLoading === user.id ? '...' : 'Unblock'}
+                          {user.isPremium ? <Crown size={12} className="text-amber-400" /> : null}
+                          {user.isPremium ? 'PRO TIER' : 'FREE'}
                         </button>
-                      ) : (
-                        <button
-                          onClick={() => blockUser(user.id)}
-                          disabled={actionLoading === user.id}
-                          className="text-red-600 hover:text-red-900 disabled:opacity-50"
+                      </td>
+                      <td className="px-4 py-3.5 whitespace-nowrap text-xs text-zinc-400">
+                        {user.registered ? new Date(user.registered).toLocaleDateString() : 'N/A'}
+                      </td>
+                      <td className="px-4 py-3.5 whitespace-nowrap text-sm">
+                        <span
+                          className={`inline-flex items-center gap-1 px-2.5 py-1 text-xs font-bold rounded-full border ${
+                            user.status === 'Blocked'
+                              ? 'bg-rose-500/15 text-rose-300 border-rose-400/30'
+                              : 'bg-emerald-500/15 text-emerald-300 border-emerald-400/30'
+                          }`}
                         >
-                          {actionLoading === user.id ? '...' : 'Block'}
-                        </button>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                          {user.status === 'Blocked' ? (
+                            <UserX size={12} />
+                          ) : (
+                            <UserCheck size={12} />
+                          )}
+                          {user.status || 'Active'}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3.5 whitespace-nowrap text-sm">
+                        {user.isSuperAdmin ? (
+                          <span className="text-xs font-semibold text-amber-400/80">Protected</span>
+                        ) : user.status === 'Blocked' ? (
+                          <button
+                            type="button"
+                            onClick={() => unblockUser(user.id)}
+                            disabled={actionLoading === user.id}
+                            className="px-3 py-1 rounded-xl text-xs font-semibold border border-emerald-400/30 bg-emerald-500/10 text-emerald-200 hover:bg-emerald-500/20 transition-all disabled:opacity-50"
+                          >
+                            {actionLoading === user.id ? '...' : 'Unblock'}
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => blockUser(user.id)}
+                            disabled={actionLoading === user.id}
+                            className="px-3 py-1 rounded-xl text-xs font-semibold border border-rose-400/30 bg-rose-500/10 text-rose-200 hover:bg-rose-500/20 transition-all disabled:opacity-50"
+                          >
+                            {actionLoading === user.id ? '...' : 'Block'}
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
         </div>
-      </div>
+      </main>
 
       {/* Subscription Change Modal */}
       {showSubscriptionModal && selectedUser && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl shadow-2xl p-8 max-w-md w-full mx-4 relative">
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-50 p-4 animate-fadeIn">
+          <div className="surface-card border border-white/15 rounded-3xl p-7 max-w-md w-full relative shadow-2xl">
             <button
+              type="button"
               onClick={closeSubscriptionModal}
-              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors"
+              className="absolute top-5 right-5 text-zinc-400 hover:text-white p-1 rounded-xl hover:bg-white/10 transition-colors"
             >
-              <X size={24} />
+              <X size={20} />
             </button>
 
-            <h2 className="text-2xl font-bold mb-6 text-gray-900">Change Subscription</h2>
-
-            <div className="mb-6">
-              <p className="text-sm text-gray-600 mb-2">User</p>
-              <p className="text-lg font-semibold text-gray-900">{selectedUser.name}</p>
-              <p className="text-sm text-gray-500">{selectedUser.email}</p>
+            <div className="eyebrow mb-2">
+              <Sparkles size={12} className="text-amber-400" />
+              Plan Override
             </div>
+            <h2 className="text-xl font-bold text-white mb-2">Change User Subscription</h2>
+            <p className="text-xs text-zinc-400 mb-6">
+              Update plan privileges for{' '}
+              <span className="text-white font-semibold">{selectedUser.name}</span> (
+              {selectedUser.email}).
+            </p>
 
-            <div className="mb-6">
-              <label className="block text-sm font-medium text-gray-700 mb-3">
-                Select Subscription Plan
-              </label>
-
-              <div className="space-y-3">
-                {/* Free Plan Option */}
-                <div
-                  onClick={() => setNewSubscription('free')}
-                  className={`cursor-pointer p-4 rounded-lg border-2 transition-all ${
-                    newSubscription === 'free'
-                      ? 'border-indigo-500 bg-indigo-50'
-                      : 'border-gray-200 hover:border-gray-300 bg-white'
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="font-semibold text-gray-900">Free Plan</h3>
-                      <p className="text-sm text-gray-600">Basic features access</p>
-                    </div>
-                    <div
-                      className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
-                        newSubscription === 'free'
-                          ? 'border-indigo-500 bg-indigo-500'
-                          : 'border-gray-300'
-                      }`}
-                    >
-                      {newSubscription === 'free' && (
-                        <div className="w-2 h-2 bg-white rounded-full"></div>
-                      )}
-                    </div>
+            <div className="space-y-3 mb-6">
+              {/* Free Plan */}
+              <div
+                onClick={() => setNewSubscription('free')}
+                className={`cursor-pointer p-4 rounded-2xl border transition-all ${
+                  newSubscription === 'free'
+                    ? 'border-blue-500/60 bg-blue-500/10 shadow-lg shadow-blue-500/10'
+                    : 'border-white/10 bg-white/[0.02] hover:bg-white/[0.05]'
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-sm font-bold text-white">Free Standard Plan</h3>
+                    <p className="text-xs text-zinc-400 mt-0.5">
+                      Core learning, standard booking, community access
+                    </p>
+                  </div>
+                  <div
+                    className={`w-5 h-5 rounded-full border flex items-center justify-center ${
+                      newSubscription === 'free' ? 'border-blue-400 bg-blue-500' : 'border-zinc-600'
+                    }`}
+                  >
+                    {newSubscription === 'free' && (
+                      <div className="w-2 h-2 bg-white rounded-full" />
+                    )}
                   </div>
                 </div>
+              </div>
 
-                {/* Premium Plan Option */}
-                <div
-                  onClick={() => setNewSubscription('premium')}
-                  className={`cursor-pointer p-4 rounded-lg border-2 transition-all ${
-                    newSubscription === 'premium'
-                      ? 'border-amber-500 bg-gradient-to-br from-yellow-50 to-amber-50'
-                      : 'border-gray-200 hover:border-gray-300 bg-white'
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Crown size={20} className="text-amber-500" />
-                      <div>
-                        <h3 className="font-semibold text-gray-900">Premium Plan</h3>
-                        <p className="text-sm text-gray-600">Full features & priority support</p>
-                      </div>
+              {/* Premium Plan */}
+              <div
+                onClick={() => setNewSubscription('premium')}
+                className={`cursor-pointer p-4 rounded-2xl border transition-all ${
+                  newSubscription === 'premium'
+                    ? 'border-amber-500/60 bg-amber-500/10 shadow-lg shadow-amber-500/10'
+                    : 'border-white/10 bg-white/[0.02] hover:bg-white/[0.05]'
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-start gap-3">
+                    <Crown size={20} className="text-amber-400 shrink-0 mt-0.5" />
+                    <div>
+                      <h3 className="text-sm font-bold text-white">Pro Accelerator Plan</h3>
+                      <p className="text-xs text-zinc-400 mt-0.5">
+                        Priority bookings, AI Studio generation, WebRTC video calls
+                      </p>
                     </div>
-                    <div
-                      className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
-                        newSubscription === 'premium'
-                          ? 'border-amber-500 bg-amber-500'
-                          : 'border-gray-300'
-                      }`}
-                    >
-                      {newSubscription === 'premium' && (
-                        <div className="w-2 h-2 bg-white rounded-full"></div>
-                      )}
-                    </div>
+                  </div>
+                  <div
+                    className={`w-5 h-5 rounded-full border flex items-center justify-center shrink-0 ${
+                      newSubscription === 'premium'
+                        ? 'border-amber-400 bg-amber-500'
+                        : 'border-zinc-600'
+                    }`}
+                  >
+                    {newSubscription === 'premium' && (
+                      <div className="w-2 h-2 bg-white rounded-full" />
+                    )}
                   </div>
                 </div>
               </div>
@@ -397,39 +476,24 @@ export default function ManageUsers() {
 
             <div className="flex gap-3">
               <button
+                type="button"
                 onClick={closeSubscriptionModal}
-                className="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-medium"
+                className="flex-1 py-2.5 rounded-xl border border-white/10 bg-white/5 text-zinc-300 font-semibold text-sm hover:bg-white/10 transition-colors"
               >
                 Cancel
               </button>
               <button
+                type="button"
                 onClick={updateSubscription}
                 disabled={actionLoading === selectedUser.id}
-                className="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex-1 glass-cta justify-center py-2.5 text-sm font-semibold disabled:opacity-50"
               >
-                {actionLoading === selectedUser.id ? 'Updating...' : 'Update Subscription'}
+                {actionLoading === selectedUser.id ? 'Updating...' : 'Save Plan'}
               </button>
             </div>
           </div>
         </div>
       )}
-
-      <style>{`
-                @keyframes slide-in-right {
-                    from {
-                        transform: translateX(100%);
-                        opacity: 0;
-                    }
-                    to {
-                        transform: translateX(0);
-                        opacity: 1;
-                    }
-                }
-                
-                .animate-slide-in-right {
-                    animation: slide-in-right 0.3s ease-out;
-                }
-            `}</style>
     </div>
   );
 }

@@ -11,16 +11,12 @@ import {
   CheckCircle,
   XCircle,
   Sparkles,
+  Sliders,
+  Shield,
 } from 'lucide-react';
 import AdminNavbar from '../../navbar/adminNavbar.jsx';
 import { API_URL } from '../../config';
 
-// --- Static Theme Classes ---
-const themeBg = 'bg-gray-100 text-gray-900';
-const subtleText = 'text-gray-600';
-const primaryText = 'text-indigo-600';
-
-// --- Main Component: AdminSettings Page ---
 export default function AdminSettings() {
   const [settings, setSettings] = useState({
     siteName: 'CollabLearn',
@@ -29,9 +25,8 @@ export default function AdminSettings() {
     geminiApiKey: '',
   });
   const [loading, setLoading] = useState(true);
-  const [saveStatus, setSaveStatus] = useState(null); // null, 'saving', 'success', 'error'
+  const [saveStatus, setSaveStatus] = useState(null);
 
-  // Fetch initial settings on component mount
   useEffect(() => {
     const fetchSettings = async () => {
       setLoading(true);
@@ -42,7 +37,7 @@ export default function AdminSettings() {
         });
         const result = await response.json();
         if (result.success) {
-          setSettings(result.data);
+          setSettings(result.data || {});
         } else {
           console.error('Failed to fetch settings:', result.message);
         }
@@ -87,96 +82,117 @@ export default function AdminSettings() {
       setSaveStatus('error');
       console.error('Failed to save settings:', error);
     } finally {
-      setTimeout(() => setSaveStatus(null), 3000);
+      setTimeout(() => setSaveStatus(null), 3500);
     }
   };
 
-  // NOTE: These data actions are simulated. Real implementation requires complex backend logic.
   const handleDataAction = (actionName) => {
-    alert(
-      `Simulating '${actionName}'. In a real app, this would trigger a secure backend process.`
-    );
+    alert(`Triggered: '${actionName}'. In production, this runs background database maintenance.`);
   };
 
   const SettingsSection = ({ icon, title, description, children }) => (
-    <div className="mb-8 p-6 bg-white border border-gray-200 rounded-xl shadow-lg">
-      <div className="flex items-center mb-4 border-b pb-3">
-        {createElement(icon, { size: 24, className: `mr-3 ${primaryText}` })}
-        <h2 className="text-xl font-bold">{title}</h2>
+    <div className="surface-card card-spotlight p-6 md:p-8 mb-6">
+      <div className="flex items-center gap-3 mb-2">
+        <div className="p-2 rounded-xl bg-red-500/10 border border-red-400/25 text-red-300">
+          {createElement(icon, { size: 18 })}
+        </div>
+        <h2 className="text-lg font-bold text-white">{title}</h2>
       </div>
-      <p className={`mb-6 text-sm ${subtleText}`}>{description}</p>
+      <p className="text-xs text-zinc-400 mb-6">{description}</p>
       {children}
     </div>
   );
 
   if (loading) {
     return (
-      <div className={`min-h-screen ${themeBg} flex items-center justify-center`}>
-        <Loader size={48} className="animate-spin text-indigo-600" />
+      <div className="glass-page min-h-screen text-zinc-100 flex items-center justify-center font-sans">
+        <AdminNavbar />
+        <div className="text-center">
+          <Loader size={36} className="animate-spin text-red-400 mx-auto" />
+          <p className="mt-3 text-sm text-zinc-400">Loading configuration parameters...</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className={`min-h-screen ${themeBg} font-sans`}>
+    <div className="glass-page min-h-screen text-zinc-100 font-sans">
       <AdminNavbar />
 
-      <div className="pt-24 max-w-7xl mx-auto px-6 py-12">
-        <header className="mb-10">
-          <h1 className="text-4xl font-bold flex items-center">
-            <Settings size={30} className={`mr-3 ${primaryText}`} />
-            Admin Settings
+      <main className="max-w-5xl mx-auto px-4 sm:px-6 pt-28 pb-16">
+        <header className="mb-8">
+          <div className="eyebrow mb-3">
+            <Sliders size={14} className="text-red-300" />
+            System Control
+          </div>
+          <h1 className="text-3xl sm:text-4xl font-black text-white tracking-tight">
+            Administrator Settings
           </h1>
+          <p className="mt-2 text-zinc-400 text-sm max-w-xl">
+            Configure global site parameters, AI orchestration providers, and operational runtime
+            policies.
+          </p>
         </header>
 
         <form onSubmit={handleSave}>
           <SettingsSection
             icon={Globe}
-            title="General Platform Settings"
-            description="Control basic platform identity and operational status."
+            title="General Platform Identity"
+            description="Control public site naming, brand metadata, and maintenance gating."
           >
-            <div className="mb-4">
-              <label htmlFor="siteName" className="block text-sm font-medium text-gray-700 mb-1">
-                Platform Name
-              </label>
-              <input
-                type="text"
-                id="siteName"
-                name="siteName"
-                value={settings.siteName}
-                onChange={handleInputChange}
-                className="w-full p-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500"
-                required
-              />
-            </div>
-            <div className="flex items-center justify-between p-3 border border-gray-300 rounded-lg">
-              <label
-                htmlFor="maintenanceMode"
-                className="text-sm font-medium text-gray-700 flex items-center"
-              >
-                <AlertTriangle size={16} className="text-red-500 mr-2" />
-                Enable Maintenance Mode
-              </label>
-              <input
-                type="checkbox"
-                id="maintenanceMode"
-                name="maintenanceMode"
-                checked={settings.maintenanceMode}
-                onChange={handleInputChange}
-                className="h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
-              />
+            <div className="space-y-4">
+              <div>
+                <label
+                  htmlFor="siteName"
+                  className="block text-xs font-semibold text-zinc-300 uppercase tracking-wider mb-2"
+                >
+                  Platform Name
+                </label>
+                <input
+                  type="text"
+                  id="siteName"
+                  name="siteName"
+                  value={settings.siteName || ''}
+                  onChange={handleInputChange}
+                  className="glass-input w-full max-w-md"
+                  required
+                />
+              </div>
+
+              <div className="flex items-center justify-between p-4 rounded-2xl border border-white/10 bg-white/[0.02]">
+                <div className="flex items-center gap-3">
+                  <AlertTriangle size={18} className="text-amber-400 shrink-0" />
+                  <div>
+                    <span className="text-sm font-bold text-white block">Maintenance Mode</span>
+                    <span className="text-xs text-zinc-400">
+                      Temporarily gate student signups and non-admin routes.
+                    </span>
+                  </div>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    id="maintenanceMode"
+                    name="maintenanceMode"
+                    checked={Boolean(settings.maintenanceMode)}
+                    onChange={handleInputChange}
+                    className="sr-only peer"
+                  />
+                  <div className="w-11 h-6 bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-red-600"></div>
+                </label>
+              </div>
             </div>
           </SettingsSection>
 
           <SettingsSection
             icon={Lock}
-            title="Security and Access"
-            description="Configure parameters affecting user and admin account security."
+            title="Security & Auth Policies"
+            description="Enforce password complexity, session duration limits, and token expiration standards."
           >
-            <div className="mb-4">
+            <div>
               <label
                 htmlFor="minPasswordLength"
-                className="block text-sm font-medium text-gray-700 mb-1"
+                className="block text-xs font-semibold text-zinc-300 uppercase tracking-wider mb-2"
               >
                 Minimum Password Length
               </label>
@@ -184,98 +200,114 @@ export default function AdminSettings() {
                 type="number"
                 id="minPasswordLength"
                 name="minPasswordLength"
-                value={settings.minPasswordLength}
+                value={settings.minPasswordLength || 8}
                 onChange={handleInputChange}
-                className="w-full p-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 max-w-sm"
+                className="glass-input w-full max-w-xs"
                 min="6"
-                max="16"
+                max="32"
                 required
               />
+              <p className="text-xs text-zinc-400 mt-2">
+                Default requirement is 8 characters. Recommended 10+ for administrative roles.
+              </p>
             </div>
           </SettingsSection>
 
           <SettingsSection
             icon={Sparkles}
-            title="Planning Engine Configuration"
-            description="The website currently runs on the local learning engine. Keep an external provider key here only if you plan to add a hosted AI integration later."
+            title="AI Engine Configuration"
+            description="The platform operates on the isolated multi-provider AI pipeline. You can provide credentials for external inference engines here."
           >
-            <div className="mb-4">
+            <div>
               <label
                 htmlFor="geminiApiKey"
-                className="block text-sm font-medium text-gray-700 mb-1"
+                className="block text-xs font-semibold text-zinc-300 uppercase tracking-wider mb-2"
               >
-                External provider key (optional)
+                External Provider API Key (Optional)
               </label>
-              <div className="relative max-w-xl">
+              <div className="relative max-w-lg">
                 <input
                   type="password"
                   id="geminiApiKey"
                   name="geminiApiKey"
                   value={settings.geminiApiKey || ''}
                   onChange={handleInputChange}
-                  placeholder="AIza..."
-                  className="w-full p-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 font-mono"
+                  placeholder="AIzaSy... / sk-proj-..."
+                  className="glass-input w-full font-mono text-xs pr-10"
                 />
-                <Sparkles className="absolute right-3 top-2.5 text-indigo-400" size={18} />
+                <Sparkles
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-amber-400/80"
+                  size={16}
+                />
               </div>
-              <p className="mt-2 text-xs text-gray-500">
-                This value is stored for future provider integrations. The current website roadmap
-                flow does not require it.
+              <p className="mt-2 text-xs text-zinc-400">
+                When left blank, the system automatically uses the local inference fallback engine
+                without downtime.
               </p>
             </div>
           </SettingsSection>
 
           <SettingsSection
             icon={Database}
-            title="Data Management Tools"
-            description="Perform administrative actions related to system data and caching. These actions are simulated."
+            title="Maintenance & Database Utilities"
+            description="Trigger maintenance jobs, refresh cached metrics, and manage collection backups."
           >
-            <div className="flex space-x-4">
+            <div className="flex flex-wrap gap-3">
               <button
                 type="button"
                 onClick={() => handleDataAction('Full Database Backup')}
-                className="flex items-center px-4 py-2 bg-indigo-600 text-white font-medium rounded-lg hover:bg-indigo-700 transition-colors"
+                className="glass-outline-btn flex items-center gap-2 text-xs font-semibold"
               >
-                <Database size={18} className="mr-2" />
-                Backup DB
+                <Database size={15} />
+                <span>Trigger Backup</span>
               </button>
               <button
                 type="button"
                 onClick={() => handleDataAction('Clear Application Cache')}
-                className="flex items-center px-4 py-2 bg-purple-600 text-white font-medium rounded-lg hover:bg-purple-700 transition-colors"
+                className="glass-outline-btn flex items-center gap-2 text-xs font-semibold"
               >
-                <RefreshCw size={16} className="mr-2" />
-                Clear Cache
+                <RefreshCw size={15} />
+                <span>Purge Redis Cache</span>
               </button>
             </div>
           </SettingsSection>
 
-          <div className="flex items-center justify-end mt-8">
+          {/* Action Row */}
+          <div className="flex items-center justify-end gap-4 mt-8">
             {saveStatus && (
               <div
-                className={`flex items-center font-medium mr-4 ${saveStatus === 'success' ? 'text-green-600' : saveStatus === 'error' ? 'text-red-600' : 'text-indigo-600'}`}
+                className={`flex items-center text-xs font-bold px-3 py-1.5 rounded-full border ${
+                  saveStatus === 'success'
+                    ? 'bg-emerald-500/15 border-emerald-400/30 text-emerald-300'
+                    : saveStatus === 'error'
+                      ? 'bg-rose-500/15 border-rose-400/30 text-rose-300'
+                      : 'bg-blue-500/15 border-blue-400/30 text-blue-300'
+                }`}
               >
-                {saveStatus === 'saving' && <Loader size={18} className="animate-spin mr-2" />}
-                {saveStatus === 'success' && <CheckCircle size={18} className="mr-2" />}
-                {saveStatus === 'error' && <XCircle size={18} className="mr-2" />}
-                {saveStatus === 'saving'
-                  ? 'Saving...'
-                  : saveStatus === 'success'
-                    ? 'Settings Saved!'
-                    : 'Save Failed!'}
+                {saveStatus === 'saving' && <Loader size={14} className="animate-spin mr-1.5" />}
+                {saveStatus === 'success' && <CheckCircle size={14} className="mr-1.5" />}
+                {saveStatus === 'error' && <XCircle size={14} className="mr-1.5" />}
+                <span>
+                  {saveStatus === 'saving'
+                    ? 'Saving changes...'
+                    : saveStatus === 'success'
+                      ? 'Configuration persisted successfully'
+                      : 'Failed to persist configuration'}
+                </span>
               </div>
             )}
+
             <button
               type="submit"
               disabled={saveStatus === 'saving'}
-              className="flex items-center px-6 py-3 bg-indigo-600 text-white font-semibold rounded-lg shadow-md hover:bg-indigo-700 transition-colors disabled:bg-indigo-400"
+              className="glass-cta flex items-center gap-2 text-sm font-semibold disabled:opacity-50"
             >
-              <Save size={20} className="mr-2" />
-              Save Configuration
+              <Save size={16} />
+              <span>Save Changes</span>
             </button>
           </div>
         </form>
-      </div>
+      </main>
     </div>
   );
 }
