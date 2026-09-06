@@ -117,6 +117,13 @@ output/playwright/
 android/.gradle/
 **/.gradle/
 android/app/build/
+android/build/
+android/**/build/
+android/local.properties
 flutter_app/.dart_tool/
 flutter_app/build/
 ios/Pods/
+
+# Graphify & AI Cache
+graphify-out/
+.tempmediaStorage/

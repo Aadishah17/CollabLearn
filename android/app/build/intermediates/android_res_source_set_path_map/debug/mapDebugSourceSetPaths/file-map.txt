@@ -1,8 +1,0 @@
-com.collablearn.app-pngs-0 C:\Users\sseja\OneDrive\Desktop\CollabLearn\android\app\build\generated\res\pngs\debug
-com.collablearn.app-resValues-1 C:\Users\sseja\OneDrive\Desktop\CollabLearn\android\app\build\generated\res\resValues\debug
-com.collablearn.app-updated_navigation_xml-2 C:\Users\sseja\OneDrive\Desktop\CollabLearn\android\app\build\generated\updated_navigation_xml\debug
-com.collablearn.app-packageDebugResources-3 C:\Users\sseja\OneDrive\Desktop\CollabLearn\android\app\build\intermediates\incremental\debug\packageDebugResources\merged.dir
-com.collablearn.app-packageDebugResources-4 C:\Users\sseja\OneDrive\Desktop\CollabLearn\android\app\build\intermediates\incremental\debug\packageDebugResources\stripped.dir
-com.collablearn.app-debug-5 C:\Users\sseja\OneDrive\Desktop\CollabLearn\android\app\build\intermediates\merged_res\debug\mergeDebugResources
-com.collablearn.app-debug-6 C:\Users\sseja\OneDrive\Desktop\CollabLearn\android\app\src\debug\res
-com.collablearn.app-main-7 C:\Users\sseja\OneDrive\Desktop\CollabLearn\android\app\src\main\res
