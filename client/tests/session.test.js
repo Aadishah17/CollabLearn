@@ -18,7 +18,7 @@ const createLocalStorageMock = () => {
     },
     clear() {
       store.clear();
-    }
+    },
   };
 };
 
@@ -43,8 +43,8 @@ test('persistSession marks the session active even when no token is returned', (
       user: {
         name: 'Ada Lovelace',
         email: 'ada@example.com',
-        role: 'user'
-      }
+        role: 'user',
+      },
     });
 
     assert.equal(storage.getItem('sessionActive'), 'true');
@@ -60,8 +60,8 @@ test('clearSession removes both token and cookie session hints', () => {
       user: {
         name: 'Grace Hopper',
         email: 'grace@example.com',
-        role: 'admin'
-      }
+        role: 'admin',
+      },
     });
 
     clearSession();

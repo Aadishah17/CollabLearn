@@ -8,7 +8,7 @@ import {
   SlidersHorizontal,
   Sparkles,
   BookOpen,
-  ArrowUpDown
+  ArrowUpDown,
 } from 'lucide-react';
 import MainNavbar from '../../navbar/mainNavbar';
 import { API_URL } from '../../config';
@@ -80,8 +80,12 @@ const CourseCard = ({ course }) => {
 
         <div className="p-4 flex flex-col flex-1">
           <div className="flex items-center gap-2 mb-3">
-            <span className="glass-chip text-[11px] px-2.5 py-1 border-white/20 bg-black/30">{course.category}</span>
-            <span className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] ${difficultyClass}`}>
+            <span className="glass-chip text-[11px] px-2.5 py-1 border-white/20 bg-black/30">
+              {course.category}
+            </span>
+            <span
+              className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] ${difficultyClass}`}
+            >
               <BarChart3 size={12} />
               {course.difficulty}
             </span>
@@ -91,7 +95,9 @@ const CourseCard = ({ course }) => {
             {course.title}
           </h3>
 
-          <p className="text-zinc-400 text-sm leading-relaxed line-clamp-3 flex-1">{course.description}</p>
+          <p className="text-zinc-400 text-sm leading-relaxed line-clamp-3 flex-1">
+            {course.description}
+          </p>
 
           <div className="mt-4 pt-3 border-t border-white/10 flex items-center justify-between">
             <p className="text-sm text-zinc-300">{course.instructor}</p>
@@ -181,9 +187,13 @@ const Courses = () => {
     if (sortBy === 'Title A-Z') {
       result.sort((a, b) => String(a.title || '').localeCompare(String(b.title || '')));
     } else if (sortBy === 'Shortest First') {
-      result.sort((a, b) => parseDurationToMinutes(a.duration) - parseDurationToMinutes(b.duration));
+      result.sort(
+        (a, b) => parseDurationToMinutes(a.duration) - parseDurationToMinutes(b.duration)
+      );
     } else if (sortBy === 'Longest First') {
-      result.sort((a, b) => parseDurationToMinutes(b.duration) - parseDurationToMinutes(a.duration));
+      result.sort(
+        (a, b) => parseDurationToMinutes(b.duration) - parseDurationToMinutes(a.duration)
+      );
     } else {
       result.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
     }
@@ -214,7 +224,9 @@ const Courses = () => {
                 <Sparkles size={14} />
                 Course Studio
               </p>
-              <h1 className="text-3xl md:text-4xl font-bold mt-2">{selectedCategory === 'All' ? 'Explore Courses' : `${selectedCategory} Courses`}</h1>
+              <h1 className="text-3xl md:text-4xl font-bold mt-2">
+                {selectedCategory === 'All' ? 'Explore Courses' : `${selectedCategory} Courses`}
+              </h1>
               <p className="text-zinc-300 mt-2 max-w-3xl">{categorySummary}</p>
             </div>
 
@@ -228,7 +240,10 @@ const Courses = () => {
         <section className="glass-panel p-4 md:p-5 space-y-4">
           <div className="grid grid-cols-1 lg:grid-cols-[1fr,220px,220px] gap-3">
             <div className="relative">
-              <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
+              <Search
+                size={16}
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400"
+              />
               <input
                 value={searchQuery}
                 onChange={(event) => setSearchQuery(event.target.value)}
@@ -238,7 +253,10 @@ const Courses = () => {
             </div>
 
             <label className="relative">
-              <SlidersHorizontal size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
+              <SlidersHorizontal
+                size={16}
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400"
+              />
               <select
                 value={difficultyFilter}
                 onChange={(event) => setDifficultyFilter(event.target.value)}
@@ -252,7 +270,10 @@ const Courses = () => {
             </label>
 
             <label className="relative">
-              <ArrowUpDown size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
+              <ArrowUpDown
+                size={16}
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400"
+              />
               <select
                 value={sortBy}
                 onChange={(event) => setSortBy(event.target.value)}
@@ -303,7 +324,9 @@ const Courses = () => {
         ) : filteredCourses.length === 0 ? (
           <section className="glass-panel p-10 text-center">
             <h2 className="text-xl font-semibold">No courses match this filter</h2>
-            <p className="text-zinc-400 mt-2">Adjust category, level, or search query and try again.</p>
+            <p className="text-zinc-400 mt-2">
+              Adjust category, level, or search query and try again.
+            </p>
           </section>
         ) : (
           <section className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">

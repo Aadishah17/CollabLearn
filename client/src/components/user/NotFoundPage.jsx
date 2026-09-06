@@ -15,7 +15,8 @@ export default function NotFoundPage() {
           This page wandered off the roadmap.
         </h1>
         <p className="mt-5 max-w-xl text-base leading-7 text-zinc-300 md:text-lg">
-          The link may be outdated, or the page was moved while the product evolved. Use one of the routes below to get back into the app.
+          The link may be outdated, or the page was moved while the product evolved. Use one of the
+          routes below to get back into the app.
         </p>
 
         <div className="mt-8 flex flex-col gap-3 sm:flex-row">

@@ -74,19 +74,21 @@ export const normalizeApiError = (error, fallbackMessage = 'Request failed') => 
   }
 
   if (error instanceof Error) {
-    const normalizedMessage = String(error.message || '').trim().toLowerCase();
+    const normalizedMessage = String(error.message || '')
+      .trim()
+      .toLowerCase();
     if (
       normalizedMessage === 'failed to fetch' ||
       normalizedMessage === 'load failed' ||
       normalizedMessage.includes('networkerror')
     ) {
       return new ApiError('Unable to reach the server. Please try again later.', {
-        code: 'network_unavailable'
+        code: 'network_unavailable',
       });
     }
 
     return new ApiError(error.message || fallbackMessage, {
-      code: error.code || 'request_failed'
+      code: error.code || 'request_failed',
     });
   }
 
@@ -97,7 +99,7 @@ export const buildJsonHeaders = (headers = {}, { auth = false } = {}) => {
   const nextHeaders = {
     Accept: 'application/json',
     'Content-Type': 'application/json',
-    ...headers
+    ...headers,
   };
 
   if (auth) {
@@ -118,7 +120,7 @@ export const requestJson = async (input, options = {}) => {
     auth = false,
     credentials = 'include',
     timeoutMs = DEFAULT_TIMEOUT_MS,
-    signal
+    signal,
   } = options;
 
   const controller = new AbortController();
@@ -138,31 +140,26 @@ export const requestJson = async (input, options = {}) => {
       headers: buildJsonHeaders(headers, { auth }),
       body: body === undefined ? undefined : JSON.stringify(body),
       credentials,
-      signal: controller.signal
+      signal: controller.signal,
     });
 
     const payload = await parseResponseBody(response);
 
     if (!response.ok) {
-      throw new ApiError(
-        toErrorMessage(payload, `Request failed with status ${response.status}`),
-        {
-          status: response.status,
-          code: response.status === 429 ? 'rate_limited' : 'http_error',
-          details: payload
-        }
-      );
+      throw new ApiError(toErrorMessage(payload, `Request failed with status ${response.status}`), {
+        status: response.status,
+        code: response.status === 429 ? 'rate_limited' : 'http_error',
+        details: payload,
+      });
     }
 
     if (payload && typeof payload === 'object' && payload.success === false) {
-      throw new ApiError(
-        toErrorMessage(payload, 'Request failed'),
-        {
-          status: typeof payload.httpStatus === 'number' ? payload.httpStatus : response.status,
-          code: response.status === 429 || payload.httpStatus === 429 ? 'rate_limited' : 'request_failed',
-          details: payload
-        }
-      );
+      throw new ApiError(toErrorMessage(payload, 'Request failed'), {
+        status: typeof payload.httpStatus === 'number' ? payload.httpStatus : response.status,
+        code:
+          response.status === 429 || payload.httpStatus === 429 ? 'rate_limited' : 'request_failed',
+        details: payload,
+      });
     }
 
     return payload;

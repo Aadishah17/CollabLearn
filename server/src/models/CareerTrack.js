@@ -5,16 +5,16 @@ const simpleLinkSchema = new mongoose.Schema(
     slug: {
       type: String,
       required: true,
-      trim: true
+      trim: true,
     },
     title: {
       type: String,
       required: true,
-      trim: true
-    }
+      trim: true,
+    },
   },
   {
-    _id: false
+    _id: false,
   }
 );
 
@@ -25,53 +25,53 @@ const careerTrackSchema = new mongoose.Schema(
       required: true,
       unique: true,
       trim: true,
-      lowercase: true
+      lowercase: true,
     },
     title: {
       type: String,
       required: true,
-      trim: true
+      trim: true,
     },
     status: {
       type: String,
       enum: ['active', 'upcoming', 'archived'],
-      default: 'active'
+      default: 'active',
     },
     sourceUrl: {
       type: String,
       required: true,
-      trim: true
+      trim: true,
     },
     tags: [
       {
         type: String,
-        trim: true
-      }
+        trim: true,
+      },
     ],
     timing: {
       durationWeeks: Number,
       pace: String,
-      label: String
+      label: String,
     },
     roleSummary: {
       type: String,
-      default: ''
+      default: '',
     },
     hiringAdvice: {
       type: String,
-      default: ''
+      default: '',
     },
     linkedSkills: [
       {
         type: String,
-        trim: true
-      }
+        trim: true,
+      },
     ],
     linkedCourses: [simpleLinkSchema],
-    linkedModules: [simpleLinkSchema]
+    linkedModules: [simpleLinkSchema],
   },
   {
-    timestamps: true
+    timestamps: true,
   }
 );
 

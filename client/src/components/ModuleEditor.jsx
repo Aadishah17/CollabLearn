@@ -4,15 +4,7 @@ import 'react-quill-new/dist/quill.snow.css';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import axios from 'axios';
 import toast from 'react-hot-toast';
-import {
-  ArrowLeft,
-  Eye,
-  EyeOff,
-  Link2,
-  Save,
-  Shield,
-  Sparkles,
-} from 'lucide-react';
+import { ArrowLeft, Eye, EyeOff, Link2, Save, Shield, Sparkles } from 'lucide-react';
 import { API_URL } from '../config';
 import { getModuleViewPath, isPretextModule } from '../utils/moduleViewer.js';
 
@@ -119,7 +111,9 @@ function getOutline(content) {
   while (match) {
     headings.push({
       level: Number(match[1]),
-      label: String(match[2]).replace(/<[^>]*>/g, '').trim(),
+      label: String(match[2])
+        .replace(/<[^>]*>/g, '')
+        .trim(),
     });
     match = regex.exec(String(content || ''));
   }
@@ -221,9 +215,20 @@ export default function ModuleEditor() {
 
     localStorage.setItem(
       draftKey,
-      JSON.stringify({ title, content, description, visibility, tagsText, contentType, contentUrl }),
+      JSON.stringify({ title, content, description, visibility, tagsText, contentType, contentUrl })
     );
-  }, [content, contentType, contentUrl, description, draftKey, isCreating, loading, tagsText, title, visibility]);
+  }, [
+    content,
+    contentType,
+    contentUrl,
+    description,
+    draftKey,
+    isCreating,
+    loading,
+    tagsText,
+    title,
+    visibility,
+  ]);
 
   const stats = useMemo(() => {
     const plainText = getPlainText(content);
@@ -456,36 +461,38 @@ export default function ModuleEditor() {
                   )
                 ) : (
                   <div className="prose prose-invert max-w-none">
-                    <div dangerouslySetInnerHTML={{ __html: content || '<p>Nothing to preview yet.</p>' }} />
+                    <div
+                      dangerouslySetInnerHTML={{
+                        __html: content || '<p>Nothing to preview yet.</p>',
+                      }}
+                    />
                   </div>
                 )}
               </div>
-            ) : (
-              isPretextModule({ contentType }) ? (
-                <div className="flex min-h-[70vh] items-center justify-center px-8 py-16">
-                  <div className="max-w-2xl rounded-[28px] border border-white/10 bg-white/[0.03] p-8 text-center">
-                    <p className="text-xs font-semibold uppercase tracking-[0.24em] text-blue-300">
-                      PreTeXt mode
-                    </p>
-                    <h2 className="mt-4 text-3xl font-black text-white">
-                      This module points to an exported lesson instead of inline editor content.
-                    </h2>
-                    <p className="mt-4 text-sm leading-7 text-zinc-300">
-                      Keep the summary, tags, and visibility here, then use preview mode to verify
-                      the embedded lesson output.
-                    </p>
-                  </div>
+            ) : isPretextModule({ contentType }) ? (
+              <div className="flex min-h-[70vh] items-center justify-center px-8 py-16">
+                <div className="max-w-2xl rounded-[28px] border border-white/10 bg-white/[0.03] p-8 text-center">
+                  <p className="text-xs font-semibold uppercase tracking-[0.24em] text-blue-300">
+                    PreTeXt mode
+                  </p>
+                  <h2 className="mt-4 text-3xl font-black text-white">
+                    This module points to an exported lesson instead of inline editor content.
+                  </h2>
+                  <p className="mt-4 text-sm leading-7 text-zinc-300">
+                    Keep the summary, tags, and visibility here, then use preview mode to verify the
+                    embedded lesson output.
+                  </p>
                 </div>
-              ) : (
-                <ReactQuill
-                  ref={quillRef}
-                  theme="snow"
-                  value={content}
-                  onChange={setContent}
-                  modules={quillModules}
-                  className="module-quill min-h-[70vh] text-zinc-100"
-                />
-              )
+              </div>
+            ) : (
+              <ReactQuill
+                ref={quillRef}
+                theme="snow"
+                value={content}
+                onChange={setContent}
+                modules={quillModules}
+                className="module-quill min-h-[70vh] text-zinc-100"
+              />
             )}
           </div>
         </section>

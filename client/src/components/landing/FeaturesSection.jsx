@@ -13,9 +13,14 @@ export default function FeaturesSection() {
               className="glow-frame interactive-tile reveal-up relative overflow-hidden rounded-[28px] border border-white/10 bg-white/[0.035] p-5"
               style={{ animationDelay: `${index * 80}ms` }}
             >
-              <div className={`pointer-events-none absolute inset-0 bg-gradient-to-br ${signal.haloClass}`} aria-hidden="true" />
+              <div
+                className={`pointer-events-none absolute inset-0 bg-gradient-to-br ${signal.haloClass}`}
+                aria-hidden="true"
+              />
               <div className="relative">
-                <div className={`flex h-12 w-12 items-center justify-center rounded-2xl border ${signal.iconClass}`}>
+                <div
+                  className={`flex h-12 w-12 items-center justify-center rounded-2xl border ${signal.iconClass}`}
+                >
                   <signal.icon size={20} aria-hidden="true" />
                 </div>
                 <p className="mt-5 text-sm font-semibold uppercase tracking-[0.18em] text-zinc-400">
@@ -41,8 +46,8 @@ export default function FeaturesSection() {
                 A study system that feels like an interface, not a pile of tools.
               </h2>
               <p className="mt-5 max-w-xl text-sm leading-7 text-zinc-300 md:text-base">
-                CollabLearn works best when planning, practice, feedback, and teaching stay connected.
-                The website should make that loop feel obvious at a glance.
+                CollabLearn works best when planning, practice, feedback, and teaching stay
+                connected. The website should make that loop feel obvious at a glance.
               </p>
 
               <div className="mt-8 space-y-3">
@@ -77,20 +82,31 @@ export default function FeaturesSection() {
                   className="glow-frame interactive-tile reveal-up relative overflow-hidden rounded-[28px] border border-white/10 bg-white/[0.035] p-6"
                   style={{ animationDelay: `${index * 90}ms` }}
                 >
-                  <div className={`pointer-events-none absolute inset-0 bg-gradient-to-br ${lane.accent}`} aria-hidden="true" />
+                  <div
+                    className={`pointer-events-none absolute inset-0 bg-gradient-to-br ${lane.accent}`}
+                    aria-hidden="true"
+                  />
                   <div className="relative">
-                    <div className={`flex h-12 w-12 items-center justify-center rounded-2xl border ${lane.iconClass}`}>
+                    <div
+                      className={`flex h-12 w-12 items-center justify-center rounded-2xl border ${lane.iconClass}`}
+                    >
                       <lane.icon size={20} aria-hidden="true" />
                     </div>
                     <p className="mt-5 text-xs font-semibold uppercase tracking-[0.24em] text-zinc-400">
                       {lane.eyebrow}
                     </p>
-                    <h3 className="mt-3 text-2xl font-bold leading-tight text-white">{lane.title}</h3>
+                    <h3 className="mt-3 text-2xl font-bold leading-tight text-white">
+                      {lane.title}
+                    </h3>
                     <p className="mt-4 text-sm leading-7 text-zinc-300">{lane.copy}</p>
                     <div className="mt-5 space-y-3">
                       {lane.bullets.map((bullet) => (
                         <div key={bullet} className="flex items-start gap-3">
-                          <CheckCircle2 size={16} className="mt-1 shrink-0 text-emerald-300" aria-hidden="true" />
+                          <CheckCircle2
+                            size={16}
+                            className="mt-1 shrink-0 text-emerald-300"
+                            aria-hidden="true"
+                          />
                           <p className="text-sm leading-6 text-zinc-200">{bullet}</p>
                         </div>
                       ))}
@@ -114,7 +130,8 @@ export default function FeaturesSection() {
               One workspace for learning, teaching, and staying consistent.
             </h2>
             <p className="section-copy mt-5 max-w-2xl">
-              The product already has the pieces learners usually stitch together across five different tools. CollabLearn keeps them in one flow.
+              The product already has the pieces learners usually stitch together across five
+              different tools. CollabLearn keeps them in one flow.
             </p>
           </div>
 
@@ -125,14 +142,19 @@ export default function FeaturesSection() {
                 className={`feature-tile glow-frame interactive-tile reveal-up relative overflow-hidden ${feature.featured ? 'xl:col-span-2 xl:grid xl:grid-cols-[0.82fr_1.18fr] xl:items-center xl:gap-8' : ''}`}
                 style={{ animationDelay: `${index * 70}ms` }}
               >
-                <div className={`pointer-events-none absolute inset-0 bg-gradient-to-br ${feature.accent}`} aria-hidden="true" />
+                <div
+                  className={`pointer-events-none absolute inset-0 bg-gradient-to-br ${feature.accent}`}
+                  aria-hidden="true"
+                />
                 <div className="relative">
                   {feature.badge ? (
                     <div className="inline-flex rounded-full border border-white/12 bg-white/[0.05] px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-zinc-300">
                       {feature.badge}
                     </div>
                   ) : null}
-                  <div className={`${feature.badge ? 'mt-4 ' : ''}flex h-12 w-12 items-center justify-center rounded-2xl border ${feature.iconClass}`}>
+                  <div
+                    className={`${feature.badge ? 'mt-4 ' : ''}flex h-12 w-12 items-center justify-center rounded-2xl border ${feature.iconClass}`}
+                  >
                     <feature.icon size={22} aria-hidden="true" />
                   </div>
                 </div>

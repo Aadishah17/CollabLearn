@@ -25,20 +25,21 @@ const createMemoryStore = (windowMs) => {
       return {
         count: existing.count,
         resetAt: existing.startedAt + windowMs,
-        source: 'memory'
+        source: 'memory',
       };
     },
 
     clear() {
       buckets.clear();
-    }
+    },
   };
 };
 
 const getLogger = (logger = console) => ({
   warn: typeof logger?.warn === 'function' ? logger.warn.bind(logger) : console.warn.bind(console),
-  error: typeof logger?.error === 'function' ? logger.error.bind(logger) : console.error.bind(console),
-  info: typeof logger?.info === 'function' ? logger.info.bind(logger) : console.log.bind(console)
+  error:
+    typeof logger?.error === 'function' ? logger.error.bind(logger) : console.error.bind(console),
+  info: typeof logger?.info === 'function' ? logger.info.bind(logger) : console.log.bind(console),
 });
 
 const getRedisState = (redisUrl, logger = console) => {
@@ -56,14 +57,14 @@ const getRedisState = (redisUrl, logger = console) => {
     disableOfflineQueue: true,
     socket: {
       connectTimeout: 1000,
-      reconnectStrategy: () => false
-    }
+      reconnectStrategy: () => false,
+    },
   });
   const state = {
     client,
     connectPromise: null,
     hasWarned: false,
-    lastError: null
+    lastError: null,
   };
 
   client.on('error', (error) => {
@@ -76,18 +77,16 @@ const getRedisState = (redisUrl, logger = console) => {
     }
   });
 
-  state.connectPromise = client
-    .connect()
-    .catch((error) => {
-      state.lastError = error;
-      if (!state.hasWarned) {
-        normalizedLogger.warn(
-          `[rate-limit] Redis connection unavailable for ${redisUrl}; using local counters: ${error.message}`
-        );
-        state.hasWarned = true;
-      }
-      return null;
-    });
+  state.connectPromise = client.connect().catch((error) => {
+    state.lastError = error;
+    if (!state.hasWarned) {
+      normalizedLogger.warn(
+        `[rate-limit] Redis connection unavailable for ${redisUrl}; using local counters: ${error.message}`
+      );
+      state.hasWarned = true;
+    }
+    return null;
+  });
 
   sharedRedisClients.set(redisUrl, state);
   return state;
@@ -100,7 +99,7 @@ const createRedisStore = ({ redisUrl, keyPrefix, windowMs, logger = console }) =
   if (!redisState) {
     return {
       increment: memoryStore.increment.bind(memoryStore),
-      fallbackIncrement: memoryStore.increment.bind(memoryStore)
+      fallbackIncrement: memoryStore.increment.bind(memoryStore),
     };
   }
 
@@ -131,7 +130,7 @@ const createRedisStore = ({ redisUrl, keyPrefix, windowMs, logger = console }) =
         return {
           count,
           resetAt,
-          source: 'redis'
+          source: 'redis',
         };
       } catch (error) {
         redisState.lastError = error;
@@ -145,7 +144,7 @@ const createRedisStore = ({ redisUrl, keyPrefix, windowMs, logger = console }) =
         return memoryStore.increment(key, now);
       }
     },
-    fallbackIncrement: memoryStore.increment.bind(memoryStore)
+    fallbackIncrement: memoryStore.increment.bind(memoryStore),
   };
 };
 
@@ -157,13 +156,13 @@ const createRateLimiter = ({
   nowProvider = () => Date.now(),
   redisUrl = process.env.RATE_LIMIT_REDIS_URL || process.env.REDIS_URL,
   keyPrefix = 'collablearn:rate-limit',
-  logger = console
+  logger = console,
 } = {}) => {
   const store = createRedisStore({
     redisUrl,
     keyPrefix,
     windowMs,
-    logger
+    logger,
   });
 
   const resolveKey = (req) => {
@@ -181,10 +180,7 @@ const createRateLimiter = ({
 
   const finalize = (res, next, result, now) => {
     if (result.count > max) {
-      const retryAfterSeconds = Math.max(
-        1,
-        Math.ceil((result.resetAt - now) / 1000)
-      );
+      const retryAfterSeconds = Math.max(1, Math.ceil((result.resetAt - now) / 1000));
 
       if (typeof res.setHeader === 'function') {
         res.setHeader('Retry-After', String(retryAfterSeconds));
@@ -192,7 +188,7 @@ const createRateLimiter = ({
 
       return res.status(429).json({
         success: false,
-        message
+        message,
       });
     }
 
@@ -230,5 +226,5 @@ const createRateLimiter = ({
 module.exports = {
   createRateLimiter,
   createMemoryStore,
-  createRedisStore
+  createRedisStore,
 };

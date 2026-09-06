@@ -22,14 +22,20 @@ const getUniqueParticipantCount = (sessions, role) => {
 };
 
 const findResourceHostSession = (sessions) =>
-  sessions.find((session) => Array.isArray(session?.sessionDocuments) && session.sessionDocuments.length > 0) ||
+  sessions.find(
+    (session) => Array.isArray(session?.sessionDocuments) && session.sessionDocuments.length > 0
+  ) ||
   sessions[0] ||
   null;
 
 const countUpcomingSessions = (sessions, now) =>
   sessions.filter((session) => {
     const timestamp = new Date(session?.date || 0).getTime();
-    return Number.isFinite(timestamp) && timestamp >= now.getTime() && ACTIVE_UPCOMING_STATUSES.has(session?.status);
+    return (
+      Number.isFinite(timestamp) &&
+      timestamp >= now.getTime() &&
+      ACTIVE_UPCOMING_STATUSES.has(session?.status)
+    );
   }).length;
 
 const summarizeSessions = (sessions, role, now) => ({
@@ -65,13 +71,15 @@ export const deriveSkillSessionView = ({
 
   const teachingSessions = filterBookingsForSkill(instructorBookings, normalizedSkillId);
   const learningSessions = filterBookingsForSkill(studentBookings, normalizedSkillId);
-  const userRole = teachingSessions.length ? 'instructor' : learningSessions.length ? 'student' : null;
+  const userRole = teachingSessions.length
+    ? 'instructor'
+    : learningSessions.length
+      ? 'student'
+      : null;
   const sessions = userRole === 'instructor' ? teachingSessions : learningSessions;
   const resourceHostSession = findResourceHostSession(sessions);
   const primaryParticipant =
-    userRole === 'instructor'
-      ? sessions[0]?.student || null
-      : sessions[0]?.instructor || null;
+    userRole === 'instructor' ? sessions[0]?.student || null : sessions[0]?.instructor || null;
 
   return {
     userRole,

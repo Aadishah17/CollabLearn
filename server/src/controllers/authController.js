@@ -10,9 +10,12 @@ const Setting = require('../models/Setting');
 const { getAccessProfile, normalizeEmail } = require('../config/access');
 const { avatarUploadsPath } = require('../config/storage');
 const {
+  buildSessionUserPayload: buildSessionUser,
   clearAuthCookie,
+  createSessionToken,
   resolveJwtSecret,
-  setAuthCookie
+  sendSessionResponse,
+  setAuthCookie,
 } = require('../config/auth');
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID || 'YOUR_GOOGLE_CLIENT_ID');
 
@@ -31,59 +34,6 @@ const getMinimumPasswordLength = async () => {
   }
 
   return 6;
-};
-
-const createSessionToken = ({ userId, email, role, isSuperAdmin }) =>
-  jwt.sign(
-    {
-      userId,
-      email,
-      role,
-      isSuperAdmin: Boolean(isSuperAdmin)
-    },
-    resolveJwtSecret(),
-    { expiresIn: '7d' }
-  );
-
-const sendSessionResponse = ({ res, statusCode = 200, message, token, user, extra = {} }) => {
-  setAuthCookie(res, token);
-
-  return res.status(statusCode).json({
-    success: true,
-    message,
-    token,
-    user,
-    ...extra
-  });
-};
-
-const buildSessionUser = ({ account, accountType, role, isSuperAdmin }) => {
-  const baseUser = {
-    id: account._id,
-    email: account.email,
-    role,
-    isSuperAdmin: Boolean(isSuperAdmin)
-  };
-
-  if (accountType === 'admin') {
-    return {
-      ...baseUser,
-      name: isSuperAdmin ? 'Super Admin' : 'Admin',
-      avatar: null,
-      avatarType: 'default',
-      isPremium: false,
-      createdAt: account.createdAt
-    };
-  }
-
-  return {
-    ...baseUser,
-    name: account.name,
-    avatar: account.getAvatarUrl(),
-    avatarType: account.avatar?.type,
-    isPremium: account.isPremium || false,
-    createdAt: account.createdAt
-  };
 };
 
 const findLoginCandidates = async (email, requestedRole, isSuperAdmin) => {
@@ -108,7 +58,7 @@ const findLoginCandidates = async (email, requestedRole, isSuperAdmin) => {
     if (account) {
       candidates.push({
         account,
-        accountType: lookup.accountType
+        accountType: lookup.accountType,
       });
     }
   }
@@ -127,14 +77,14 @@ const authController = {
       if (!name || !email || !password) {
         return res.status(400).json({
           success: false,
-          message: 'All fields (name, email, password) are required'
+          message: 'All fields (name, email, password) are required',
         });
       }
 
       if (password.length < minimumPasswordLength) {
         return res.status(400).json({
           success: false,
-          message: `Password must be at least ${minimumPasswordLength} characters long`
+          message: `Password must be at least ${minimumPasswordLength} characters long`,
         });
       }
 
@@ -142,7 +92,7 @@ const authController = {
       if (existingUser) {
         return res.status(400).json({
           success: false,
-          message: 'User with this email already exists'
+          message: 'User with this email already exists',
         });
       }
 
@@ -152,7 +102,7 @@ const authController = {
       const user = new User({
         name: name.trim(),
         email: normalizedEmail,
-        password: hashedPassword
+        password: hashedPassword,
       });
 
       await user.save();
@@ -161,7 +111,7 @@ const authController = {
         userId: user._id,
         email: user.email,
         role: accessProfile.role,
-        isSuperAdmin: accessProfile.isSuperAdmin
+        isSuperAdmin: accessProfile.isSuperAdmin,
       });
 
       return sendSessionResponse({
@@ -173,17 +123,16 @@ const authController = {
           account: user,
           accountType: 'user',
           role: accessProfile.role,
-          isSuperAdmin: accessProfile.isSuperAdmin
-        })
+          isSuperAdmin: accessProfile.isSuperAdmin,
+        }),
       });
-
     } catch (error) {
       console.error('Registration error:', error);
 
       if (error.code === 11000) {
         return res.status(400).json({
           success: false,
-          message: 'Email already exists'
+          message: 'Email already exists',
         });
       }
 
@@ -193,14 +142,14 @@ const authController = {
           .filter(Boolean);
         return res.status(400).json({
           success: false,
-          message: messages[0] || 'Invalid registration details'
+          message: messages[0] || 'Invalid registration details',
         });
       }
 
       res.status(500).json({
         success: false,
         message: 'Server error during registration',
-        error: process.env.NODE_ENV === 'development' ? error.message : undefined
+        error: process.env.NODE_ENV === 'development' ? error.message : undefined,
       });
     }
   },
@@ -215,7 +164,7 @@ const authController = {
       if (!email || !password) {
         return res.status(400).json({
           success: false,
-          message: 'Email and password are required'
+          message: 'Email and password are required',
         });
       }
 
@@ -228,7 +177,8 @@ const authController = {
       if (!candidates.length) {
         return res.status(401).json({
           success: false,
-          message: requestedRole === 'admin' ? 'Invalid admin credentials' : 'Invalid email or password'
+          message:
+            requestedRole === 'admin' ? 'Invalid admin credentials' : 'Invalid email or password',
         });
       }
 
@@ -245,7 +195,8 @@ const authController = {
       if (!matchedCandidate) {
         return res.status(401).json({
           success: false,
-          message: requestedRole === 'admin' ? 'Invalid admin credentials' : 'Invalid email or password'
+          message:
+            requestedRole === 'admin' ? 'Invalid admin credentials' : 'Invalid email or password',
         });
       }
 
@@ -258,7 +209,7 @@ const authController = {
           message:
             sessionRole === 'admin'
               ? 'Admin account is deactivated. Please contact support.'
-              : 'Account is deactivated. Please contact support.'
+              : 'Account is deactivated. Please contact support.',
         });
       }
 
@@ -266,7 +217,7 @@ const authController = {
         userId: account._id,
         email: account.email,
         role: sessionRole,
-        isSuperAdmin: accessProfile.isSuperAdmin
+        isSuperAdmin: accessProfile.isSuperAdmin,
       });
 
       return sendSessionResponse({
@@ -277,16 +228,15 @@ const authController = {
           account,
           accountType,
           role: sessionRole,
-          isSuperAdmin: accessProfile.isSuperAdmin
-        })
+          isSuperAdmin: accessProfile.isSuperAdmin,
+        }),
       });
-
     } catch (error) {
       console.error('Login error:', error);
       res.status(500).json({
         success: false,
         message: 'Server error during login',
-        error: process.env.NODE_ENV === 'development' ? error.message : undefined
+        error: process.env.NODE_ENV === 'development' ? error.message : undefined,
       });
     }
   },
@@ -297,7 +247,7 @@ const authController = {
 
       const ticket = await client.verifyIdToken({
         idToken: token,
-        audience: process.env.GOOGLE_CLIENT_ID || 'YOUR_GOOGLE_CLIENT_ID'
+        audience: process.env.GOOGLE_CLIENT_ID || 'YOUR_GOOGLE_CLIENT_ID',
       });
 
       const { name, email, picture } = ticket.getPayload();
@@ -318,9 +268,9 @@ const authController = {
             type: 'url',
             url: picture,
             filename: '',
-            uploadDate: new Date()
+            uploadDate: new Date(),
           },
-          isGoogleAuth: true
+          isGoogleAuth: true,
         });
         await user.save();
       }
@@ -329,7 +279,7 @@ const authController = {
         userId: user._id,
         email: user.email,
         role: accessProfile.role,
-        isSuperAdmin: accessProfile.isSuperAdmin
+        isSuperAdmin: accessProfile.isSuperAdmin,
       });
 
       return sendSessionResponse({
@@ -341,8 +291,8 @@ const authController = {
           account: user,
           accountType: 'user',
           role: accessProfile.role,
-          isSuperAdmin: accessProfile.isSuperAdmin
-        })
+          isSuperAdmin: accessProfile.isSuperAdmin,
+        }),
       });
     } catch (error) {
       console.error('Google login error:', error);
@@ -364,7 +314,7 @@ const authController = {
           if (!admin) {
             return res.status(404).json({
               success: false,
-              message: 'User not found'
+              message: 'User not found',
             });
           }
 
@@ -389,14 +339,14 @@ const authController = {
               totalSessions: 0,
               badges: [],
               joinDate: admin.createdAt,
-              createdAt: admin.createdAt
-            }
+              createdAt: admin.createdAt,
+            },
           });
         }
 
         return res.status(404).json({
           success: false,
-          message: 'User not found'
+          message: 'User not found',
         });
       }
 
@@ -422,16 +372,15 @@ const authController = {
           totalSessions: user.totalSessions,
           badges: user.badges,
           joinDate: user.createdAt,
-          createdAt: user.createdAt
-        }
+          createdAt: user.createdAt,
+        },
       });
-
     } catch (error) {
       console.error('Get current user error:', error);
       res.status(500).json({
         success: false,
         message: 'Server error',
-        error: process.env.NODE_ENV === 'development' ? error.message : undefined
+        error: process.env.NODE_ENV === 'development' ? error.message : undefined,
       });
     }
   },
@@ -445,7 +394,7 @@ const authController = {
       if (!user) {
         return res.status(404).json({
           success: false,
-          message: 'User not found'
+          message: 'User not found',
         });
       }
 
@@ -480,15 +429,14 @@ const authController = {
           isPremium: user.isPremium || false,
           isActive: user.isActive,
           createdAt: user.createdAt,
-          updatedAt: user.updatedAt
-        }
+          updatedAt: user.updatedAt,
+        },
       });
-
     } catch (error) {
       console.error('Update profile error:', error);
       res.status(500).json({
         success: false,
-        message: 'Internal server error'
+        message: 'Internal server error',
       });
     }
   },
@@ -498,7 +446,7 @@ const authController = {
 
     return res.json({
       success: true,
-      message: 'Logout successful'
+      message: 'Logout successful',
     });
   },
 
@@ -507,7 +455,7 @@ const authController = {
       if (!req.file) {
         return res.status(400).json({
           success: false,
-          message: 'No image file uploaded'
+          message: 'No image file uploaded',
         });
       }
 
@@ -515,7 +463,7 @@ const authController = {
       if (!user) {
         return res.status(404).json({
           success: false,
-          message: 'User not found'
+          message: 'User not found',
         });
       }
 
@@ -545,14 +493,14 @@ const authController = {
           id: user._id,
           avatar: user.getAvatarUrl(),
           avatarType: user.avatar?.type,
-          avatarFilename: user.avatar?.filename || ''
-        }
+          avatarFilename: user.avatar?.filename || '',
+        },
       });
     } catch (error) {
       console.error('Upload avatar error:', error);
       return res.status(500).json({
         success: false,
-        message: 'Failed to upload avatar'
+        message: 'Failed to upload avatar',
       });
     }
   },
@@ -597,7 +545,6 @@ const authController = {
       clearAuthCookie(res);
 
       res.json({ success: true, message: 'Account and related data deleted successfully' });
-
     } catch (error) {
       console.error('Delete account error:', error);
       res.status(500).json({ success: false, message: 'Server error deleting account' });
@@ -617,7 +564,7 @@ const authController = {
       if (!user) {
         return res.status(404).json({
           success: false,
-          message: 'User not found'
+          message: 'User not found',
         });
       }
 
@@ -642,20 +589,18 @@ const authController = {
           totalSessions: user.totalSessions,
           badges: user.badges,
           joinDate: user.createdAt,
-          createdAt: user.createdAt
-        }
+          createdAt: user.createdAt,
+        },
       });
-
     } catch (error) {
       console.error('Get user by ID error:', error);
       res.status(500).json({
         success: false,
         message: 'Server error',
-        error: process.env.NODE_ENV === 'development' ? error.message : undefined
+        error: process.env.NODE_ENV === 'development' ? error.message : undefined,
       });
     }
-  }
-
+  },
 };
 
 module.exports = authController;

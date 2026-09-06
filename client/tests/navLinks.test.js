@@ -51,7 +51,7 @@ test('resolvePublicWebsiteEntry keeps learners on the dashboard path', () => {
     {
       path: '/dashboard',
       label: 'Open dashboard',
-    },
+    }
   );
 });
 
@@ -65,7 +65,7 @@ test('resolvePublicWebsiteEntry gives super admins a learner-safe website entry 
     {
       path: '/browse-skills',
       label: 'Open learning site',
-    },
+    }
   );
 });
 
@@ -79,7 +79,7 @@ test('resolvePublicWebsiteEntry sends non-super admins back to admin console', (
     {
       path: '/admin',
       label: 'Return to admin console',
-    },
+    }
   );
 });
 
@@ -88,7 +88,7 @@ test('buildPublicDiscoveryLinks exposes competitions and career discovery routes
 
   assert.deepEqual(
     links.map((link) => link.path),
-    ['/competitions', '/career'],
+    ['/competitions', '/career']
   );
   assert.equal(links[0].label, 'Competitions');
   assert.equal(links[1].label, 'Career');

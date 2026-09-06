@@ -14,16 +14,16 @@ const makeResponse = () => {
         return {
           json(body) {
             payload = body;
-          }
+          },
         };
-      }
+      },
     },
     get statusCode() {
       return statusCode;
     },
     get payload() {
       return payload;
-    }
+    },
   };
 };
 
@@ -32,8 +32,8 @@ test('auth register validation trims and normalizes the payload', () => {
     body: {
       name: '  Amina  ',
       email: ' AMINA@Example.COM ',
-      password: 'secret123'
-    }
+      password: 'secret123',
+    },
   };
 
   let nextCalled = false;
@@ -47,7 +47,7 @@ test('auth register validation trims and normalizes the payload', () => {
   assert.deepEqual(req.body, {
     name: 'Amina',
     email: 'amina@example.com',
-    password: 'secret123'
+    password: 'secret123',
   });
 });
 
@@ -59,8 +59,8 @@ test('booking validation coerces booking fields and preserves compatible types',
       skill: '507f1f77bcf86cd799439013',
       date: '2026-03-25T10:30:00.000Z',
       duration: '60',
-      notes: '  Please focus on debugging  '
-    }
+      notes: '  Please focus on debugging  ',
+    },
   };
 
   let nextCalled = false;
@@ -95,8 +95,8 @@ test('post validation trims tags and rejects missing required text', () => {
     body: {
       title: '  Shipping the beta  ',
       excerpt: '  A practical write-up on the release process.  ',
-      tags: ['  launch  ', ' release ', 'launch', '']
-    }
+      tags: ['  launch  ', ' release ', 'launch', ''],
+    },
   };
 
   let nextCalled = false;

@@ -11,13 +11,10 @@ const sanitizeTags = (tags) => {
     return [];
   }
 
-  return Array.from(
-    new Set(
-      tags
-        .map((tag) => toTrimmedString(tag, 32))
-        .filter(Boolean)
-    )
-  ).slice(0, 8);
+  return Array.from(new Set(tags.map((tag) => toTrimmedString(tag, 32)).filter(Boolean))).slice(
+    0,
+    8
+  );
 };
 
 const resolveAvatarUrl = (user, fallbackName) => {
@@ -43,7 +40,10 @@ const resolveAvatarUrl = (user, fallbackName) => {
           : `https://i.pravatar.cc/150?u=${encodeURIComponent(fallbackName || 'User')}`;
       case 'url':
       case 'base64':
-        return user.avatar.url || `https://i.pravatar.cc/150?u=${encodeURIComponent(fallbackName || 'User')}`;
+        return (
+          user.avatar.url ||
+          `https://i.pravatar.cc/150?u=${encodeURIComponent(fallbackName || 'User')}`
+        );
       default:
         break;
     }
@@ -75,13 +75,13 @@ exports.getPosts = async (req, res) => {
         .populate({
           path: 'userId',
           select: 'name email',
-          model: 'User'
+          model: 'User',
         })
         .sort({ timestamp: -1 })
         .skip(skip)
         .limit(limit)
         .lean(),
-      Post.countDocuments({})
+      Post.countDocuments({}),
     ]);
 
     const transformedPosts = posts.map((post) => ({
@@ -90,9 +90,9 @@ exports.getPosts = async (req, res) => {
         ? {
             id: post.userId._id,
             name: post.userId.name,
-            email: post.userId.email
+            email: post.userId.email,
           }
-        : null
+        : null,
     }));
 
     res.json({
@@ -100,7 +100,7 @@ exports.getPosts = async (req, res) => {
       page,
       limit,
       total,
-      posts: transformedPosts
+      posts: transformedPosts,
     });
   } catch (error) {
     console.error('Error fetching posts:', error);
@@ -120,8 +120,8 @@ exports.getTopContributors = async (req, res) => {
           from: 'users',
           localField: '_id',
           foreignField: '_id',
-          as: 'user'
-        }
+          as: 'user',
+        },
       },
       { $unwind: { path: '$user', preserveNullAndEmptyArrays: false } },
       {
@@ -129,10 +129,10 @@ exports.getTopContributors = async (req, res) => {
           'user.name': { $nin: ['', null] },
           $expr: {
             $not: {
-              $regexMatch: { input: { $toLower: '$user.name' }, regex: /^anonymous(\s+user)?$/ }
-            }
-          }
-        }
+              $regexMatch: { input: { $toLower: '$user.name' }, regex: /^anonymous(\s+user)?$/ },
+            },
+          },
+        },
       },
       {
         $project: {
@@ -140,10 +140,10 @@ exports.getTopContributors = async (req, res) => {
           userId: '$_id',
           totalPosts: 1,
           name: '$user.name',
-          avatar: ''
-        }
+          avatar: '',
+        },
       },
-      { $limit: limit }
+      { $limit: limit },
     ]);
 
     const anonRe = /^anonymous(?:\s+user)?$/i;
@@ -160,7 +160,7 @@ exports.getTopContributors = async (req, res) => {
         name: row.name,
         avatar: row.avatar || null,
         avatarUrl: resolveAvatarUrl({ avatar: row.avatar }, row.name),
-        totalPosts: row.totalPosts
+        totalPosts: row.totalPosts,
       });
     }
 
@@ -191,7 +191,7 @@ exports.createPost = async (req, res) => {
   if (!title || !excerpt) {
     return res.status(400).json({
       success: false,
-      message: 'Title and discussion content are required.'
+      message: 'Title and discussion content are required.',
     });
   }
 
@@ -200,7 +200,7 @@ exports.createPost = async (req, res) => {
     if (!user) {
       return res.status(404).json({
         success: false,
-        message: 'User not found'
+        message: 'User not found',
       });
     }
 
@@ -213,7 +213,7 @@ exports.createPost = async (req, res) => {
       tags,
       authorRole: buildAuthorRole(req),
       category: category || 'General Discussion',
-      userId: req.userId
+      userId: req.userId,
     });
 
     const savedPost = await newPost.save();
@@ -221,7 +221,7 @@ exports.createPost = async (req, res) => {
   } catch (error) {
     res.status(400).json({
       success: false,
-      message: error.message
+      message: error.message,
     });
   }
 };
@@ -233,7 +233,7 @@ exports.deletePost = async (req, res) => {
     if (!post) {
       return res.status(404).json({
         success: false,
-        message: 'Post not found'
+        message: 'Post not found',
       });
     }
 
@@ -241,7 +241,7 @@ exports.deletePost = async (req, res) => {
     if (!isOwner && req.userRole !== 'admin') {
       return res.status(403).json({
         success: false,
-        message: 'You are not authorized to delete this post'
+        message: 'You are not authorized to delete this post',
       });
     }
 
@@ -249,13 +249,13 @@ exports.deletePost = async (req, res) => {
 
     res.json({
       success: true,
-      message: 'Post deleted successfully'
+      message: 'Post deleted successfully',
     });
   } catch (error) {
     console.error('Delete post error:', error);
     res.status(500).json({
       success: false,
-      message: error.message
+      message: error.message,
     });
   }
 };
@@ -289,14 +289,14 @@ exports.addComment = async (req, res) => {
   if (!text) {
     return res.status(400).json({
       success: false,
-      message: 'Comment text is required.'
+      message: 'Comment text is required.',
     });
   }
 
   try {
     const [post, user] = await Promise.all([
       Post.findById(req.params.id),
-      User.findById(req.userId).select('name')
+      User.findById(req.userId).select('name'),
     ]);
 
     if (!post) {
@@ -310,7 +310,7 @@ exports.addComment = async (req, res) => {
     post.comments.push({
       userId: String(req.userId),
       author: toTrimmedString(user.name, 80) || 'CollabLearn User',
-      text
+      text,
     });
     post.stats.comments = (post.stats.comments || 0) + 1;
 

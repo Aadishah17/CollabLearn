@@ -22,7 +22,7 @@ const withPatched = async (target, key, replacement, fn) => {
 const createFindByIdMock = (result) => () => ({
   select() {
     return Promise.resolve(result);
-  }
+  },
 });
 
 test.after(() => {
@@ -43,7 +43,7 @@ test('optionalAuth attaches user data when the bearer token is valid', async () 
   const req = {
     header(name) {
       return name === 'Authorization' ? `Bearer ${token}` : null;
-    }
+    },
   };
 
   let nextCalled = false;
@@ -53,7 +53,7 @@ test('optionalAuth attaches user data when the bearer token is valid', async () 
     createFindByIdMock({
       _id: 'user-123',
       email: 'learner@example.com',
-      isActive: true
+      isActive: true,
     }),
     async () => {
       await withPatched(Admin, 'findById', createFindByIdMock(null), async () => {
@@ -76,7 +76,7 @@ test('optionalAuth ignores invalid configuration and continues without auth cont
   const req = {
     header(name) {
       return name === 'Authorization' ? `Bearer ${token}` : null;
-    }
+    },
   };
 
   let nextCalled = false;

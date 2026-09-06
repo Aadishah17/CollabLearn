@@ -4,7 +4,6 @@ import { CheckCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { API_URL } from '../../config';
 
-
 export default function GooglePayExample() {
   const [paymentData, setPaymentData] = useState(null);
   const [success, setSuccess] = useState(false);
@@ -29,26 +28,29 @@ export default function GooglePayExample() {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${tokenAuth}`
+          Authorization: `Bearer ${tokenAuth}`,
         },
-        body: JSON.stringify({ isPremium: true })
-      }).then(async (res) => {
-        try {
-          const json = await res.json();
-          if (res.ok && json.success) {
-            // Persist locally and notify other components (navbar)
-            localStorage.setItem('isPremium', 'true');
-            window.dispatchEvent(new CustomEvent('profileUpdated', { detail: { isPremium: true } }));
-          } else {
-            console.error('Failed to update premium status', json);
+        body: JSON.stringify({ isPremium: true }),
+      })
+        .then(async (res) => {
+          try {
+            const json = await res.json();
+            if (res.ok && json.success) {
+              // Persist locally and notify other components (navbar)
+              localStorage.setItem('isPremium', 'true');
+              window.dispatchEvent(
+                new CustomEvent('profileUpdated', { detail: { isPremium: true } })
+              );
+            } else {
+              console.error('Failed to update premium status', json);
+            }
+          } catch (e) {
+            console.error('Error parsing response when updating premium status', e);
           }
-        } catch (e) {
-          console.error('Error parsing response when updating premium status', e);
-        }
-      }).catch((err) => {
-        console.error('Network error updating premium status', err);
-      });
-
+        })
+        .catch((err) => {
+          console.error('Network error updating premium status', err);
+        });
     }
 
     setPaymentData(displayData);
@@ -69,7 +71,9 @@ export default function GooglePayExample() {
           {/* Order summary */}
           <div className="md:w-1/2 p-8 bg-gray-50">
             <h3 className="text-2xl font-bold text-gray-800">Confirm your purchase</h3>
-            <p className="text-sm text-gray-500 mt-2">Secure checkout powered by Google Pay (TEST)</p>
+            <p className="text-sm text-gray-500 mt-2">
+              Secure checkout powered by Google Pay (TEST)
+            </p>
 
             <div className="mt-6 bg-white border border-gray-200 rounded-lg p-4">
               <div className="flex items-center justify-between">
@@ -79,7 +83,9 @@ export default function GooglePayExample() {
                 </div>
                 <div className="text-right">
                   <p className="text-sm text-gray-500">Total</p>
-                  <p className="font-bold text-gray-900">{order.currency} {order.amount}</p>
+                  <p className="font-bold text-gray-900">
+                    {order.currency} {order.amount}
+                  </p>
                 </div>
               </div>
 
@@ -145,7 +151,9 @@ export default function GooglePayExample() {
                   <CheckCircle className="h-8 w-8" />
                 </div>
                 <h3 className="text-2xl font-bold text-gray-800">Payment successful</h3>
-                <p className="text-gray-600">Thank you! Your payment was processed through our payment gateway.</p>
+                <p className="text-gray-600">
+                  Thank you! Your payment was processed through our payment gateway.
+                </p>
 
                 <div className="mt-3 w-full bg-gray-50 border border-gray-200 rounded-lg p-4 text-left">
                   <p className="text-sm text-gray-500">Payment method</p>
@@ -162,7 +170,12 @@ export default function GooglePayExample() {
                 </div>
 
                 <div className="flex gap-3 mt-4">
-                  <button onClick={() => navigate('/dashboard')} className="px-4 py-2 bg-indigo-600 text-white rounded-md cursor-pointer">Go to Dashboard</button>
+                  <button
+                    onClick={() => navigate('/dashboard')}
+                    className="px-4 py-2 bg-indigo-600 text-white rounded-md cursor-pointer"
+                  >
+                    Go to Dashboard
+                  </button>
                   {/* <button onClick={() => { setSuccess(false); setPaymentData(null); }} className="px-4 py-2 border rounded-md">Make another payment</button> */}
                 </div>
               </div>

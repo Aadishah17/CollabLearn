@@ -1,5 +1,15 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Upload, User, FileText, Image, Camera, Save, AlertCircle, CheckCircle } from 'lucide-react';
+import {
+  X,
+  Upload,
+  User,
+  FileText,
+  Image,
+  Camera,
+  Save,
+  AlertCircle,
+  CheckCircle,
+} from 'lucide-react';
 import Avatar from './Avatar';
 import { validateAvatarFile } from '../../utils/avatarUtils';
 import { API_URL } from '../../config';
@@ -8,7 +18,7 @@ export default function EditProfile({ isOpen, onClose, profileData, onSave }) {
   const [formData, setFormData] = useState({
     name: '',
     bio: '',
-    avatar: ''
+    avatar: '',
   });
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
@@ -24,7 +34,7 @@ export default function EditProfile({ isOpen, onClose, profileData, onSave }) {
       const initialData = {
         name: profileData.name || '',
         bio: profileData.bio || '',
-        avatar: profileData.avatar || ''
+        avatar: profileData.avatar || '',
       };
       setFormData(initialData);
       setImagePreview(profileData.avatar || '');
@@ -47,16 +57,16 @@ export default function EditProfile({ isOpen, onClose, profileData, onSave }) {
   // Handle input changes
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [name]: value
+      [name]: value,
     }));
 
     // Clear error for this field when user starts typing
     if (errors[name]) {
-      setErrors(prev => ({
+      setErrors((prev) => ({
         ...prev,
-        [name]: ''
+        [name]: '',
       }));
     }
   };
@@ -69,15 +79,15 @@ export default function EditProfile({ isOpen, onClose, profileData, onSave }) {
     // Validate file
     const validation = validateAvatarFile(file);
     if (!validation.isValid) {
-      setErrors(prev => ({
+      setErrors((prev) => ({
         ...prev,
-        avatar: validation.errors[0]
+        avatar: validation.errors[0],
       }));
       return;
     }
 
     setUploadingImage(true);
-    setErrors(prev => ({ ...prev, avatar: '' }));
+    setErrors((prev) => ({ ...prev, avatar: '' }));
 
     try {
       const token = localStorage.getItem('token');
@@ -91,9 +101,9 @@ export default function EditProfile({ isOpen, onClose, profileData, onSave }) {
       const response = await fetch(`${API_URL}/api/auth/avatar`, {
         method: 'POST',
         headers: {
-          Authorization: `Bearer ${token}`
+          Authorization: `Bearer ${token}`,
         },
-        body: formData
+        body: formData,
       });
 
       const payload = await response.json();
@@ -103,9 +113,9 @@ export default function EditProfile({ isOpen, onClose, profileData, onSave }) {
 
       const avatarUrl = payload.user?.avatar || '';
       setImagePreview(avatarUrl);
-      setFormData(prev => ({
+      setFormData((prev) => ({
         ...prev,
-        avatar: avatarUrl
+        avatar: avatarUrl,
       }));
 
       if (avatarUrl) {
@@ -117,15 +127,15 @@ export default function EditProfile({ isOpen, onClose, profileData, onSave }) {
       window.dispatchEvent(
         new CustomEvent('profileUpdated', {
           detail: {
-            avatar: avatarUrl
-          }
+            avatar: avatarUrl,
+          },
         })
       );
     } catch (error) {
       console.error('Error processing image:', error);
-      setErrors(prev => ({
+      setErrors((prev) => ({
         ...prev,
-        avatar: error.message || 'Failed to upload image. Please try again.'
+        avatar: error.message || 'Failed to upload image. Please try again.',
       }));
     } finally {
       setUploadingImage(false);
@@ -140,9 +150,9 @@ export default function EditProfile({ isOpen, onClose, profileData, onSave }) {
   // Remove uploaded image
   const handleRemoveImage = () => {
     setImagePreview('');
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      avatar: ''
+      avatar: '',
     }));
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
@@ -199,11 +209,10 @@ export default function EditProfile({ isOpen, onClose, profileData, onSave }) {
         setSuccessMessage('');
         onClose();
       }, 1500);
-
     } catch (error) {
       console.error('Error updating profile:', error);
       setErrors({
-        submit: error.message || 'Failed to update profile. Please try again.'
+        submit: error.message || 'Failed to update profile. Please try again.',
       });
     } finally {
       setLoading(false);
@@ -215,7 +224,7 @@ export default function EditProfile({ isOpen, onClose, profileData, onSave }) {
     setFormData({
       name: profileData?.name || '',
       bio: profileData?.bio || '',
-      avatar: profileData?.avatar || ''
+      avatar: profileData?.avatar || '',
     });
     setImagePreview(profileData?.avatar || '');
     setErrors({});
@@ -334,7 +343,9 @@ export default function EditProfile({ isOpen, onClose, profileData, onSave }) {
               <p className="text-xs text-gray-400 text-center max-w-sm leading-relaxed">
                 Upload a photo or we'll create a beautiful avatar with your initials.
                 <br />
-                <span className="font-medium text-gray-300">Supported: JPEG, PNG, WebP • Max: 5MB</span>
+                <span className="font-medium text-gray-300">
+                  Supported: JPEG, PNG, WebP • Max: 5MB
+                </span>
               </p>
             </div>
 
@@ -352,8 +363,11 @@ export default function EditProfile({ isOpen, onClose, profileData, onSave }) {
                   name="name"
                   value={formData.name}
                   onChange={handleInputChange}
-                  className={`w-full px-4 py-4 bg-black border-2 rounded-xl text-white focus:ring-4 focus:ring-red-500/20 focus:border-red-500 transition-all duration-200 font-medium placeholder:text-gray-600 ${errors.name ? 'border-red-500 bg-red-900/10' : 'border-gray-700 hover:border-gray-500'
-                    }`}
+                  className={`w-full px-4 py-4 bg-black border-2 rounded-xl text-white focus:ring-4 focus:ring-red-500/20 focus:border-red-500 transition-all duration-200 font-medium placeholder:text-gray-600 ${
+                    errors.name
+                      ? 'border-red-500 bg-red-900/10'
+                      : 'border-gray-700 hover:border-gray-500'
+                  }`}
                   placeholder="Enter your full name"
                   disabled={loading}
                   required
@@ -372,7 +386,9 @@ export default function EditProfile({ isOpen, onClose, profileData, onSave }) {
               )}
               <div className="flex justify-between text-xs">
                 <span className="text-gray-500">This is how others will see your name</span>
-                <span className={`font-medium ${formData.name.length > 45 ? 'text-red-500' : 'text-gray-500'}`}>
+                <span
+                  className={`font-medium ${formData.name.length > 45 ? 'text-red-500' : 'text-gray-500'}`}
+                >
                   {formData.name.length}/50
                 </span>
               </div>
@@ -392,8 +408,11 @@ export default function EditProfile({ isOpen, onClose, profileData, onSave }) {
                   value={formData.bio}
                   onChange={handleInputChange}
                   rows="4"
-                  className={`w-full px-4 py-4 bg-black border-2 rounded-xl text-white focus:ring-4 focus:ring-red-500/20 focus:border-red-500 transition-all duration-200 resize-none font-medium placeholder:text-gray-600 ${errors.bio ? 'border-red-500 bg-red-900/10' : 'border-gray-700 hover:border-gray-500'
-                    }`}
+                  className={`w-full px-4 py-4 bg-black border-2 rounded-xl text-white focus:ring-4 focus:ring-red-500/20 focus:border-red-500 transition-all duration-200 resize-none font-medium placeholder:text-gray-600 ${
+                    errors.bio
+                      ? 'border-red-500 bg-red-900/10'
+                      : 'border-gray-700 hover:border-gray-500'
+                  }`}
                   placeholder="Tell others about yourself, your interests, and what you're passionate about teaching or learning..."
                   disabled={loading}
                 />
@@ -405,8 +424,12 @@ export default function EditProfile({ isOpen, onClose, profileData, onSave }) {
                 </div>
               )}
               <div className="flex justify-between text-xs">
-                <span className="text-gray-500">Share your experience, teaching style, or learning goals</span>
-                <span className={`font-medium ${formData.bio.length > 450 ? 'text-red-500' : 'text-gray-500'}`}>
+                <span className="text-gray-500">
+                  Share your experience, teaching style, or learning goals
+                </span>
+                <span
+                  className={`font-medium ${formData.bio.length > 450 ? 'text-red-500' : 'text-gray-500'}`}
+                >
                   {formData.bio.length}/500
                 </span>
               </div>
@@ -432,10 +455,11 @@ export default function EditProfile({ isOpen, onClose, profileData, onSave }) {
               </button>
               <button
                 type="submit"
-                className={`flex-1 px-6 py-4 rounded-xl transition-all duration-200 font-semibold flex items-center justify-center gap-3 shadow-lg hover:shadow-xl transform hover:scale-[1.02] disabled:cursor-not-allowed ${hasChanges && !loading
+                className={`flex-1 px-6 py-4 rounded-xl transition-all duration-200 font-semibold flex items-center justify-center gap-3 shadow-lg hover:shadow-xl transform hover:scale-[1.02] disabled:cursor-not-allowed ${
+                  hasChanges && !loading
                     ? 'bg-gradient-to-r from-red-600 to-orange-600 text-white hover:from-red-700 hover:to-orange-700'
                     : 'bg-gray-800 text-gray-500 cursor-not-allowed'
-                  }`}
+                }`}
                 disabled={loading || !hasChanges}
               >
                 {loading ? (

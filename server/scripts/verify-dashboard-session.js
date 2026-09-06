@@ -36,14 +36,14 @@ async function requestJson(url, options = {}) {
   return {
     status: response.status,
     ok: response.ok,
-    payload
+    payload,
   };
 }
 
 async function main() {
   const child = spawn(process.execPath, ['src/index.js'], {
     cwd: serverRoot,
-    stdio: ['ignore', 'pipe', 'pipe']
+    stdio: ['ignore', 'pipe', 'pipe'],
   });
 
   let stdout = '';
@@ -63,7 +63,7 @@ async function main() {
       {
         userId: '000000000000000000000000',
         email: 'ghost@example.com',
-        role: 'user'
+        role: 'user',
       },
       String(process.env.JWT_SECRET || ''),
       { expiresIn: '1h' }
@@ -71,20 +71,20 @@ async function main() {
 
     const staleSessionResult = await requestJson(dashboardUrl, {
       headers: {
-        Authorization: `Bearer ${staleToken}`
-      }
+        Authorization: `Bearer ${staleToken}`,
+      },
     });
 
     const loginResult = await requestJson(loginUrl, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
       },
       body: JSON.stringify({
         email: 'noah.learner@example.com',
         password: 'DemoPass123!',
-        role: 'user'
-      })
+        role: 'user',
+      }),
     });
 
     if (!loginResult.ok || !loginResult.payload?.token) {
@@ -93,8 +93,8 @@ async function main() {
 
     const dashboardResult = await requestJson(dashboardUrl, {
       headers: {
-        Authorization: `Bearer ${loginResult.payload.token}`
-      }
+        Authorization: `Bearer ${loginResult.payload.token}`,
+      },
     });
 
     console.log(
@@ -108,7 +108,7 @@ async function main() {
         dashboardUser: dashboardResult.payload?.data?.user?.name || null,
         learningCount: Array.isArray(dashboardResult.payload?.data?.skills?.learning)
           ? dashboardResult.payload.data.skills.learning.length
-          : 0
+          : 0,
       })
     );
   } finally {

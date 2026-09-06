@@ -6,20 +6,32 @@ const {
   canAccessUserScopedResource,
   getBookingParticipantRole,
   isValidBookingStatus,
-  isValidParticipantRole
+  isValidParticipantRole,
 } = require('../src/utils/bookingAccess');
 
 test('canAccessUserScopedResource allows owners and admins', () => {
   assert.equal(
-    canAccessUserScopedResource({ requestedUserId: 'user-1', authUserId: 'user-1', authUserRole: 'user' }),
+    canAccessUserScopedResource({
+      requestedUserId: 'user-1',
+      authUserId: 'user-1',
+      authUserRole: 'user',
+    }),
     true
   );
   assert.equal(
-    canAccessUserScopedResource({ requestedUserId: 'user-1', authUserId: 'admin-1', authUserRole: 'admin' }),
+    canAccessUserScopedResource({
+      requestedUserId: 'user-1',
+      authUserId: 'admin-1',
+      authUserRole: 'admin',
+    }),
     true
   );
   assert.equal(
-    canAccessUserScopedResource({ requestedUserId: 'user-1', authUserId: 'user-2', authUserRole: 'user' }),
+    canAccessUserScopedResource({
+      requestedUserId: 'user-1',
+      authUserId: 'user-2',
+      authUserRole: 'user',
+    }),
     false
   );
 });
@@ -27,7 +39,7 @@ test('canAccessUserScopedResource allows owners and admins', () => {
 test('booking access helpers resolve participant roles correctly', () => {
   const booking = {
     instructor: 'teacher-1',
-    student: 'student-1'
+    student: 'student-1',
   };
 
   assert.equal(getBookingParticipantRole({ booking, userId: 'teacher-1' }), 'instructor');

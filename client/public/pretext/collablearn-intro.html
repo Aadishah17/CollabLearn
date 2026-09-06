@@ -15,33 +15,54 @@
         --line: #d7ddeb;
       }
 
-      * { box-sizing: border-box; }
+      * {
+        box-sizing: border-box;
+      }
       body {
         margin: 0;
-        font-family: Georgia, "Times New Roman", serif;
+        font-family: Georgia, 'Times New Roman', serif;
         background: var(--bg);
         color: var(--ink);
         line-height: 1.7;
       }
-      header, main {
+      header,
+      main {
         width: min(860px, calc(100% - 32px));
         margin: 0 auto;
       }
-      header { padding: 32px 0 18px; }
+      header {
+        padding: 32px 0 18px;
+      }
       .eyebrow {
         display: inline-block;
         padding: 6px 12px;
         border-radius: 999px;
         background: rgba(217, 37, 80, 0.08);
         color: var(--accent);
-        font: 600 12px/1.2 system-ui, sans-serif;
+        font:
+          600 12px/1.2 system-ui,
+          sans-serif;
         letter-spacing: 0.16em;
         text-transform: uppercase;
       }
-      h1, h2 { font-family: system-ui, sans-serif; line-height: 1.15; }
-      h1 { margin: 20px 0 10px; font-size: clamp(2.4rem, 5vw, 3.8rem); }
-      h2 { margin-top: 2.4rem; font-size: 1.7rem; }
-      .lede { max-width: 60ch; color: var(--muted); font-size: 1.06rem; }
+      h1,
+      h2 {
+        font-family: system-ui, sans-serif;
+        line-height: 1.15;
+      }
+      h1 {
+        margin: 20px 0 10px;
+        font-size: clamp(2.4rem, 5vw, 3.8rem);
+      }
+      h2 {
+        margin-top: 2.4rem;
+        font-size: 1.7rem;
+      }
+      .lede {
+        max-width: 60ch;
+        color: var(--muted);
+        font-size: 1.06rem;
+      }
       .panel {
         margin: 26px 0;
         padding: 22px 24px;
@@ -50,12 +71,16 @@
         background: var(--panel);
         box-shadow: 0 24px 60px rgba(16, 24, 38, 0.07);
       }
-      .checklist li + li, ol li + li, ul li + li { margin-top: 0.7rem; }
+      .checklist li + li,
+      ol li + li,
+      ul li + li {
+        margin-top: 0.7rem;
+      }
       code {
         padding: 0.14rem 0.35rem;
         border-radius: 8px;
         background: #eef2fb;
-        font-family: "SFMono-Regular", Consolas, monospace;
+        font-family: 'SFMono-Regular', Consolas, monospace;
         font-size: 0.95em;
       }
       footer {
@@ -81,7 +106,9 @@
         <h2>What this proves</h2>
         <ul class="checklist">
           <li>Modules can point at an exported lesson instead of inline editor HTML.</li>
-          <li>The viewer route can embed static educational content without rebuilding app logic.</li>
+          <li>
+            The viewer route can embed static educational content without rebuilding app logic.
+          </li>
           <li>PreTeXt can live beside the existing web stack rather than replacing it.</li>
         </ul>
       </section>
@@ -90,7 +117,9 @@
         <ol>
           <li>Write lesson source in a dedicated PreTeXt content workspace.</li>
           <li>Export HTML from that workspace.</li>
-          <li>Publish the HTML into a static path such as <code>/pretext/&lt;slug&gt;.html</code>.</li>
+          <li>
+            Publish the HTML into a static path such as <code>/pretext/&lt;slug&gt;.html</code>.
+          </li>
           <li>Create a module with <code>contentType = pretext</code> and point it to that URL.</li>
         </ol>
       </section>
@@ -105,4 +134,4 @@
     </main>
     <footer>Demo lesson asset for the web-only PreTeXt MVP.</footer>
   </body>
-  </html>
+</html>

@@ -64,7 +64,7 @@ test('deriveSkillSessionView prefers instructor-side bookings for the selected s
   assert.equal(view.userRole, 'instructor');
   assert.deepEqual(
     view.sessions.map((session) => session._id),
-    ['completed-session', 'first-session', 'later-session'],
+    ['completed-session', 'first-session', 'later-session']
   );
   assert.equal(view.resourceHostSessionId, 'first-session');
   assert.equal(view.sharedDocuments[0].title, 'Prep sheet');

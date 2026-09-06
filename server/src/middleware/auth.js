@@ -1,12 +1,6 @@
 const jwt = require('jsonwebtoken');
-const {
-  extractAuthTokenCandidates,
-  resolveJwtSecret
-} = require('../config/auth');
-const {
-  applyResolvedAuthContext,
-  resolveAuthenticatedAccount
-} = require('./resolveAuthAccount');
+const { extractAuthTokenCandidates, resolveJwtSecret } = require('../config/auth');
+const { applyResolvedAuthContext, resolveAuthenticatedAccount } = require('./resolveAuthAccount');
 
 const verifyCandidateToken = (token) => jwt.verify(token, resolveJwtSecret());
 
@@ -17,7 +11,7 @@ const auth = async (req, res, next) => {
   if (candidates.length === 0) {
     return res.status(401).json({
       success: false,
-      message: 'Access denied. No token provided.'
+      message: 'Access denied. No token provided.',
     });
   }
 
@@ -32,7 +26,7 @@ const auth = async (req, res, next) => {
         if (!resolvedAccount) {
           return res.status(401).json({
             success: false,
-            message: 'Session is no longer valid. Please login again.'
+            message: 'Session is no longer valid. Please login again.',
           });
         }
 
@@ -42,7 +36,7 @@ const auth = async (req, res, next) => {
             message:
               resolvedAccount.accountType === 'admin'
                 ? 'Admin account is deactivated. Please contact support.'
-                : 'Account is deactivated. Please contact support.'
+                : 'Account is deactivated. Please contact support.',
           });
         }
 
@@ -56,54 +50,54 @@ const auth = async (req, res, next) => {
     if (lastError && lastError.code === 'JWT_SECRET_MISSING') {
       return res.status(500).json({
         success: false,
-        message: 'Server authentication is not configured.'
+        message: 'Server authentication is not configured.',
       });
     }
 
     if (lastError && lastError.name === 'TokenExpiredError') {
       return res.status(401).json({
         success: false,
-        message: 'Token has expired. Please login again.'
+        message: 'Token has expired. Please login again.',
       });
     }
 
     if (lastError && lastError.name === 'JsonWebTokenError') {
       return res.status(401).json({
         success: false,
-        message: 'Invalid token. Please login again.'
+        message: 'Invalid token. Please login again.',
       });
     }
 
     // Fallback for malformed credentials or unexpected verification failures.
     return res.status(401).json({
       success: false,
-      message: 'Token verification failed.'
+      message: 'Token verification failed.',
     });
   } catch (error) {
     if (error.code === 'JWT_SECRET_MISSING') {
       return res.status(500).json({
         success: false,
-        message: 'Server authentication is not configured.'
+        message: 'Server authentication is not configured.',
       });
     }
 
     if (error.name === 'TokenExpiredError') {
       return res.status(401).json({
         success: false,
-        message: 'Token has expired. Please login again.'
+        message: 'Token has expired. Please login again.',
       });
     }
 
     if (error.name === 'JsonWebTokenError') {
       return res.status(401).json({
         success: false,
-        message: 'Invalid token. Please login again.'
+        message: 'Invalid token. Please login again.',
       });
     }
 
     return res.status(401).json({
       success: false,
-      message: 'Token verification failed.'
+      message: 'Token verification failed.',
     });
   }
 };

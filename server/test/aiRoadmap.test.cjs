@@ -49,7 +49,7 @@ const withPatched = async (target, key, replacement, fn) => {
 const createResponse = () => {
   const state = {
     statusCode: 200,
-    jsonBody: null
+    jsonBody: null,
   };
 
   const res = {
@@ -60,7 +60,7 @@ const createResponse = () => {
     json(body) {
       state.jsonBody = body;
       return res;
-    }
+    },
   };
 
   return { res, state };
@@ -105,11 +105,11 @@ test('generateRoadmap updates an existing plan and normalizes fallback source va
         targetWeeks: 6,
         focusAreas: ['types', 'tooling'],
         savePlan: true,
-        planId: '507f1f77bcf86cd799439011'
+        planId: '507f1f77bcf86cd799439011',
       },
       header(name) {
         return name === 'Authorization' ? `Bearer ${token}` : null;
-      }
+      },
     };
 
     const { res, state } = createResponse();
@@ -118,22 +118,32 @@ test('generateRoadmap updates an existing plan and normalizes fallback source va
       async save() {
         this.saved = true;
         return this;
-      }
+      },
     };
 
-    await withPatched(LearningPlan, 'findOne', async (query) => {
-      assert.deepEqual(query, {
-        _id: '507f1f77bcf86cd799439011',
-        user: 'user-123'
-      });
-      return existingPlan;
-    }, async () => {
-      await withPatched(LearningPlan, 'create', async () => {
-        throw new Error('create should not be called when updating an existing plan');
-      }, async () => {
-        await aiController.generateRoadmap(req, res);
-      });
-    });
+    await withPatched(
+      LearningPlan,
+      'findOne',
+      async (query) => {
+        assert.deepEqual(query, {
+          _id: '507f1f77bcf86cd799439011',
+          user: 'user-123',
+        });
+        return existingPlan;
+      },
+      async () => {
+        await withPatched(
+          LearningPlan,
+          'create',
+          async () => {
+            throw new Error('create should not be called when updating an existing plan');
+          },
+          async () => {
+            await aiController.generateRoadmap(req, res);
+          }
+        );
+      }
+    );
 
     assert.equal(state.statusCode, 200);
     assert.equal(state.jsonBody.success, true);

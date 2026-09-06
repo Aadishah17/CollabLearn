@@ -2,92 +2,95 @@ const mongoose = require('mongoose');
 const path = require('path');
 
 // ============= USER SCHEMA =============
-const userSchema = new mongoose.Schema({
-  // ===== BASIC INFO (Required for signup) =====
-  name: {
-    type: String,
-    required: [true, 'Name is required'],
-    trim: true,
-    minlength: [2, 'Name must be at least 2 characters'],
-    maxlength: [50, 'Name cannot exceed 50 characters']
-  },
-  email: {
-    type: String,
-    required: [true, 'Email is required'],
-    unique: true,
-    lowercase: true,
-    match: [/^[^\s@]+@[^\s@]+\.[^\s@]+$/, 'Please enter a valid email']
-  },
-  password: {
-    type: String,
-    required: [true, 'Password is required'],
-    minlength: [6, 'Password must be at least 6 characters']
-  },
-
-  // ===== PROFILE INFO =====
-  avatar: {
-    type: {
+const userSchema = new mongoose.Schema(
+  {
+    // ===== BASIC INFO (Required for signup) =====
+    name: {
       type: String,
-      enum: ['default', 'upload', 'url', 'base64'],
-      default: 'default'
+      required: [true, 'Name is required'],
+      trim: true,
+      minlength: [2, 'Name must be at least 2 characters'],
+      maxlength: [50, 'Name cannot exceed 50 characters'],
     },
-    url: {
+    email: {
       type: String,
-      default: ''
+      required: [true, 'Email is required'],
+      unique: true,
+      lowercase: true,
+      match: [/^[^\s@]+@[^\s@]+\.[^\s@]+$/, 'Please enter a valid email'],
     },
-    filename: {
+    password: {
       type: String,
-      default: ''
+      required: [true, 'Password is required'],
+      minlength: [6, 'Password must be at least 6 characters'],
     },
-    uploadDate: {
-      type: Date,
-      default: null
-    }
-  },
-  bio: {
-    type: String,
-    maxlength: [500, 'Bio cannot exceed 500 characters'],
-    default: ''
-  },
 
-  // ===== SKILLS REFERENCE =====
-  // Skills are now stored in separate Skill model
-  // Use virtual populate to access user's skills
+    // ===== PROFILE INFO =====
+    avatar: {
+      type: {
+        type: String,
+        enum: ['default', 'upload', 'url', 'base64'],
+        default: 'default',
+      },
+      url: {
+        type: String,
+        default: '',
+      },
+      filename: {
+        type: String,
+        default: '',
+      },
+      uploadDate: {
+        type: Date,
+        default: null,
+      },
+    },
+    bio: {
+      type: String,
+      maxlength: [500, 'Bio cannot exceed 500 characters'],
+      default: '',
+    },
 
-  // ===== RATINGS & STATISTICS =====
-  rating: {
-    average: {
+    // ===== SKILLS REFERENCE =====
+    // Skills are now stored in separate Skill model
+    // Use virtual populate to access user's skills
+
+    // ===== RATINGS & STATISTICS =====
+    rating: {
+      average: {
+        type: Number,
+        default: 0,
+        min: 0,
+        max: 5,
+      },
+      count: {
+        type: Number,
+        default: 0,
+      },
+    },
+    totalSessions: {
       type: Number,
       default: 0,
       min: 0,
-      max: 5
     },
-    count: {
-      type: Number,
-      default: 0
-    }
-  },
-  totalSessions: {
-    type: Number,
-    default: 0,
-    min: 0
-  },
-  badges: [String],
+    badges: [String],
 
-  // ===== SUBSCRIPTION =====
-  isPremium: {
-    type: Boolean,
-    default: false
-  },
+    // ===== SUBSCRIPTION =====
+    isPremium: {
+      type: Boolean,
+      default: false,
+    },
 
-  // ===== STATUS =====
-  isActive: {
-    type: Boolean,
-    default: true
+    // ===== STATUS =====
+    isActive: {
+      type: Boolean,
+      default: true,
+    },
+  },
+  {
+    timestamps: true, // Automatically adds createdAt and updatedAt
   }
-}, {
-  timestamps: true  // Automatically adds createdAt and updatedAt
-});
+);
 
 // ============= INDEXES FOR PERFORMANCE =============
 userSchema.index({ 'rating.average': -1 });
@@ -97,21 +100,21 @@ userSchema.virtual('skillsOffering', {
   ref: 'Skill',
   localField: '_id',
   foreignField: 'user',
-  match: { isOffering: true, isPosted: true }
+  match: { isOffering: true, isPosted: true },
 });
 
 userSchema.virtual('skillsSeeking', {
   ref: 'Skill',
   localField: '_id',
   foreignField: 'user',
-  match: { isSeeking: true, isPosted: true }
+  match: { isSeeking: true, isPosted: true },
 });
 
 userSchema.virtual('allSkills', {
   ref: 'Skill',
   localField: '_id',
   foreignField: 'user',
-  match: { isPosted: true }
+  match: { isPosted: true },
 });
 
 // Ensure virtual fields are serialized
@@ -139,11 +142,11 @@ const normalizeUploadFilename = (value) => {
 };
 
 // Helper method to get avatar URL
-userSchema.methods.getAvatarUrl = function() {
+userSchema.methods.getAvatarUrl = function () {
   if (!this.avatar) {
     return null;
   }
-  
+
   switch (this.avatar.type) {
     case 'upload': {
       const normalizedFilename = normalizeUploadFilename(this.avatar.filename);
@@ -168,14 +171,14 @@ userSchema.methods.getAvatarUrl = function() {
 };
 
 // Helper method to set avatar
-userSchema.methods.setAvatar = function(avatarData) {
+userSchema.methods.setAvatar = function (avatarData) {
   // If no avatar data or explicit default, clear avatar
   if (!avatarData || avatarData === 'default' || avatarData === '') {
     this.avatar = {
       type: 'default',
       url: '',
       filename: '',
-      uploadDate: null
+      uploadDate: null,
     };
     return;
   }
@@ -187,7 +190,7 @@ userSchema.methods.setAvatar = function(avatarData) {
       type: 'default',
       url: '',
       filename: '',
-      uploadDate: null
+      uploadDate: null,
     };
     return;
   }
@@ -201,15 +204,18 @@ userSchema.methods.setAvatar = function(avatarData) {
         type: 'upload',
         url: filename ? `/uploads/avatars/${filename}` : '',
         filename,
-        uploadDate: new Date()
+        uploadDate: new Date(),
       };
-    } else if (trimmedAvatarData.startsWith('http://') || trimmedAvatarData.startsWith('https://')) {
+    } else if (
+      trimmedAvatarData.startsWith('http://') ||
+      trimmedAvatarData.startsWith('https://')
+    ) {
       // External URL
       this.avatar = {
         type: 'url',
         url: trimmedAvatarData,
         filename: '',
-        uploadDate: new Date()
+        uploadDate: new Date(),
       };
     } else {
       // Local file path/filename
@@ -218,7 +224,7 @@ userSchema.methods.setAvatar = function(avatarData) {
         type: 'upload',
         url: filename ? `/uploads/avatars/${filename}` : '',
         filename,
-        uploadDate: new Date()
+        uploadDate: new Date(),
       };
     }
   } else if (typeof avatarData === 'object') {
@@ -230,7 +236,7 @@ userSchema.methods.setAvatar = function(avatarData) {
         type: 'default',
         url: '',
         filename: '',
-        uploadDate: null
+        uploadDate: null,
       };
     } else {
       const normalizedType = type === 'upload' ? 'upload' : type;
@@ -248,7 +254,7 @@ userSchema.methods.setAvatar = function(avatarData) {
               : ''
             : avatarData.url || '',
         filename: normalizedFilename,
-        uploadDate: avatarData.uploadDate || new Date()
+        uploadDate: avatarData.uploadDate || new Date(),
       };
     }
   }
@@ -256,14 +262,19 @@ userSchema.methods.setAvatar = function(avatarData) {
 
 // ============= SANITIZE BASE64 AVATARS BEFORE PERSISTING =============
 // Prevent storing base64 avatar payloads in DB for both save and findOneAndUpdate flows.
-userSchema.pre('save', function(next) {
+userSchema.pre('save', function (next) {
   try {
-    if (this.avatar && this.avatar.type === 'base64' && this.avatar.url && String(this.avatar.url).startsWith('data:image/')) {
+    if (
+      this.avatar &&
+      this.avatar.type === 'base64' &&
+      this.avatar.url &&
+      String(this.avatar.url).startsWith('data:image/')
+    ) {
       this.avatar = {
         type: 'default',
         url: '',
         filename: '',
-        uploadDate: null
+        uploadDate: null,
       };
     }
   } catch (e) {
@@ -273,7 +284,7 @@ userSchema.pre('save', function(next) {
 });
 
 // Handle updates performed with findOneAndUpdate / findByIdAndUpdate
-userSchema.pre('findOneAndUpdate', function(next) {
+userSchema.pre('findOneAndUpdate', function (next) {
   try {
     const update = this.getUpdate() || {};
 
@@ -284,7 +295,11 @@ userSchema.pre('findOneAndUpdate', function(next) {
         return { type: 'default', url: '', filename: '', uploadDate: null };
       }
       if (typeof avatarVal === 'object') {
-        if (avatarVal.type === 'base64' && avatarVal.url && String(avatarVal.url).startsWith('data:image/')) {
+        if (
+          avatarVal.type === 'base64' &&
+          avatarVal.url &&
+          String(avatarVal.url).startsWith('data:image/')
+        ) {
           return { type: 'default', url: '', filename: '', uploadDate: null };
         }
       }
@@ -306,7 +321,7 @@ userSchema.pre('findOneAndUpdate', function(next) {
 });
 
 // Virtual for backward compatibility
-userSchema.virtual('avatarUrl').get(function() {
+userSchema.virtual('avatarUrl').get(function () {
   return this.getAvatarUrl();
 });
 

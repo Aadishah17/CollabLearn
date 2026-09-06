@@ -25,7 +25,7 @@ const adminController = {
   updateSettings: async (req, res) => {
     try {
       const { siteName, maintenanceMode, minPasswordLength, geminiApiKey } = req.body;
-      
+
       // Find the single settings document and update it.
       // The { new: true } option returns the updated document.
       // The { upsert: true } option creates the document if it doesn't exist.
@@ -34,7 +34,7 @@ const adminController = {
         { siteName, maintenanceMode, minPasswordLength, geminiApiKey },
         { new: true, upsert: true, runValidators: true }
       );
-      
+
       res.json({ success: true, message: 'Settings updated successfully', data: updatedSettings });
     } catch (error) {
       console.error('Update settings error:', error);
@@ -62,32 +62,34 @@ const adminController = {
         // This prevents errors if some documents have createdAt stored as a string.
         {
           $match: {
-            createdAt: { $ne: null, $type: "date" }
-          }
+            createdAt: { $ne: null, $type: 'date' },
+          },
         },
         {
           $group: {
             _id: {
               year: { $year: '$createdAt' },
-              month: { $month: '$createdAt' }
+              month: { $month: '$createdAt' },
             },
             registered: { $sum: 1 },
             // Also calculate active users per month
             active: {
-                $sum: {
-                    $cond: ["$isActive", 1, 0]
-                }
-            }
-          }
+              $sum: {
+                $cond: ['$isActive', 1, 0],
+              },
+            },
+          },
         },
         { $sort: { '_id.year': 1, '_id.month': 1 } },
-        { $limit: 12 } // Get up to 12 months of data
+        { $limit: 12 }, // Get up to 12 months of data
       ]);
 
-      const formattedMonthlyData = monthlyData.map(item => ({
-        month: new Date(item._id.year, item._id.month - 1).toLocaleString('default', { month: 'short' }),
+      const formattedMonthlyData = monthlyData.map((item) => ({
+        month: new Date(item._id.year, item._id.month - 1).toLocaleString('default', {
+          month: 'short',
+        }),
         registered: item.registered,
-        active: item.active
+        active: item.active,
       }));
 
       res.json({
@@ -101,151 +103,148 @@ const adminController = {
           learners,
           monthlyData: formattedMonthlyData,
           newRequests: 0, // Placeholder
-          reportedPostsCount
-        }
+          reportedPostsCount,
+        },
       });
     } catch (error) {
       console.error('Admin stats error:', error);
       res.status(500).json({
         success: false,
         message: 'Failed to fetch admin stats',
-        error: process.env.NODE_ENV === 'development' ? error.message : undefined
+        error: process.env.NODE_ENV === 'development' ? error.message : undefined,
       });
     }
   },
 
   getAllUsers: async (req, res) => {
     try {
-        const users = await User.find({}).select('-password');
-        const skills = await Skill.find({ isOffering: true }).select('user');
-        const instructorIds = new Set(skills.map(skill => skill.user.toString()));
+      const users = await User.find({}).select('-password');
+      const skills = await Skill.find({ isOffering: true }).select('user');
+      const instructorIds = new Set(skills.map((skill) => skill.user.toString()));
 
-        const formattedUsers = users.map(user => {
-            const accessProfile = getAccessProfile(user.email, 'user');
+      const formattedUsers = users.map((user) => {
+        const accessProfile = getAccessProfile(user.email, 'user');
 
-            return {
-            id: user._id,
-            name: user.name,
-            email: user.email,
-            role: instructorIds.has(user._id.toString()) ? 'Instructor' : 'Learner',
-            accessLevel: accessProfile.accessLevel,
-            accessRole: accessProfile.role,
-            isSuperAdmin: accessProfile.isSuperAdmin,
-            registered: user.createdAt,
-            status: user.isActive ? 'Active' : 'Blocked',
-            isPremium: user.isPremium || false,
-            };
-        });
+        return {
+          id: user._id,
+          name: user.name,
+          email: user.email,
+          role: instructorIds.has(user._id.toString()) ? 'Instructor' : 'Learner',
+          accessLevel: accessProfile.accessLevel,
+          accessRole: accessProfile.role,
+          isSuperAdmin: accessProfile.isSuperAdmin,
+          registered: user.createdAt,
+          status: user.isActive ? 'Active' : 'Blocked',
+          isPremium: user.isPremium || false,
+        };
+      });
 
-        res.json({ success: true, data: formattedUsers });
+      res.json({ success: true, data: formattedUsers });
     } catch (error) {
-        res.status(500).json({ success: false, message: 'Failed to fetch users' });
+      res.status(500).json({ success: false, message: 'Failed to fetch users' });
     }
   },
 
   blockUser: async (req, res) => {
     try {
-        const { userId } = req.params;
-        const user = await User.findById(userId);
+      const { userId } = req.params;
+      const user = await User.findById(userId);
 
-        if (!user) {
-            return res.status(404).json({ success: false, message: 'User not found' });
-        }
+      if (!user) {
+        return res.status(404).json({ success: false, message: 'User not found' });
+      }
 
-        if (isSuperAdminEmail(user.email)) {
-            return res.status(403).json({ success: false, message: 'Super admins cannot be blocked.' });
-        }
+      if (isSuperAdminEmail(user.email)) {
+        return res.status(403).json({ success: false, message: 'Super admins cannot be blocked.' });
+      }
 
-        await User.findByIdAndUpdate(userId, { isActive: false });
-        res.json({ success: true, message: 'User blocked' });
+      await User.findByIdAndUpdate(userId, { isActive: false });
+      res.json({ success: true, message: 'User blocked' });
     } catch (error) {
-        res.status(500).json({ success: false, message: 'Failed to block user' });
+      res.status(500).json({ success: false, message: 'Failed to block user' });
     }
   },
 
   unblockUser: async (req, res) => {
     try {
-        const { userId } = req.params;
-        await User.findByIdAndUpdate(userId, { isActive: true });
-        res.json({ success: true, message: 'User unblocked' });
+      const { userId } = req.params;
+      await User.findByIdAndUpdate(userId, { isActive: true });
+      res.json({ success: true, message: 'User unblocked' });
     } catch (error) {
-        res.status(500).json({ success: false, message: 'Failed to unblock user' });
+      res.status(500).json({ success: false, message: 'Failed to unblock user' });
     }
   },
 
   updateUserSubscription: async (req, res) => {
     try {
-        const { userId } = req.params;
-        const { isPremium } = req.body;
+      const { userId } = req.params;
+      const { isPremium } = req.body;
 
-        if (typeof isPremium !== 'boolean') {
-            return res.status(400).json({ 
-                success: false, 
-                message: 'isPremium must be a boolean value' 
-            });
-        }
-
-        const user = await User.findByIdAndUpdate(
-            userId, 
-            { isPremium },
-            { new: true }
-        ).select('-password');
-
-        if (!user) {
-            return res.status(404).json({ 
-                success: false, 
-                message: 'User not found' 
-            });
-        }
-
-        res.json({ 
-            success: true, 
-            message: `User subscription updated to ${isPremium ? 'Premium' : 'Free'}`,
-            data: user
+      if (typeof isPremium !== 'boolean') {
+        return res.status(400).json({
+          success: false,
+          message: 'isPremium must be a boolean value',
         });
+      }
+
+      const user = await User.findByIdAndUpdate(userId, { isPremium }, { new: true }).select(
+        '-password'
+      );
+
+      if (!user) {
+        return res.status(404).json({
+          success: false,
+          message: 'User not found',
+        });
+      }
+
+      res.json({
+        success: true,
+        message: `User subscription updated to ${isPremium ? 'Premium' : 'Free'}`,
+        data: user,
+      });
     } catch (error) {
-        console.error('Update subscription error:', error);
-        res.status(500).json({ 
-            success: false, 
-            message: 'Failed to update user subscription' 
-        });
+      console.error('Update subscription error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to update user subscription',
+      });
     }
   },
-  
+
   getAllPosts: async (req, res) => {
     try {
-        const posts = await Post.find({})
-            .populate('userId', 'name')
-            .sort({ reports: -1, timestamp: -1 });
+      const posts = await Post.find({})
+        .populate('userId', 'name')
+        .sort({ reports: -1, timestamp: -1 });
 
-        const formattedPosts = posts.map(post => ({
-            id: post._id,
-            author: post.userId ? post.userId.name : (post.author || 'Unknown'),
-            content: post.excerpt || post.title,
-            reports: post.reports || 0,
-            date: post.timestamp,
-        }));
+      const formattedPosts = posts.map((post) => ({
+        id: post._id,
+        author: post.userId ? post.userId.name : post.author || 'Unknown',
+        content: post.excerpt || post.title,
+        reports: post.reports || 0,
+        date: post.timestamp,
+      }));
 
-        res.json({ success: true, data: formattedPosts });
+      res.json({ success: true, data: formattedPosts });
     } catch (error) {
-        res.status(500).json({ success: false, message: 'Failed to fetch posts' });
+      res.status(500).json({ success: false, message: 'Failed to fetch posts' });
     }
   },
 
   deletePostAsAdmin: async (req, res) => {
     try {
-        const { postId } = req.params;
-        const post = await Post.findById(postId);
-        if (!post) {
-            return res.status(404).json({ success: false, message: 'Post not found' });
-        }
-        await Post.findByIdAndDelete(postId);
-        res.json({ success: true, message: 'Post deleted successfully' });
+      const { postId } = req.params;
+      const post = await Post.findById(postId);
+      if (!post) {
+        return res.status(404).json({ success: false, message: 'Post not found' });
+      }
+      await Post.findByIdAndDelete(postId);
+      res.json({ success: true, message: 'Post deleted successfully' });
     } catch (error) {
-        res.status(500).json({ success: false, message: 'Failed to delete post' });
+      res.status(500).json({ success: false, message: 'Failed to delete post' });
     }
-  }
+  },
 };
 
 module.exports = adminController;
-

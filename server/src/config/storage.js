@@ -33,5 +33,5 @@ module.exports = {
   avatarUploadsPath,
   ensureUploadDirectories,
   sessionDocumentUploadsPath,
-  uploadsPath
+  uploadsPath,
 };

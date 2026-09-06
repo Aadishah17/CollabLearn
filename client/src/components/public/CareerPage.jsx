@@ -22,7 +22,12 @@ export function CareerPage() {
         fallbackItems: careerFallbackTracks,
       });
       if (active) {
-        setState({ loading: false, items: result.items, source: result.source, warning: result.warning || '' });
+        setState({
+          loading: false,
+          items: result.items,
+          source: result.source,
+          warning: result.warning || '',
+        });
       }
     })();
     return () => {
@@ -40,7 +45,9 @@ export function CareerPage() {
       chips={[
         `${state.items.length || careerFallbackTracks.length} public tracks`,
         featured?.roleTitle || 'Career direction for guests',
-        featured?.linkedSkills?.length ? `${featured.linkedSkills.length} linked skills` : 'Connected learning assets',
+        featured?.linkedSkills?.length
+          ? `${featured.linkedSkills.length} linked skills`
+          : 'Connected learning assets',
       ]}
       cta={{ label: session.hasSession ? 'Open workspace' : 'Get started', to: publicEntry.path }}
     >
@@ -60,14 +67,21 @@ export function CareerPage() {
                   <Briefcase size={18} />
                 </div>
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.24em] text-zinc-500">Featured track</p>
+                  <p className="text-xs font-semibold uppercase tracking-[0.24em] text-zinc-500">
+                    Featured track
+                  </p>
                   <h2 className="mt-2 text-2xl font-bold text-white">{featured.title}</h2>
                 </div>
               </div>
-              <p className="mt-4 text-sm leading-7 text-zinc-300">{featured.summary || featured.roleSummary}</p>
+              <p className="mt-4 text-sm leading-7 text-zinc-300">
+                {featured.summary || featured.roleSummary}
+              </p>
               <div className="mt-5 flex flex-wrap gap-2">
                 {(featured.tags || []).slice(0, 4).map((tag) => (
-                  <span key={tag} className="glass-chip border-white/10 bg-white/[0.035] text-zinc-200">
+                  <span
+                    key={tag}
+                    className="glass-chip border-white/10 bg-white/[0.035] text-zinc-200"
+                  >
                     {tag}
                   </span>
                 ))}
@@ -82,9 +96,18 @@ export function CareerPage() {
               </div>
             </div>
             <div className="grid gap-4">
-              <PublicNotice title="Live count" copy={`${state.items.length} public career track${state.items.length === 1 ? '' : 's'} available.`} />
-              <PublicNotice title="Access" copy="Guests can read every track without a login. Signed-in users are routed to their existing workspace destination." />
-              <PublicNotice title="Source" copy={state.source === 'api-list' ? 'Public API' : 'Fallback fixture'} />
+              <PublicNotice
+                title="Live count"
+                copy={`${state.items.length} public career track${state.items.length === 1 ? '' : 's'} available.`}
+              />
+              <PublicNotice
+                title="Access"
+                copy="Guests can read every track without a login. Signed-in users are routed to their existing workspace destination."
+              />
+              <PublicNotice
+                title="Source"
+                copy={state.source === 'api-list' ? 'Public API' : 'Fallback fixture'}
+              />
             </div>
           </section>
           <PublicListBlock kind="career" items={state.items} />
@@ -93,4 +116,3 @@ export function CareerPage() {
     </PublicShell>
   );
 }
-

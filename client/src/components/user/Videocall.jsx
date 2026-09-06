@@ -11,12 +11,12 @@ const VideoCall = () => {
 
   useEffect(() => {
     // Generate random IDs if not provided
-    const roomID = urlRoomID || (Math.floor(Math.random() * 10000) + "");
-    const userID = stateUserID || (Math.floor(Math.random() * 10000) + "");
-    const userName = stateUserName || ("userName" + userID);
+    const roomID = urlRoomID || Math.floor(Math.random() * 10000) + '';
+    const userID = stateUserID || Math.floor(Math.random() * 10000) + '';
+    const userName = stateUserName || 'userName' + userID;
 
     const appID = 1888548866;
-    const serverSecret = "78db5cc0bc70a631137cf34c97fb9322";
+    const serverSecret = '78db5cc0bc70a631137cf34c97fb9322';
 
     // Load ZegoUIKitPrebuilt script if not already loaded
     const loadZegoScript = () => {
@@ -54,13 +54,18 @@ const VideoCall = () => {
         // Join room
         zp.joinRoom({
           container: containerRef.current,
-          sharedLinks: [{
-            name: 'Personal link',
-            url: window.location.protocol + '//' +
-              window.location.host +
-              window.location.pathname +
-              '?roomID=' + roomID,
-          }],
+          sharedLinks: [
+            {
+              name: 'Personal link',
+              url:
+                window.location.protocol +
+                '//' +
+                window.location.host +
+                window.location.pathname +
+                '?roomID=' +
+                roomID,
+            },
+          ],
           scenario: {
             mode: window.ZegoUIKitPrebuilt.VideoConference,
           },
@@ -73,12 +78,12 @@ const VideoCall = () => {
           showTextChat: true,
           showUserList: true,
           maxUsers: 2,
-          layout: "Auto",
+          layout: 'Auto',
           showLayoutButton: false,
           showPrejoinView: false,
         });
       } catch (error) {
-        console.error("Failed to initialize video call:", error);
+        console.error('Failed to initialize video call:', error);
       }
     };
 
@@ -90,7 +95,7 @@ const VideoCall = () => {
         try {
           zpRef.current.destroy();
         } catch (error) {
-          console.error("Error during cleanup:", error);
+          console.error('Error during cleanup:', error);
         }
       }
     };
@@ -105,7 +110,7 @@ const VideoCall = () => {
         position: 'fixed',
         top: 0,
         left: 0,
-        backgroundColor: 'black'
+        backgroundColor: 'black',
       }}
     />
   );

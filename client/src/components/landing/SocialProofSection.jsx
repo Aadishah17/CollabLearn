@@ -14,7 +14,8 @@ export default function SocialProofSection() {
             Outcomes come from staying in motion, not from collecting more tools.
           </h2>
           <p className="section-copy mt-5 max-w-2xl">
-            CollabLearn keeps planning, support, and feedback close enough that you can protect momentum across the full learning cycle.
+            CollabLearn keeps planning, support, and feedback close enough that you can protect
+            momentum across the full learning cycle.
           </p>
         </div>
 
@@ -25,7 +26,9 @@ export default function SocialProofSection() {
               className="metric-rail reveal-up"
               style={{ animationDelay: `${index * 70}ms` }}
             >
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">{item.label}</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-400">
+                {item.label}
+              </p>
               <p className="mt-3 text-4xl font-black text-white">{item.value}</p>
               <p className="mt-3 text-sm leading-6 text-zinc-300">{item.detail}</p>
             </div>
@@ -57,7 +60,8 @@ export default function SocialProofSection() {
             Why this matters
           </p>
           <p className="mt-3">
-            Most learners do not fail because they cannot understand content. They fail when next actions are unclear or support is too far away. The product design keeps both close.
+            Most learners do not fail because they cannot understand content. They fail when next
+            actions are unclear or support is too far away. The product design keeps both close.
           </p>
         </div>
       </div>

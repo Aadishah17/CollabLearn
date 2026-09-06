@@ -25,9 +25,7 @@ export default function AuthShowcase({
           <h2 className="mt-5 text-3xl font-black leading-tight tracking-tight text-white">
             {title}
           </h2>
-          <p className="mt-3 text-sm leading-7 text-zinc-300">
-            {description}
-          </p>
+          <p className="mt-3 text-sm leading-7 text-zinc-300">{description}</p>
 
           <div className="mt-5 grid gap-3">
             {highlights.slice(0, 2).map((highlight) => (
@@ -41,9 +39,7 @@ export default function AuthShowcase({
                   </div>
                   <div>
                     <p className="text-sm font-bold text-white">{highlight.title}</p>
-                    <p className="mt-1 text-xs leading-6 text-zinc-300">
-                      {highlight.description}
-                    </p>
+                    <p className="mt-1 text-xs leading-6 text-zinc-300">{highlight.description}</p>
                   </div>
                 </div>
               </div>
@@ -94,9 +90,7 @@ export default function AuthShowcase({
             <h2 className="mt-8 max-w-xl text-5xl font-black leading-[0.96] tracking-tight text-white">
               {title}
             </h2>
-            <p className="mt-5 max-w-xl text-lg leading-8 text-zinc-300">
-              {description}
-            </p>
+            <p className="mt-5 max-w-xl text-lg leading-8 text-zinc-300">{description}</p>
 
             <div className="mt-10 grid gap-4">
               {highlights.map((highlight) => (
@@ -180,7 +174,9 @@ export default function AuthShowcase({
                 </p>
                 <div className="mt-3 space-y-2 text-sm leading-6 text-zinc-200">
                   <p>One place to enter the workspace and see the next action immediately.</p>
-                  <p>One shared surface for roadmap progress, mentor support, and learning momentum.</p>
+                  <p>
+                    One shared surface for roadmap progress, mentor support, and learning momentum.
+                  </p>
                 </div>
               </div>
             </div>

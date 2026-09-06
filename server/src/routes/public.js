@@ -5,7 +5,7 @@ const {
   getPublicCompetitionBySlug,
   getPublicCareerTracks,
   getPublicCareerTrackBySlug,
-  getPublicCounsellors
+  getPublicCounsellors,
 } = require('../controllers/publicController');
 
 router.get('/competitions', getPublicCompetitions);

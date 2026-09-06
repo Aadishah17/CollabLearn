@@ -1,12 +1,6 @@
 const jwt = require('jsonwebtoken');
-const {
-  extractAuthTokenCandidates,
-  resolveJwtSecret
-} = require('../config/auth');
-const {
-  applyResolvedAuthContext,
-  resolveAuthenticatedAccount
-} = require('./resolveAuthAccount');
+const { extractAuthTokenCandidates, resolveJwtSecret } = require('../config/auth');
+const { applyResolvedAuthContext, resolveAuthenticatedAccount } = require('./resolveAuthAccount');
 
 const optionalAuth = async (req, _res, next) => {
   const candidates = extractAuthTokenCandidates(req);

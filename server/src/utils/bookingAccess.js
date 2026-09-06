@@ -30,14 +30,24 @@ const getBookingParticipantRole = ({ booking, userId }) => {
 const canAccessBooking = ({ booking, userId, userRole }) =>
   userRole === 'admin' || Boolean(getBookingParticipantRole({ booking, userId }));
 
-const isValidBookingStatus = (status) => BOOKING_STATUSES.has(String(status || '').trim().toLowerCase());
+const isValidBookingStatus = (status) =>
+  BOOKING_STATUSES.has(
+    String(status || '')
+      .trim()
+      .toLowerCase()
+  );
 
-const isValidParticipantRole = (role) => PARTICIPANT_ROLES.has(String(role || '').trim().toLowerCase());
+const isValidParticipantRole = (role) =>
+  PARTICIPANT_ROLES.has(
+    String(role || '')
+      .trim()
+      .toLowerCase()
+  );
 
 module.exports = {
   canAccessBooking,
   canAccessUserScopedResource,
   getBookingParticipantRole,
   isValidBookingStatus,
-  isValidParticipantRole
+  isValidParticipantRole,
 };

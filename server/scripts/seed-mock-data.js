@@ -17,13 +17,13 @@ const mentorProfile = {
   name: 'Amina Mentor',
   email: 'amina.mentor@example.com',
   bio: 'Frontend and API mentor with a practical focus on project-based learning.',
-  isPremium: true
+  isPremium: true,
 };
 
 const learnerProfile = {
   name: 'Noah Learner',
   email: 'noah.learner@example.com',
-  bio: 'Learning backend fundamentals, testing, and production readiness.'
+  bio: 'Learning backend fundamentals, testing, and production readiness.',
 };
 
 const articleDate = new Date();
@@ -47,13 +47,13 @@ const upsertDoc = async (model, filter, payload) =>
   model.findOneAndUpdate(
     filter,
     {
-      $set: payload
+      $set: payload,
     },
     {
       new: true,
       upsert: true,
       runValidators: true,
-      setDefaultsOnInsert: true
+      setDefaultsOnInsert: true,
     }
   );
 
@@ -70,42 +70,45 @@ const buildLearningPlan = (learnerId) => ({
     steps: [
       {
         title: 'Understand the service boundaries',
-        description: 'Map the Express API, data layer, and protected write flows before changing anything.',
+        description:
+          'Map the Express API, data layer, and protected write flows before changing anything.',
         goals: ['Read the source tree', 'Identify auth and DB dependencies'],
         practiceTask: 'Trace one request end-to-end from route to MongoDB.',
-        estimatedHours: 3
+        estimatedHours: 3,
       },
       {
         title: 'Write reliable tests',
-        description: 'Cover validation, rate limiting, and startup failure modes with focused tests.',
+        description:
+          'Cover validation, rate limiting, and startup failure modes with focused tests.',
         goals: ['Add deterministic tests', 'Verify degraded-path behavior'],
         practiceTask: 'Extend one existing server test with a failure-case assertion.',
-        estimatedHours: 4
+        estimatedHours: 4,
       },
       {
         title: 'Automate smoke checks',
         description: 'Create a repeatable script that exercises the app against seeded data.',
         goals: ['Seed demo records', 'Run a full smoke pass'],
         practiceTask: 'Execute the smoke script against a clean local database.',
-        estimatedHours: 4
-      }
+        estimatedHours: 4,
+      },
     ],
     milestones: [
       {
         week: 1,
         title: 'Map the architecture',
-        successCriteria: 'You can explain the API, DB, and auth boundaries without checking the code.'
+        successCriteria:
+          'You can explain the API, DB, and auth boundaries without checking the code.',
       },
       {
         week: 3,
         title: 'Validate the important flows',
-        successCriteria: 'Route validation and retry behavior are covered by tests.'
+        successCriteria: 'Route validation and retry behavior are covered by tests.',
       },
       {
         week: 6,
         title: 'Ship a repeatable smoke flow',
-        successCriteria: 'The smoke script runs cleanly on a seeded database.'
-      }
+        successCriteria: 'The smoke script runs cleanly on a seeded database.',
+      },
     ],
     resources: [
       {
@@ -113,23 +116,23 @@ const buildLearningPlan = (learnerId) => ({
         title: 'Express API testing checklist',
         url: 'https://expressjs.com/',
         reason: 'Reference the framework the backend uses.',
-        level: 'Beginner'
+        level: 'Beginner',
       },
       {
         type: 'Practice',
         title: 'MongoDB connection readiness',
         url: 'https://www.mongodb.com/docs/',
         reason: 'Review connection states and retry behavior.',
-        level: 'Beginner'
-      }
+        level: 'Beginner',
+      },
     ],
     habits: ['Run tests before pushing', 'Keep smoke checks deterministic'],
-    checkpoints: ['Validation middleware passes', 'Smoke script passes against local MongoDB']
+    checkpoints: ['Validation middleware passes', 'Smoke script passes against local MongoDB'],
   },
   completedStepIndexes: [0],
   progressPercentage: 34,
   source: 'fallback',
-  lastProgressUpdate: articleDate
+  lastProgressUpdate: articleDate,
 });
 
 const seedMockData = async () => {
@@ -148,7 +151,7 @@ const seedMockData = async () => {
       Booking.deleteMany({}),
       Post.deleteMany({}),
       Skill.deleteMany({}),
-      User.deleteMany({})
+      User.deleteMany({}),
     ]);
   }
 
@@ -161,10 +164,10 @@ const seedMockData = async () => {
       totalSessions: 18,
       rating: {
         average: 4.9,
-        count: 12
+        count: 12,
       },
       badges: ['Top Mentor', 'Fast Responder'],
-      isActive: true
+      isActive: true,
     }
   );
 
@@ -177,10 +180,10 @@ const seedMockData = async () => {
       totalSessions: 4,
       rating: {
         average: 4.7,
-        count: 4
+        count: 4,
       },
       badges: ['Early Adopter'],
-      isActive: true
+      isActive: true,
     }
   );
 
@@ -204,8 +207,8 @@ const seedMockData = async () => {
         sessions: 18,
         rating: 4.9,
         price: 0,
-        duration: '1 hour'
-      }
+        duration: '1 hour',
+      },
     }
   );
 
@@ -230,12 +233,12 @@ const seedMockData = async () => {
             timeSlots: [
               {
                 start: '10:00',
-                end: '12:00'
-              }
-            ]
-          }
-        ]
-      }
+                end: '12:00',
+              },
+            ],
+          },
+        ],
+      },
     }
   );
 
@@ -245,7 +248,7 @@ const seedMockData = async () => {
       instructor: mentor._id,
       student: learner._id,
       skill: offeringSkill._id,
-      date: BOOKING_DATE
+      date: BOOKING_DATE,
     },
     {
       instructor: mentor._id,
@@ -257,8 +260,8 @@ const seedMockData = async () => {
       status: 'confirmed',
       sessionCount: {
         current: 1,
-        total: 3
-      }
+        total: 3,
+      },
     }
   );
 
@@ -281,9 +284,9 @@ const seedMockData = async () => {
       stats: {
         comments: 2,
         views: 128,
-        likes: 14
+        likes: 14,
       },
-      timestamp: articleDate
+      timestamp: articleDate,
     }
   );
 
@@ -306,9 +309,9 @@ const seedMockData = async () => {
       stats: {
         comments: 1,
         views: 72,
-        likes: 9
+        likes: 9,
       },
-      timestamp: articleDate
+      timestamp: articleDate,
     }
   );
 
@@ -326,7 +329,7 @@ const seedMockData = async () => {
     booking,
     mentorPost,
     learnerPost,
-    learningPlan
+    learningPlan,
   };
 };
 

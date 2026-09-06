@@ -4,10 +4,7 @@ import { Trophy } from 'lucide-react';
 import { PublicListBlock } from './PublicBlocks.jsx';
 import { PublicLoading, PublicNotice, PublicShell } from './PublicShell.jsx';
 import { loadPublicItems, usePublicSession } from './publicData.js';
-import {
-  competitionFallbackItems,
-  resolvePublicPageCta,
-} from './publicContent.js';
+import { competitionFallbackItems, resolvePublicPageCta } from './publicContent.js';
 
 export function CompetitionsPage() {
   const session = usePublicSession();
@@ -25,7 +22,12 @@ export function CompetitionsPage() {
         fallbackItems: competitionFallbackItems,
       });
       if (active) {
-        setState({ loading: false, items: result.items, source: result.source, warning: result.warning || '' });
+        setState({
+          loading: false,
+          items: result.items,
+          source: result.source,
+          warning: result.warning || '',
+        });
       }
     })();
     return () => {
@@ -63,14 +65,21 @@ export function CompetitionsPage() {
                   <Trophy size={18} />
                 </div>
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.24em] text-zinc-500">Featured brief</p>
+                  <p className="text-xs font-semibold uppercase tracking-[0.24em] text-zinc-500">
+                    Featured brief
+                  </p>
                   <h2 className="mt-2 text-2xl font-bold text-white">{featured.title}</h2>
                 </div>
               </div>
-              <p className="mt-4 text-sm leading-7 text-zinc-300">{featured.summary || featured.overview}</p>
+              <p className="mt-4 text-sm leading-7 text-zinc-300">
+                {featured.summary || featured.overview}
+              </p>
               <div className="mt-5 flex flex-wrap gap-2">
                 {(featured.tags || []).slice(0, 4).map((tag) => (
-                  <span key={tag} className="glass-chip border-white/10 bg-white/[0.035] text-zinc-200">
+                  <span
+                    key={tag}
+                    className="glass-chip border-white/10 bg-white/[0.035] text-zinc-200"
+                  >
                     {tag}
                   </span>
                 ))}
@@ -85,9 +94,18 @@ export function CompetitionsPage() {
               </div>
             </div>
             <div className="grid gap-4">
-              <PublicNotice title="Live count" copy={`${state.items.length} public competition${state.items.length === 1 ? '' : 's'} available.`} />
-              <PublicNotice title="Access" copy="Guests can read every brief without a login. Signed-in users are routed to their existing workspace destination." />
-              <PublicNotice title="Source" copy={state.source === 'api-list' ? 'Public API' : 'Fallback fixture'} />
+              <PublicNotice
+                title="Live count"
+                copy={`${state.items.length} public competition${state.items.length === 1 ? '' : 's'} available.`}
+              />
+              <PublicNotice
+                title="Access"
+                copy="Guests can read every brief without a login. Signed-in users are routed to their existing workspace destination."
+              />
+              <PublicNotice
+                title="Source"
+                copy={state.source === 'api-list' ? 'Public API' : 'Fallback fixture'}
+              />
             </div>
           </section>
           <PublicListBlock kind="competitions" items={state.items} />
@@ -96,4 +114,3 @@ export function CompetitionsPage() {
     </PublicShell>
   );
 }
-

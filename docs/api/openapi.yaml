@@ -1,0 +1,503 @@
+openapi: 3.1.0
+info:
+  title: CollabLearn Unified API
+  version: 1.0.0
+  description: Shared API contract for CollabLearn web, Android, and iOS companion applications.
+servers:
+  - url: http://localhost:5001/api
+    description: Local development backend
+  - url: https://collablearn.vercel.app/api
+    description: Cloud staging & production
+
+paths:
+  /auth/login:
+    post:
+      summary: Authenticate user or admin
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Session created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '401':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/register:
+    post:
+      summary: Register a new student or mentor account
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+      responses:
+        '201':
+          description: Account created and session initialized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+
+  /auth/logout:
+    post:
+      summary: Clear HTTP-only session cookie and invalidate tokens
+      responses:
+        '200':
+          description: Logged out successfully
+
+  /auth/me:
+    get:
+      summary: Retrieve current authenticated account profile
+      security:
+        - BearerAuth: []
+        - CookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProfileResponse'
+
+  /ai/generate-roadmap:
+    post:
+      summary: Generate personalized learning roadmap
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RoadmapRequest'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RoadmapResponse'
+
+  /ai/study-session:
+    post:
+      summary: Generate focused study session
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StudySessionRequest'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StudySessionResponse'
+
+  /ai/plans:
+    get:
+      summary: List user saved learning plans
+      security:
+        - BearerAuth: []
+        - CookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  plans:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/LearningPlan'
+
+  /booking:
+    get:
+      summary: List bookings for current user
+      security:
+        - BearerAuth: []
+        - CookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  bookings:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Booking'
+    post:
+      summary: Create new 1-on-1 mentor booking
+      security:
+        - BearerAuth: []
+        - CookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateBookingRequest'
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BookingResponse'
+
+  /skills:
+    get:
+      summary: Browse published mentor skills
+      parameters:
+        - name: search
+          in: query
+          schema:
+            type: string
+        - name: category
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  skills:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Skill'
+
+  /modules:
+    get:
+      summary: List available interactive learning modules
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  modules:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Module'
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+    CookieAuth:
+      type: apiKey
+      in: cookie
+      name: collablearn_access_token
+
+  schemas:
+    LoginRequest:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+        role:
+          type: string
+          enum: [user, mentor, admin]
+
+    RegisterRequest:
+      type: object
+      required:
+        - name
+        - email
+        - password
+      properties:
+        name:
+          type: string
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+        role:
+          type: string
+          enum: [user, mentor]
+
+    AuthResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        token:
+          type: string
+        user:
+          $ref: '#/components/schemas/User'
+
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        email:
+          type: string
+        role:
+          type: string
+          enum: [user, mentor, admin]
+        isSuperAdmin:
+          type: boolean
+        avatar:
+          type: string
+          nullable: true
+        isPremium:
+          type: boolean
+
+    ProfileResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        user:
+          $ref: '#/components/schemas/User'
+
+    RoadmapRequest:
+      type: object
+      required:
+        - skill
+      properties:
+        skill:
+          type: string
+        learnerLevel:
+          type: string
+          enum: [Beginner, Intermediate, Advanced]
+        weeklyHours:
+          type: integer
+        targetWeeks:
+          type: integer
+        focusAreas:
+          type: array
+          items:
+            type: string
+        savePlan:
+          type: boolean
+        planId:
+          type: string
+          nullable: true
+
+    Milestone:
+      type: object
+      properties:
+        milestoneNumber:
+          type: integer
+        title:
+          type: string
+        summary:
+          type: string
+        keyTopics:
+          type: array
+          items:
+            type: string
+        practiceTasks:
+          type: array
+          items:
+            type: string
+        recommendedHours:
+          type: integer
+
+    RoadmapResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        roadmap:
+          type: object
+          properties:
+            title:
+              type: string
+            description:
+              type: string
+            targetLevel:
+              type: string
+            estimatedWeeks:
+              type: integer
+            milestones:
+              type: array
+              items:
+                $ref: '#/components/schemas/Milestone'
+        source:
+          type: string
+          enum: [ai, fallback, cached]
+        savedPlanId:
+          type: string
+          nullable: true
+
+    StudySessionRequest:
+      type: object
+      required:
+        - skill
+      properties:
+        skill:
+          type: string
+        learnerLevel:
+          type: string
+        availableMinutes:
+          type: integer
+        currentStepTitle:
+          type: string
+
+    StudySessionResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        session:
+          type: object
+          properties:
+            summary:
+              type: string
+            tasks:
+              type: array
+              items:
+                type: object
+                properties:
+                  title:
+                    type: string
+                  minutes:
+                    type: integer
+                  instructions:
+                    type: string
+                  output:
+                    type: string
+
+    LearningPlan:
+      type: object
+      properties:
+        _id:
+          type: string
+        skill:
+          type: string
+        progressPercentage:
+          type: number
+        completedStepIndexes:
+          type: array
+          items:
+            type: integer
+        plan:
+          type: object
+
+    CreateBookingRequest:
+      type: object
+      required:
+        - instructorId
+        - skillId
+        - date
+        - startTime
+        - endTime
+      properties:
+        instructorId:
+          type: string
+        skillId:
+          type: string
+        date:
+          type: string
+          format: date
+        startTime:
+          type: string
+        endTime:
+          type: string
+        notes:
+          type: string
+
+    Booking:
+      type: object
+      properties:
+        _id:
+          type: string
+        student:
+          $ref: '#/components/schemas/User'
+        instructor:
+          $ref: '#/components/schemas/User'
+        skill:
+          type: object
+        date:
+          type: string
+        status:
+          type: string
+          enum: [pending, confirmed, completed, cancelled]
+
+    BookingResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        booking:
+          $ref: '#/components/schemas/Booking'
+
+    Skill:
+      type: object
+      properties:
+        _id:
+          type: string
+        title:
+          type: string
+        category:
+          type: string
+        hourlyRate:
+          type: number
+        rating:
+          type: number
+        instructor:
+          $ref: '#/components/schemas/User'
+
+    Module:
+      type: object
+      properties:
+        _id:
+          type: string
+        title:
+          type: string
+        slug:
+          type: string
+        contentType:
+          type: string
+          enum: [richtext, pretext, video]
+        durationMinutes:
+          type: integer
+
+    ErrorResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        message:
+          type: string
+        code:
+          type: string

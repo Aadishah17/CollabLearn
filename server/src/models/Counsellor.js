@@ -5,16 +5,16 @@ const ctaSchema = new mongoose.Schema(
     label: {
       type: String,
       required: true,
-      trim: true
+      trim: true,
     },
     target: {
       type: String,
       required: true,
-      trim: true
-    }
+      trim: true,
+    },
   },
   {
-    _id: false
+    _id: false,
   }
 );
 
@@ -25,40 +25,40 @@ const counsellorSchema = new mongoose.Schema(
       required: true,
       unique: true,
       trim: true,
-      lowercase: true
+      lowercase: true,
     },
     name: {
       type: String,
       required: true,
-      trim: true
+      trim: true,
     },
     title: {
       type: String,
-      default: ''
+      default: '',
     },
     bio: {
       type: String,
-      default: ''
+      default: '',
     },
     specialties: [
       {
         type: String,
-        trim: true
-      }
+        trim: true,
+      },
     ],
     cta: ctaSchema,
     sourceUrl: {
       type: String,
       required: true,
-      trim: true
+      trim: true,
     },
     responseTime: {
       type: String,
-      default: ''
-    }
+      default: '',
+    },
   },
   {
-    timestamps: true
+    timestamps: true,
   }
 );
 

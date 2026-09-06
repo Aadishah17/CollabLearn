@@ -6,16 +6,13 @@ const auth = require('../middleware/auth');
 const { validateBody, validateParams, schemas } = require('../middleware/validation');
 const multer = require('multer');
 const path = require('path');
-const {
-  ensureUploadDirectories,
-  sessionDocumentUploadsPath
-} = require('../config/storage');
+const { ensureUploadDirectories, sessionDocumentUploadsPath } = require('../config/storage');
 const {
   canAccessBooking,
   canAccessUserScopedResource,
   getBookingParticipantRole,
   isValidBookingStatus,
-  isValidParticipantRole
+  isValidParticipantRole,
 } = require('../utils/bookingAccess');
 const { isOneToOneBooking, isSingleSessionCount } = require('../utils/bookingRules');
 
@@ -28,13 +25,13 @@ const storage = multer.diskStorage({
   filename(req, file, cb) {
     const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
     cb(null, `${file.fieldname}-${uniqueSuffix}${path.extname(file.originalname)}`);
-  }
+  },
 });
 
 const upload = multer({
   storage,
   limits: {
-    fileSize: 10 * 1024 * 1024
+    fileSize: 10 * 1024 * 1024,
   },
   fileFilter(req, file, cb) {
     const allowedTypes = /pdf|doc|docx|txt|png|jpg|jpeg|gif/;
@@ -46,7 +43,7 @@ const upload = multer({
     }
 
     cb(new Error('Only documents and images are allowed!'));
-  }
+  },
 });
 
 router.use(auth);
@@ -69,7 +66,7 @@ const getAuthorizedBooking = async (req, res) => {
   if (!canAccessBooking({ booking, userId: req.userId, userRole: req.userRole })) {
     res.status(403).json({
       success: false,
-      message: 'You are not authorized to access this session.'
+      message: 'You are not authorized to access this session.',
     });
     return null;
   }
@@ -82,12 +79,12 @@ const ensureUserScopedAccess = (req, res) => {
     !canAccessUserScopedResource({
       requestedUserId: req.params.id,
       authUserId: req.userId,
-      authUserRole: req.userRole
+      authUserRole: req.userRole,
     })
   ) {
     res.status(403).json({
       success: false,
-      message: 'You are not authorized to access these bookings.'
+      message: 'You are not authorized to access these bookings.',
     });
     return false;
   }
@@ -107,14 +104,14 @@ router.post('/', validateBody(schemas.booking.createBooking), async (req, res) =
     if (!requesterIsParticipant) {
       return res.status(403).json({
         success: false,
-        message: 'You can only create bookings for yourself.'
+        message: 'You can only create bookings for yourself.',
       });
     }
 
     if (!isOneToOneBooking({ instructorId: instructor, studentId: student })) {
       return res.status(400).json({
         success: false,
-        message: '1:1 bookings require different instructor and student accounts.'
+        message: '1:1 bookings require different instructor and student accounts.',
       });
     }
 
@@ -122,14 +119,14 @@ router.post('/', validateBody(schemas.booking.createBooking), async (req, res) =
     if (!skillRecord || !skillRecord.isOffering || !skillRecord.isPosted) {
       return res.status(400).json({
         success: false,
-        message: 'Bookings can only be created for active teaching skills.'
+        message: 'Bookings can only be created for active teaching skills.',
       });
     }
 
     if (String(skillRecord.user) !== String(instructor)) {
       return res.status(400).json({
         success: false,
-        message: 'The selected skill does not belong to the chosen instructor.'
+        message: 'The selected skill does not belong to the chosen instructor.',
       });
     }
 
@@ -142,15 +139,15 @@ router.post('/', validateBody(schemas.booking.createBooking), async (req, res) =
       notes,
       sessionCount: {
         current: 1,
-        total: 1
-      }
+        total: 1,
+      },
     });
 
     await booking.save();
     res.status(201).json({
       success: true,
       message: 'Booking created successfully.',
-      booking
+      booking,
     });
   } catch (error) {
     console.error('Booking creation error:', error);
@@ -169,7 +166,8 @@ router.get('/student/:id', validateParams(schemas.booking.bookingIdParam), async
       .populate('skill', 'name description');
 
     const validBookings = bookings.filter(
-      (booking) => booking.instructor && booking.skill && booking.instructor._id && booking.skill._id
+      (booking) =>
+        booking.instructor && booking.skill && booking.instructor._id && booking.skill._id
     );
 
     res.json({ success: true, bookings: validBookings });
@@ -198,27 +196,32 @@ router.get('/instructor/:id', validateParams(schemas.booking.bookingIdParam), as
   }
 });
 
-router.patch('/:id', validateParams(schemas.booking.bookingIdParam), validateBody(schemas.booking.updateStatus), async (req, res) => {
-  try {
-    const booking = await getAuthorizedBooking(req, res);
-    if (!booking) return;
+router.patch(
+  '/:id',
+  validateParams(schemas.booking.bookingIdParam),
+  validateBody(schemas.booking.updateStatus),
+  async (req, res) => {
+    try {
+      const booking = await getAuthorizedBooking(req, res);
+      if (!booking) return;
 
-    const { status } = req.body;
-    if (!isValidBookingStatus(status)) {
-      return res.status(400).json({
-        success: false,
-        message: 'Invalid booking status.'
-      });
+      const { status } = req.body;
+      if (!isValidBookingStatus(status)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid booking status.',
+        });
+      }
+
+      booking.status = String(status).trim().toLowerCase();
+      await booking.save();
+
+      res.json({ success: true, booking });
+    } catch (error) {
+      res.status(500).json({ message: 'Error updating booking', error: error.message });
     }
-
-    booking.status = String(status).trim().toLowerCase();
-    await booking.save();
-
-    res.json({ success: true, booking });
-  } catch (error) {
-    res.status(500).json({ message: 'Error updating booking', error: error.message });
   }
-});
+);
 
 router.get('/session/:id', validateParams(schemas.booking.bookingIdParam), async (req, res) => {
   try {
@@ -235,8 +238,8 @@ router.get('/session/:id', validateParams(schemas.booking.bookingIdParam), async
         details: {
           hasInstructor: !!booking.instructor,
           hasStudent: !!booking.student,
-          hasSkill: !!booking.skill
-        }
+          hasSkill: !!booking.skill,
+        },
       });
     }
 
@@ -247,233 +250,281 @@ router.get('/session/:id', validateParams(schemas.booking.bookingIdParam), async
   }
 });
 
-router.post('/:id/upload-document', validateParams(schemas.booking.bookingIdParam), upload.single('document'), validateBody(schemas.booking.uploadDocument), async (req, res) => {
-  try {
-    const booking = await getAuthorizedBooking(req, res);
-    if (!booking) return;
+router.post(
+  '/:id/upload-document',
+  validateParams(schemas.booking.bookingIdParam),
+  upload.single('document'),
+  validateBody(schemas.booking.uploadDocument),
+  async (req, res) => {
+    try {
+      const booking = await getAuthorizedBooking(req, res);
+      if (!booking) return;
 
-    if (!req.file) {
-      return res.status(400).json({ message: 'No file uploaded' });
-    }
+      if (!req.file) {
+        return res.status(400).json({ message: 'No file uploaded' });
+      }
 
-    const participantRole = getBookingParticipantRole({ booking, userId: req.userId });
-    const requestedRole = String(req.body?.uploadedBy || '').trim().toLowerCase();
-    const uploadedBy = isAdmin(req)
-      ? (isValidParticipantRole(requestedRole) ? requestedRole : 'instructor')
-      : participantRole;
+      const participantRole = getBookingParticipantRole({ booking, userId: req.userId });
+      const requestedRole = String(req.body?.uploadedBy || '')
+        .trim()
+        .toLowerCase();
+      const uploadedBy = isAdmin(req)
+        ? isValidParticipantRole(requestedRole)
+          ? requestedRole
+          : 'instructor'
+        : participantRole;
 
-    if (!uploadedBy) {
-      return res.status(403).json({
-        success: false,
-        message: 'Only session participants can upload documents.'
+      if (!uploadedBy) {
+        return res.status(403).json({
+          success: false,
+          message: 'Only session participants can upload documents.',
+        });
+      }
+
+      const document = {
+        title: req.body?.title || req.file.originalname,
+        filename: req.file.filename,
+        originalName: req.file.originalname,
+        uploadedBy,
+        uploadedAt: new Date(),
+      };
+
+      booking.sessionDocuments.push(document);
+      await booking.save();
+
+      res.json({
+        success: true,
+        message: 'Document uploaded successfully',
+        sessionDocuments: booking.sessionDocuments,
       });
+    } catch (error) {
+      console.error('Upload error:', error);
+      res.status(500).json({ message: 'Error uploading document', error: error.message });
     }
-
-    const document = {
-      title: req.body?.title || req.file.originalname,
-      filename: req.file.filename,
-      originalName: req.file.originalname,
-      uploadedBy,
-      uploadedAt: new Date()
-    };
-
-    booking.sessionDocuments.push(document);
-    await booking.save();
-
-    res.json({
-      success: true,
-      message: 'Document uploaded successfully',
-      sessionDocuments: booking.sessionDocuments
-    });
-  } catch (error) {
-    console.error('Upload error:', error);
-    res.status(500).json({ message: 'Error uploading document', error: error.message });
   }
-});
+);
 
-router.delete('/:id/delete-document/:docId', validateParams({
-  id: schemas.booking.bookingIdParam.id,
-  docId: schemas.booking.documentIdParam.docId
-}), async (req, res) => {
-  try {
-    const booking = await getAuthorizedBooking(req, res);
-    if (!booking) return;
+router.delete(
+  '/:id/delete-document/:docId',
+  validateParams({
+    id: schemas.booking.bookingIdParam.id,
+    docId: schemas.booking.documentIdParam.docId,
+  }),
+  async (req, res) => {
+    try {
+      const booking = await getAuthorizedBooking(req, res);
+      if (!booking) return;
 
-    const docIndex = booking.sessionDocuments.findIndex((doc) => doc._id.toString() === req.params.docId);
+      const docIndex = booking.sessionDocuments.findIndex(
+        (doc) => doc._id.toString() === req.params.docId
+      );
 
-    if (docIndex === -1) {
-      return res.status(404).json({ message: 'Document not found' });
-    }
+      if (docIndex === -1) {
+        return res.status(404).json({ message: 'Document not found' });
+      }
 
-    booking.sessionDocuments.splice(docIndex, 1);
-    await booking.save();
+      booking.sessionDocuments.splice(docIndex, 1);
+      await booking.save();
 
-    res.json({
-      success: true,
-      message: 'Document deleted successfully',
-      sessionDocuments: booking.sessionDocuments
-    });
-  } catch (error) {
-    console.error('Delete error:', error);
-    res.status(500).json({ message: 'Error deleting document', error: error.message });
-  }
-});
-
-router.post('/:id/complete', validateParams(schemas.booking.bookingIdParam), validateBody(schemas.booking.completeBooking), async (req, res) => {
-  try {
-    const booking = await getAuthorizedBooking(req, res);
-    if (!booking) return;
-
-    const participantRole = getBookingParticipantRole({ booking, userId: req.userId });
-    const requestedRole = String(req.body?.userType || '').trim().toLowerCase();
-    const effectiveRole = isAdmin(req)
-      ? (isValidParticipantRole(requestedRole) ? requestedRole : null)
-      : participantRole;
-
-    if (!effectiveRole) {
-      return res.status(400).json({
-        success: false,
-        message: 'A valid participant role is required to complete the session.'
+      res.json({
+        success: true,
+        message: 'Document deleted successfully',
+        sessionDocuments: booking.sessionDocuments,
       });
+    } catch (error) {
+      console.error('Delete error:', error);
+      res.status(500).json({ message: 'Error deleting document', error: error.message });
     }
-
-    const { rating, review } = req.body;
-    if (!isValidRating(rating)) {
-      return res.status(400).json({
-        success: false,
-        message: 'A rating between 1 and 5 is required.'
-      });
-    }
-
-    booking.sessionRating[effectiveRole] = {
-      rating: Number(rating),
-      review: String(review || '').trim(),
-      ratedAt: new Date()
-    };
-
-    const bothRated =
-      booking.sessionRating.instructor?.rating &&
-      booking.sessionRating.student?.rating;
-
-    if (bothRated || req.body.forceComplete) {
-      booking.status = 'completed';
-      booking.completedAt = new Date();
-    }
-
-    await booking.save();
-
-    res.json({
-      success: true,
-      message: bothRated ? 'Session completed successfully' : 'Rating submitted, waiting for other participant',
-      booking,
-      requiresOtherRating: !bothRated && !req.body.forceComplete
-    });
-  } catch (error) {
-    res.status(500).json({ message: 'Error completing session', error: error.message });
   }
-});
+);
 
-router.post('/:id/complete-session', validateParams(schemas.booking.bookingIdParam), validateBody(schemas.booking.completeSession), async (req, res) => {
-  try {
-    const booking = await getAuthorizedBooking(req, res);
-    if (!booking) return;
+router.post(
+  '/:id/complete',
+  validateParams(schemas.booking.bookingIdParam),
+  validateBody(schemas.booking.completeBooking),
+  async (req, res) => {
+    try {
+      const booking = await getAuthorizedBooking(req, res);
+      if (!booking) return;
 
-    const participantRole = getBookingParticipantRole({ booking, userId: req.userId });
-    const requestedRole = String(req.body?.completedBy || '').trim().toLowerCase();
-    const effectiveRole = isAdmin(req)
-      ? (isValidParticipantRole(requestedRole) ? requestedRole : null)
-      : participantRole;
+      const participantRole = getBookingParticipantRole({ booking, userId: req.userId });
+      const requestedRole = String(req.body?.userType || '')
+        .trim()
+        .toLowerCase();
+      const effectiveRole = isAdmin(req)
+        ? isValidParticipantRole(requestedRole)
+          ? requestedRole
+          : null
+        : participantRole;
 
-    booking.status = 'completed';
-    booking.completedAt = new Date();
-
-    if (req.body.rating !== undefined) {
-      if (!effectiveRole || !isValidRating(req.body.rating)) {
+      if (!effectiveRole) {
         return res.status(400).json({
           success: false,
-          message: 'A valid participant role and rating between 1 and 5 are required.'
+          message: 'A valid participant role is required to complete the session.',
+        });
+      }
+
+      const { rating, review } = req.body;
+      if (!isValidRating(rating)) {
+        return res.status(400).json({
+          success: false,
+          message: 'A rating between 1 and 5 is required.',
         });
       }
 
       booking.sessionRating[effectiveRole] = {
-        rating: Number(req.body.rating),
-        review: String(req.body.review || '').trim(),
-        ratedAt: new Date()
+        rating: Number(rating),
+        review: String(review || '').trim(),
+        ratedAt: new Date(),
       };
+
+      const bothRated =
+        booking.sessionRating.instructor?.rating && booking.sessionRating.student?.rating;
+
+      if (bothRated || req.body.forceComplete) {
+        booking.status = 'completed';
+        booking.completedAt = new Date();
+      }
+
+      await booking.save();
+
+      res.json({
+        success: true,
+        message: bothRated
+          ? 'Session completed successfully'
+          : 'Rating submitted, waiting for other participant',
+        booking,
+        requiresOtherRating: !bothRated && !req.body.forceComplete,
+      });
+    } catch (error) {
+      res.status(500).json({ message: 'Error completing session', error: error.message });
     }
-
-    await booking.save();
-
-    res.json({
-      success: true,
-      message: 'Session completed successfully',
-      booking
-    });
-  } catch (error) {
-    console.error('Session completion error:', error);
-    res.status(500).json({ message: 'Error completing session', error: error.message });
   }
-});
+);
+
+router.post(
+  '/:id/complete-session',
+  validateParams(schemas.booking.bookingIdParam),
+  validateBody(schemas.booking.completeSession),
+  async (req, res) => {
+    try {
+      const booking = await getAuthorizedBooking(req, res);
+      if (!booking) return;
+
+      const participantRole = getBookingParticipantRole({ booking, userId: req.userId });
+      const requestedRole = String(req.body?.completedBy || '')
+        .trim()
+        .toLowerCase();
+      const effectiveRole = isAdmin(req)
+        ? isValidParticipantRole(requestedRole)
+          ? requestedRole
+          : null
+        : participantRole;
+
+      booking.status = 'completed';
+      booking.completedAt = new Date();
+
+      if (req.body.rating !== undefined) {
+        if (!effectiveRole || !isValidRating(req.body.rating)) {
+          return res.status(400).json({
+            success: false,
+            message: 'A valid participant role and rating between 1 and 5 are required.',
+          });
+        }
+
+        booking.sessionRating[effectiveRole] = {
+          rating: Number(req.body.rating),
+          review: String(req.body.review || '').trim(),
+          ratedAt: new Date(),
+        };
+      }
+
+      await booking.save();
+
+      res.json({
+        success: true,
+        message: 'Session completed successfully',
+        booking,
+      });
+    } catch (error) {
+      console.error('Session completion error:', error);
+      res.status(500).json({ message: 'Error completing session', error: error.message });
+    }
+  }
+);
 
 router.post('/complete-course', validateBody(schemas.booking.completeCourse), async (req, res) => {
   try {
     res.status(410).json({
       success: false,
-      message: 'Course-wide completion is unavailable. Complete each 1:1 booking individually.'
+      message: 'Course-wide completion is unavailable. Complete each 1:1 booking individually.',
     });
   } catch (error) {
     res.status(500).json({ message: 'Error completing course', error: error.message });
   }
 });
 
-router.patch('/:id/session-count', validateParams(schemas.booking.bookingIdParam), validateBody(schemas.booking.sessionCount), async (req, res) => {
-  try {
-    const booking = await getAuthorizedBooking(req, res);
-    if (!booking) return;
+router.patch(
+  '/:id/session-count',
+  validateParams(schemas.booking.bookingIdParam),
+  validateBody(schemas.booking.sessionCount),
+  async (req, res) => {
+    try {
+      const booking = await getAuthorizedBooking(req, res);
+      if (!booking) return;
 
-    const current = Number(req.body?.current);
-    const total = Number(req.body?.total);
+      const current = Number(req.body?.current);
+      const total = Number(req.body?.total);
 
-    if (!isSingleSessionCount({ current, total })) {
-      return res.status(400).json({
-        success: false,
-        message: 'CollabLearn currently supports only 1:1 single-session bookings.'
+      if (!isSingleSessionCount({ current, total })) {
+        return res.status(400).json({
+          success: false,
+          message: 'CollabLearn currently supports only 1:1 single-session bookings.',
+        });
+      }
+
+      booking.sessionCount.current = 1;
+      booking.sessionCount.total = 1;
+      await booking.save();
+
+      res.json({ success: true, booking });
+    } catch (error) {
+      res.status(500).json({ message: 'Error updating session count', error: error.message });
+    }
+  }
+);
+
+router.delete(
+  '/:id/document/:docIndex',
+  validateParams({
+    id: schemas.booking.bookingIdParam.id,
+    docIndex: schemas.booking.documentIndexParam.docIndex,
+  }),
+  async (req, res) => {
+    try {
+      const booking = await getAuthorizedBooking(req, res);
+      if (!booking) return;
+
+      const docIndex = Number(req.params.docIndex);
+      if (
+        !Number.isInteger(docIndex) ||
+        docIndex < 0 ||
+        docIndex >= booking.sessionDocuments.length
+      ) {
+        return res.status(400).json({ message: 'Invalid document index' });
+      }
+
+      booking.sessionDocuments.splice(docIndex, 1);
+      await booking.save();
+
+      res.json({
+        success: true,
+        message: 'Document deleted successfully',
       });
+    } catch (error) {
+      res.status(500).json({ message: 'Error deleting document', error: error.message });
     }
-
-    booking.sessionCount.current = 1;
-    booking.sessionCount.total = 1;
-    await booking.save();
-
-    res.json({ success: true, booking });
-  } catch (error) {
-    res.status(500).json({ message: 'Error updating session count', error: error.message });
   }
-});
-
-router.delete('/:id/document/:docIndex', validateParams({
-  id: schemas.booking.bookingIdParam.id,
-  docIndex: schemas.booking.documentIndexParam.docIndex
-}), async (req, res) => {
-  try {
-    const booking = await getAuthorizedBooking(req, res);
-    if (!booking) return;
-
-    const docIndex = Number(req.params.docIndex);
-    if (!Number.isInteger(docIndex) || docIndex < 0 || docIndex >= booking.sessionDocuments.length) {
-      return res.status(400).json({ message: 'Invalid document index' });
-    }
-
-    booking.sessionDocuments.splice(docIndex, 1);
-    await booking.save();
-
-    res.json({
-      success: true,
-      message: 'Document deleted successfully'
-    });
-  } catch (error) {
-    res.status(500).json({ message: 'Error deleting document', error: error.message });
-  }
-});
+);
 
 module.exports = router;

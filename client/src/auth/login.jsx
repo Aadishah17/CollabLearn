@@ -20,9 +20,8 @@ import { resolveNextRoute } from './access.js';
 import { emitProfileUpdated, hasStoredSession, persistSession } from '../utils/session.js';
 import { requestJson } from '../services/apiClient.js';
 
-const rememberedEmail = typeof localStorage === 'undefined'
-  ? ''
-  : localStorage.getItem('rememberedEmail') || '';
+const rememberedEmail =
+  typeof localStorage === 'undefined' ? '' : localStorage.getItem('rememberedEmail') || '';
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -30,7 +29,7 @@ export default function LoginPage() {
   const redirectPath = location.state?.from?.pathname;
 
   const [selectedRole, setSelectedRole] = useState(
-    redirectPath?.startsWith('/admin') ? 'admin' : 'user',
+    redirectPath?.startsWith('/admin') ? 'admin' : 'user'
   );
   const [email, setEmail] = useState(rememberedEmail);
   const [password, setPassword] = useState('');
@@ -50,9 +49,10 @@ export default function LoginPage() {
     },
     {
       title: 'Pick a lane',
-      copy: selectedRole === 'admin'
-        ? 'Admin access opens the protected management dashboard.'
-        : 'Learner access opens your dashboard, roadmap, and study flow.',
+      copy:
+        selectedRole === 'admin'
+          ? 'Admin access opens the protected management dashboard.'
+          : 'Learner access opens your dashboard, roadmap, and study flow.',
     },
     {
       title: 'Continue cleanly',
@@ -61,7 +61,8 @@ export default function LoginPage() {
   ];
 
   useEffect(() => {
-    const storedRole = typeof localStorage === 'undefined' ? null : localStorage.getItem('userRole');
+    const storedRole =
+      typeof localStorage === 'undefined' ? null : localStorage.getItem('userRole');
 
     if (hasStoredSession()) {
       navigate(resolveNextRoute(redirectPath, storedRole), { replace: true });
@@ -117,7 +118,7 @@ export default function LoginPage() {
           'The login flow should drop you back into motion, not make you reconstruct the plan from memory.',
       },
     }),
-    [],
+    []
   );
 
   const completeLogin = (responseData) => {
@@ -224,7 +225,9 @@ export default function LoginPage() {
             </div>
 
             <h1 className="mt-6 text-4xl font-black tracking-tight text-white sm:text-5xl">
-              {selectedRole === 'admin' ? 'Resume admin oversight.' : 'Resume your learning rhythm.'}
+              {selectedRole === 'admin'
+                ? 'Resume admin oversight.'
+                : 'Resume your learning rhythm.'}
             </h1>
             <p className="mt-4 text-base leading-7 text-zinc-300">
               {selectedRole === 'admin'
@@ -290,7 +293,10 @@ export default function LoginPage() {
               </div>
 
               <div>
-                <label htmlFor="login-email" className="mb-2 block text-sm font-medium text-zinc-200">
+                <label
+                  htmlFor="login-email"
+                  className="mb-2 block text-sm font-medium text-zinc-200"
+                >
                   Email
                 </label>
                 <input
@@ -306,7 +312,10 @@ export default function LoginPage() {
               </div>
 
               <div>
-                <label htmlFor="login-password" className="mb-2 block text-sm font-medium text-zinc-200">
+                <label
+                  htmlFor="login-password"
+                  className="mb-2 block text-sm font-medium text-zinc-200"
+                >
                   Password
                 </label>
                 <div className="relative">
@@ -330,7 +339,8 @@ export default function LoginPage() {
                   </button>
                 </div>
                 <p className="mt-2 text-xs leading-6 text-zinc-400">
-                  Use the password tied to this account. Password recovery is not part of this build.
+                  Use the password tied to this account. Password recovery is not part of this
+                  build.
                 </p>
               </div>
 
@@ -350,10 +360,10 @@ export default function LoginPage() {
               </div>
 
               <button
-                  type="submit"
-                  disabled={loading}
-                  className="glass-cta w-full py-3.5 text-base disabled:cursor-not-allowed disabled:opacity-70"
-                >
+                type="submit"
+                disabled={loading}
+                className="glass-cta w-full py-3.5 text-base disabled:cursor-not-allowed disabled:opacity-70"
+              >
                 {loading ? (
                   <>
                     <Loader2 size={20} className="animate-spin" />
@@ -393,11 +403,13 @@ export default function LoginPage() {
                 </>
               ) : selectedRole === 'admin' ? (
                 <div className="rounded-2xl border border-amber-400/20 bg-amber-500/10 px-4 py-4 text-sm leading-7 text-amber-100">
-                  Admin accounts use email and password only. Google sign-in is available for learner accounts.
+                  Admin accounts use email and password only. Google sign-in is available for
+                  learner accounts.
                 </div>
               ) : (
                 <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-4 text-sm leading-7 text-zinc-300">
-                  Google sign-in appears when `VITE_GOOGLE_CLIENT_ID` is configured for this deployment.
+                  Google sign-in appears when `VITE_GOOGLE_CLIENT_ID` is configured for this
+                  deployment.
                 </div>
               )}
             </form>

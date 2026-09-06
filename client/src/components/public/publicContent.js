@@ -15,7 +15,8 @@ export const competitionFallbackItems = [
     slug: 'frontend-founders-cup',
     title: 'Frontend Founders Cup',
     status: 'live',
-    summary: 'A short competition for polished interface craft, clean structure, and shipping discipline.',
+    summary:
+      'A short competition for polished interface craft, clean structure, and shipping discipline.',
     overview:
       'Build a focused landing experience with strong hierarchy, responsive behavior, and enough restraint to feel production ready.',
     timing: {
@@ -151,4 +152,3 @@ export function formatPublicDate(value, options = {}) {
     ...options,
   });
 }
-

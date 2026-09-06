@@ -1,7 +1,9 @@
 const runtimeEnv = typeof import.meta !== 'undefined' && import.meta.env ? import.meta.env : {};
 
 const normalizeRuntimeUrl = (value) => {
-  const trimmed = String(value || '').trim().replace(/\/+$/, '');
+  const trimmed = String(value || '')
+    .trim()
+    .replace(/\/+$/, '');
   if (!trimmed) {
     return '';
   }

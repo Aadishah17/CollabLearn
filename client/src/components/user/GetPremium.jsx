@@ -11,13 +11,20 @@ export default function GetPremium() {
           <div className="w-full md:w-1/2 p-10 md:p-16 flex flex-col items-center justify-center bg-black border-b md:border-b-0 md:border-r border-white">
             <div className="text-center">
               <h2 className="text-4xl font-extrabold text-white mb-4">Free</h2>
-              <p className="text-gray-400 mb-6">Access core features, join community sessions, and learn at your own pace.</p>
+              <p className="text-gray-400 mb-6">
+                Access core features, join community sessions, and learn at your own pace.
+              </p>
               <ul className="text-left text-gray-300 space-y-2 mb-6">
                 <li>• Browse skills and community</li>
                 <li>• Book standard sessions</li>
                 <li>• Basic messaging</li>
               </ul>
-              <button onClick={() => navigate('/dashboard')} className="px-6 py-3 rounded-lg border border-white text-white font-medium hover:bg-gray-900 transition cursor-pointer">Continue with Free</button>
+              <button
+                onClick={() => navigate('/dashboard')}
+                className="px-6 py-3 rounded-lg border border-white text-white font-medium hover:bg-gray-900 transition cursor-pointer"
+              >
+                Continue with Free
+              </button>
             </div>
           </div>
 
@@ -25,13 +32,21 @@ export default function GetPremium() {
           <div className="w-full md:w-1/2 p-10 md:p-16 flex flex-col items-center justify-center bg-gradient-to-br from-red-900/40 to-black">
             <div className="text-center">
               <div className="inline-flex items-center gap-3 mb-4">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 text-red-500" viewBox="0 0 20 20" fill="currentColor">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-10 w-10 text-red-500"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                >
                   <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.29a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.29c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.176 0l-2.8 2.034c-.784.57-1.839-.197-1.54-1.118l1.07-3.29a1 1 0 00-.364-1.118L2.98 8.717c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.29z" />
                 </svg>
                 <h2 className="text-4xl font-extrabold text-red-500">Premium</h2>
               </div>
 
-              <p className="text-gray-300 mb-6">Get priority sessions, exclusive workshops, and advanced features tailored for fast learners.</p>
+              <p className="text-gray-300 mb-6">
+                Get priority sessions, exclusive workshops, and advanced features tailored for fast
+                learners.
+              </p>
 
               <ul className="text-left text-red-200 space-y-2 mb-6">
                 <li>• Priority booking & top instructors</li>
@@ -41,10 +56,16 @@ export default function GetPremium() {
               </ul>
 
               <div className="flex flex-col sm:flex-row items-center gap-3 justify-center">
-                <span className="inline-block bg-red-900/50 text-red-200 px-3 py-1 rounded-full text-sm font-semibold border border-red-500">Most popular</span>
-                <button onClick={() => navigate('/payment')} className="px-6 py-3 rounded-lg bg-red-600 hover:bg-red-700 text-white font-semibold shadow-lg transform hover:-translate-y-0.5 transition cursor-pointer">Upgrade Now</button>
+                <span className="inline-block bg-red-900/50 text-red-200 px-3 py-1 rounded-full text-sm font-semibold border border-red-500">
+                  Most popular
+                </span>
+                <button
+                  onClick={() => navigate('/payment')}
+                  className="px-6 py-3 rounded-lg bg-red-600 hover:bg-red-700 text-white font-semibold shadow-lg transform hover:-translate-y-0.5 transition cursor-pointer"
+                >
+                  Upgrade Now
+                </button>
               </div>
-
             </div>
           </div>
         </div>

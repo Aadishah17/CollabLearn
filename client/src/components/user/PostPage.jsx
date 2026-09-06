@@ -115,7 +115,7 @@ export default function PostPage() {
         setRefreshing(false);
       }
     },
-    [postId],
+    [postId]
   );
 
   useEffect(() => {
@@ -126,7 +126,10 @@ export default function PostPage() {
 
   const isSaved = Boolean(post?._id && savedPosts.includes(post._id));
   const isLiked = Boolean(
-    currentUser.isAuthenticated && currentUser.id && Array.isArray(post?.likedBy) && post.likedBy.includes(currentUser.id),
+    currentUser.isAuthenticated &&
+    currentUser.id &&
+    Array.isArray(post?.likedBy) &&
+    post.likedBy.includes(currentUser.id)
   );
 
   const author = useMemo(
@@ -135,7 +138,7 @@ export default function PostPage() {
       avatar: post?.avatar || '',
       avatarUrl: post?.userInfo?.avatarUrl,
     }),
-    [post],
+    [post]
   );
 
   const commentPrompts = useMemo(() => {
@@ -319,7 +322,9 @@ export default function PostPage() {
           <div className="relative grid gap-6 xl:grid-cols-[1fr_0.42fr]">
             <div className="reveal-up">
               <div className="flex flex-wrap items-center gap-2">
-                <span className={`rounded-full border px-3 py-1 text-xs font-semibold ${getCategoryTone(post.category)}`}>
+                <span
+                  className={`rounded-full border px-3 py-1 text-xs font-semibold ${getCategoryTone(post.category)}`}
+                >
                   {post.category || 'General Discussion'}
                 </span>
                 <span className="rounded-full border border-white/10 bg-white/[0.05] px-3 py-1 text-xs font-semibold text-zinc-300">
@@ -369,7 +374,9 @@ export default function PostPage() {
                     key={signal.label}
                     className="rounded-[22px] border border-white/10 bg-white/[0.04] px-4 py-3 text-center"
                   >
-                    <p className="text-xs uppercase tracking-[0.22em] text-zinc-500">{signal.label}</p>
+                    <p className="text-xs uppercase tracking-[0.22em] text-zinc-500">
+                      {signal.label}
+                    </p>
                     <p className="mt-2 text-2xl font-black text-white">{signal.value}</p>
                   </div>
                 ))}
@@ -476,7 +483,10 @@ export default function PostPage() {
                         className="rounded-[24px] border border-white/10 bg-white/[0.03] p-4"
                       >
                         <div className="flex gap-3">
-                          <AvatarBadge user={{ name: comment.author, avatar: comment.avatar }} size={40} />
+                          <AvatarBadge
+                            user={{ name: comment.author, avatar: comment.avatar }}
+                            size={40}
+                          />
                           <div className="min-w-0 flex-1">
                             <div className="flex flex-wrap items-center justify-between gap-2">
                               <p className="text-sm font-semibold text-white">{comment.author}</p>

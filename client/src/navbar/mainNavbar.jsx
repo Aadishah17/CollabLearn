@@ -10,7 +10,7 @@ import {
   Sun,
   ShieldCheck,
   Menu,
-  X
+  X,
 } from 'lucide-react';
 import CollabLearnLogo from '../assets/collablearn-logo.svg';
 import { formatAccessLabel, isAdminRole, normalizeStoredRole } from '../auth/access.js';
@@ -47,7 +47,7 @@ export default function MainNavbar() {
     return buildMainNavLinks({
       isPremium,
       isSuperAdmin,
-      userRole
+      userRole,
     });
   }, [isPremium, isSuperAdmin, userRole]);
 
@@ -73,8 +73,8 @@ export default function MainNavbar() {
         method: 'GET',
         headers: {
           Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
+          'Content-Type': 'application/json',
+        },
       });
 
       if (!response.ok) {
@@ -135,11 +135,11 @@ export default function MainNavbar() {
       try {
         const [studentResponse, instructorResponse] = await Promise.all([
           fetch(`${API_URL}/api/booking/student/${userId}`, {
-            headers: { Authorization: `Bearer ${token}` }
+            headers: { Authorization: `Bearer ${token}` },
           }),
           fetch(`${API_URL}/api/booking/instructor/${userId}`, {
-            headers: { Authorization: `Bearer ${token}` }
-          })
+            headers: { Authorization: `Bearer ${token}` },
+          }),
         ]);
 
         let allNotifications = [];
@@ -149,7 +149,9 @@ export default function MainNavbar() {
           if (studentData.success) {
             allNotifications.push(
               ...studentData.bookings
-                .filter((booking) => booking.status === 'confirmed' || booking.status === 'cancelled')
+                .filter(
+                  (booking) => booking.status === 'confirmed' || booking.status === 'cancelled'
+                )
                 .map((booking) => ({ ...booking, type: 'student' }))
             );
           }
@@ -235,8 +237,7 @@ export default function MainNavbar() {
     setIsMobileMenuOpen(false);
   }, [location.pathname]);
 
-  const isActive = (path) =>
-    location.pathname === path || location.pathname.startsWith(`${path}/`);
+  const isActive = (path) => location.pathname === path || location.pathname.startsWith(`${path}/`);
 
   const handleLogout = async () => {
     await logoutSession();
@@ -262,7 +263,9 @@ export default function MainNavbar() {
               alt="CollabLearn Logo"
               className="w-10 h-10 rounded-xl object-cover border border-white/20"
             />
-            <span className="text-xl md:text-2xl font-bold text-white tracking-tight">CollabLearn</span>
+            <span className="text-xl md:text-2xl font-bold text-white tracking-tight">
+              CollabLearn
+            </span>
           </Link>
 
           <div className="hidden lg:flex flex-1 items-center gap-2 overflow-x-auto no-scrollbar px-3">
@@ -274,9 +277,13 @@ export default function MainNavbar() {
                   key={link.path}
                   to={link.path}
                   className={`${active ? 'glass-tab glass-tab-active' : 'glass-tab'} ${
-                    link.premium && !active ? 'text-amber-200 hover:border-amber-400/40 hover:bg-amber-500/20' : ''
+                    link.premium && !active
+                      ? 'text-amber-200 hover:border-amber-400/40 hover:bg-amber-500/20'
+                      : ''
                   } ${link.featured && !active ? 'hover:bg-rose-500/18' : ''} ${
-                    link.admin && !active ? 'hover:bg-emerald-500/18 hover:border-emerald-400/40' : ''
+                    link.admin && !active
+                      ? 'hover:bg-emerald-500/18 hover:border-emerald-400/40'
+                      : ''
                   }`}
                 >
                   <Icon size={16} />
@@ -319,7 +326,10 @@ export default function MainNavbar() {
                     )}
                   </button>
                   {isNotificationsOpen && (
-                    <Notification notifications={notifications} onClose={() => setIsNotificationsOpen(false)} />
+                    <Notification
+                      notifications={notifications}
+                      onClose={() => setIsNotificationsOpen(false)}
+                    />
                   )}
                 </div>
 
@@ -345,7 +355,9 @@ export default function MainNavbar() {
                             <User size={18} className="text-zinc-100" />
                           </div>
                           <div className="min-w-0">
-                            <p className="font-semibold text-zinc-100 truncate">{loading ? 'Loading...' : username}</p>
+                            <p className="font-semibold text-zinc-100 truncate">
+                              {loading ? 'Loading...' : username}
+                            </p>
                             <p className="text-xs text-zinc-300 truncate">{loading ? '' : email}</p>
                             <p className="mt-1 text-[11px] font-medium text-emerald-300">
                               {formatAccessLabel(userRole, isSuperAdmin)}
@@ -429,7 +441,9 @@ export default function MainNavbar() {
           <div className="lg:hidden border-t border-white/15 px-3 pb-3 pt-2">
             {!isGuest && (
               <div className="mb-3 rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3">
-                <p className="text-sm font-semibold text-white">{loading ? 'Loading...' : username}</p>
+                <p className="text-sm font-semibold text-white">
+                  {loading ? 'Loading...' : username}
+                </p>
                 <p className="mt-1 text-xs text-zinc-400">{email || 'No email connected'}</p>
                 <p className="mt-2 text-[11px] font-medium text-emerald-300">
                   {formatAccessLabel(userRole, isSuperAdmin)}

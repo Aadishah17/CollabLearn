@@ -175,7 +175,10 @@ export default function StudentInfoModal({ student, skill, onClose, onMessage })
           <div className="relative max-h-[85vh] overflow-y-auto px-6 py-6 md:px-8">
             <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
               {metrics.map((metric) => (
-                <div key={metric.label} className="rounded-[24px] border border-white/10 bg-white/[0.04] p-5">
+                <div
+                  key={metric.label}
+                  className="rounded-[24px] border border-white/10 bg-white/[0.04] p-5"
+                >
                   <div className="flex items-center justify-between gap-3">
                     <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">
                       {metric.label}
@@ -206,7 +209,10 @@ export default function StudentInfoModal({ student, skill, onClose, onMessage })
                   {details?.learningGoals?.length ? (
                     <div className="mt-5 space-y-4">
                       {details.learningGoals.map((goal) => (
-                        <div key={goal.id || goal.skill} className="rounded-[22px] border border-white/8 bg-black/20 p-4">
+                        <div
+                          key={goal.id || goal.skill}
+                          className="rounded-[22px] border border-white/8 bg-black/20 p-4"
+                        >
                           <div className="flex items-center justify-between gap-4">
                             <div>
                               <p className="font-semibold text-white">{goal.skill}</p>
@@ -229,7 +235,8 @@ export default function StudentInfoModal({ student, skill, onClose, onMessage })
                     </div>
                   ) : (
                     <p className="mt-5 text-sm leading-7 text-zinc-300">
-                      This student has not added trackable learning goals yet. Their session history is still available below.
+                      This student has not added trackable learning goals yet. Their session history
+                      is still available below.
                     </p>
                   )}
                 </section>
@@ -266,11 +273,16 @@ export default function StudentInfoModal({ student, skill, onClose, onMessage })
                 {details?.sessionHistory?.length ? (
                   <div className="mt-5 space-y-3">
                     {details.sessionHistory.map((session) => (
-                      <div key={session.id} className="rounded-[22px] border border-white/8 bg-black/20 p-4">
+                      <div
+                        key={session.id}
+                        className="rounded-[22px] border border-white/8 bg-black/20 p-4"
+                      >
                         <div className="flex flex-wrap items-start justify-between gap-3">
                           <div>
                             <p className="font-semibold text-white">{session.skill}</p>
-                            <p className="mt-1 text-sm text-zinc-400">{formatDateTime(session.date)}</p>
+                            <p className="mt-1 text-sm text-zinc-400">
+                              {formatDateTime(session.date)}
+                            </p>
                           </div>
                           <span
                             className={`inline-flex rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] ${
@@ -304,11 +316,7 @@ export default function StudentInfoModal({ student, skill, onClose, onMessage })
               <button type="button" onClick={onClose} className="glass-outline-btn">
                 Close
               </button>
-              <button
-                type="button"
-                onClick={() => onMessage?.(student)}
-                className="glass-cta"
-              >
+              <button type="button" onClick={() => onMessage?.(student)} className="glass-cta">
                 <MessageSquare size={16} />
                 Message student
               </button>

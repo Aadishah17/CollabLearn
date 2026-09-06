@@ -28,7 +28,7 @@ test('Vercel API entrypoint initializes app before handling requests', async () 
     id: appModulePath,
     filename: appModulePath,
     loaded: true,
-    exports: stubHandler
+    exports: stubHandler,
   };
 
   try {
@@ -66,7 +66,7 @@ test('Vercel API entrypoint returns 503 when init fails outside health route', a
     id: appModulePath,
     filename: appModulePath,
     loaded: true,
-    exports: stubHandler
+    exports: stubHandler,
   };
 
   try {
@@ -79,7 +79,7 @@ test('Vercel API entrypoint returns 503 when init fails outside health route', a
         },
         end(chunk) {
           body += chunk;
-        }
+        },
       }
     );
 

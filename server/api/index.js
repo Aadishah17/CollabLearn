@@ -11,7 +11,7 @@ module.exports = async (req, res) => {
     res.end(
       JSON.stringify({
         success: false,
-        message: 'Database unavailable'
+        message: 'Database unavailable',
       })
     );
     return;

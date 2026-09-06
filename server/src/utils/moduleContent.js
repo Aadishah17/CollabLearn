@@ -18,13 +18,7 @@ const normalizeTags = (tags) => {
     return [];
   }
 
-  return Array.from(
-    new Set(
-      tags
-        .map((tag) => sanitizeText(tag))
-        .filter(Boolean)
-    )
-  );
+  return Array.from(new Set(tags.map((tag) => sanitizeText(tag)).filter(Boolean)));
 };
 
 const normalizeContentType = (value) => {
@@ -37,8 +31,7 @@ const normalizeVisibility = (value) => {
   return MODULE_VISIBILITIES.includes(candidate) ? candidate : 'private';
 };
 
-const isSupportedContentUrl = (value) =>
-  /^https?:\/\//i.test(value) || value.startsWith('/');
+const isSupportedContentUrl = (value) => /^https?:\/\//i.test(value) || value.startsWith('/');
 
 const normalizeModuleInput = (body = {}) => {
   const contentType = normalizeContentType(body.contentType);

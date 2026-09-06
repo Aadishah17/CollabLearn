@@ -66,7 +66,12 @@ export async function loadPublicItems({
         const detailPayload = await requestJson(detailPath(slug));
         const detail = normalizePublicRecord(detailPayload, detailKeys);
         if (detail) {
-          return { item: detail, items: fallbackItems, source: 'api-detail', warning: error.message };
+          return {
+            item: detail,
+            items: fallbackItems,
+            source: 'api-detail',
+            warning: error.message,
+          };
         }
       } catch {
         // Fall through to fallback content.
@@ -81,4 +86,3 @@ export async function loadPublicItems({
     };
   }
 }
-

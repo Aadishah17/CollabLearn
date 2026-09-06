@@ -6,8 +6,7 @@ const isOneToOneBooking = ({ instructorId, studentId }) => {
   return String(instructorId) !== String(studentId);
 };
 
-const isSingleSessionCount = ({ current, total }) =>
-  Number(current) === 1 && Number(total) === 1;
+const isSingleSessionCount = ({ current, total }) => Number(current) === 1 && Number(total) === 1;
 
 module.exports = {
   isOneToOneBooking,

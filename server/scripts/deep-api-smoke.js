@@ -20,7 +20,7 @@ const created = {
   skillIds: [],
   bookingIds: [],
   postIds: [],
-  planIds: []
+  planIds: [],
 };
 
 const notes = [];
@@ -40,9 +40,12 @@ const fail = (message, details) => {
 const buildRequestError = (path, method, error) =>
   new Error(`Request failed for ${method} ${path}: ${error.message}`);
 
-const request = async (path, { method = 'GET', token, body, expectedStatus, allowStatuses } = {}) => {
+const request = async (
+  path,
+  { method = 'GET', token, body, expectedStatus, allowStatuses } = {}
+) => {
   const headers = {
-    Accept: 'application/json'
+    Accept: 'application/json',
   };
 
   if (body !== undefined) {
@@ -62,7 +65,7 @@ const request = async (path, { method = 'GET', token, body, expectedStatus, allo
       method,
       headers,
       body: body === undefined ? undefined : JSON.stringify(body),
-      signal: controller.signal
+      signal: controller.signal,
     });
   } catch (error) {
     clearTimeout(timeoutId);
@@ -92,7 +95,7 @@ const request = async (path, { method = 'GET', token, body, expectedStatus, allo
 
   return {
     status: response.status,
-    payload
+    payload,
   };
 };
 
@@ -103,7 +106,7 @@ const waitForApiReady = async () => {
   while (Date.now() - startedAt < API_READY_TIMEOUT_MS) {
     try {
       const health = await request('/api/health', {
-        expectedStatus: 200
+        expectedStatus: 200,
       });
 
       if (health.payload?.success === true && health.payload?.dbStatus === 'connected') {
@@ -120,7 +123,7 @@ const waitForApiReady = async () => {
 
   fail(`API did not become ready within ${API_READY_TIMEOUT_MS}ms`, {
     apiBaseUrl: API_BASE_URL,
-    lastError
+    lastError,
   });
 };
 
@@ -172,42 +175,62 @@ async function main() {
   log(`Base URL: ${API_BASE_URL}`);
 
   const health = await waitForApiReady();
-  assert(health.payload?.success === true, 'Health endpoint did not report success', health.payload);
+  assert(
+    health.payload?.success === true,
+    'Health endpoint did not report success',
+    health.payload
+  );
   assert(health.payload?.dbStatus === 'connected', 'Database is not connected', health.payload);
 
   const studioStatus = await request('/api/ai/studio-status');
-  assert(studioStatus.payload?.provider, 'AI status payload is missing provider', studioStatus.payload);
+  assert(
+    studioStatus.payload?.provider,
+    'AI status payload is missing provider',
+    studioStatus.payload
+  );
   record('ai_provider', studioStatus.payload.provider);
   record('ai_live_status', studioStatus.payload.liveStatus || 'unknown');
 
   const unauthorizedUsers = await request('/api/users', {
-    allowStatuses: [401, 403]
+    allowStatuses: [401, 403],
   });
-  assert([401, 403].includes(unauthorizedUsers.status), 'Unauthenticated /api/users should be blocked');
+  assert(
+    [401, 403].includes(unauthorizedUsers.status),
+    'Unauthenticated /api/users should be blocked'
+  );
 
   const unauthorizedPost = await request('/api/posts', {
     method: 'POST',
     body: {
       title: 'Should fail',
-      excerpt: 'Should fail'
+      excerpt: 'Should fail',
     },
-    allowStatuses: [401, 403]
+    allowStatuses: [401, 403],
   });
-  assert([401, 403].includes(unauthorizedPost.status), 'Unauthenticated post creation should be blocked');
+  assert(
+    [401, 403].includes(unauthorizedPost.status),
+    'Unauthenticated post creation should be blocked'
+  );
 
   const unauthorizedBooking = await request('/api/booking', {
     method: 'POST',
     body: {},
-    allowStatuses: [401, 403]
+    allowStatuses: [401, 403],
   });
-  assert([401, 403].includes(unauthorizedBooking.status), 'Unauthenticated booking creation should be blocked');
+  assert(
+    [401, 403].includes(unauthorizedBooking.status),
+    'Unauthenticated booking creation should be blocked'
+  );
 
   const unauthorizedAiChat = await request('/api/ai/chat', {
     method: 'POST',
     body: { message: 'hello' },
-    allowStatuses: [401, 403]
+    allowStatuses: [401, 403],
   });
-  assert([401, 403].includes(unauthorizedAiChat.status), 'Unauthenticated AI chat should be blocked');
+  assert(
+    [401, 403].includes(unauthorizedAiChat.status),
+    'Unauthenticated AI chat should be blocked'
+  );
 
   const registerMentor = await request('/api/auth/register', {
     method: 'POST',
@@ -215,18 +238,22 @@ async function main() {
     body: {
       name: 'Deep Mentor',
       email: mentorEmail,
-      password: PASSWORD
-    }
+      password: PASSWORD,
+    },
   });
   const mentorToken = registerMentor.payload?.token;
   const mentorId = registerMentor.payload?.user?.id;
-  assert(mentorToken && mentorId, 'Mentor registration did not return token/user', registerMentor.payload);
+  assert(
+    mentorToken && mentorId,
+    'Mentor registration did not return token/user',
+    registerMentor.payload
+  );
   created.userIds.push(mentorId);
 
   const studioTest = await request('/api/ai/studio-test', {
     method: 'POST',
     token: mentorToken,
-    allowStatuses: [200, 429]
+    allowStatuses: [200, 429],
   });
   record('ai_test_status', studioTest.status);
   if (studioTest.status === 429) {
@@ -239,12 +266,16 @@ async function main() {
     body: {
       name: 'Deep Student',
       email: studentEmail,
-      password: PASSWORD
-    }
+      password: PASSWORD,
+    },
   });
   const studentToken = registerStudent.payload?.token;
   const studentId = registerStudent.payload?.user?.id;
-  assert(studentToken && studentId, 'Student registration did not return token/user', registerStudent.payload);
+  assert(
+    studentToken && studentId,
+    'Student registration did not return token/user',
+    registerStudent.payload
+  );
   created.userIds.push(studentId);
 
   const loginMentor = await request('/api/auth/login', {
@@ -252,25 +283,37 @@ async function main() {
     body: {
       email: mentorEmail,
       password: PASSWORD,
-      role: 'user'
-    }
+      role: 'user',
+    },
   });
   assert(loginMentor.payload?.success === true, 'Mentor login failed', loginMentor.payload);
 
   const me = await request('/api/auth/me', {
-    token: mentorToken
+    token: mentorToken,
   });
-  assert(me.payload?.user?.email === mentorEmail, 'Authenticated profile lookup returned wrong user', me.payload);
+  assert(
+    me.payload?.user?.email === mentorEmail,
+    'Authenticated profile lookup returned wrong user',
+    me.payload
+  );
 
   const users = await request('/api/users', {
-    token: mentorToken
+    token: mentorToken,
   });
-  assert(Array.isArray(users.payload), 'Authenticated /api/users should return an array', users.payload);
+  assert(
+    Array.isArray(users.payload),
+    'Authenticated /api/users should return an array',
+    users.payload
+  );
 
   const messages = await request('/api/messages/smoke-chat', {
-    token: mentorToken
+    token: mentorToken,
   });
-  assert(Array.isArray(messages.payload), 'Authenticated messages lookup should return an array', messages.payload);
+  assert(
+    Array.isArray(messages.payload),
+    'Authenticated messages lookup should return an array',
+    messages.payload
+  );
 
   const addSkill = await request('/api/skills/offering', {
     method: 'POST',
@@ -282,8 +325,8 @@ async function main() {
       description: 'Deep smoke mentor offering',
       category: 'Programming',
       duration: '1 hour',
-      price: 0
-    }
+      price: 0,
+    },
   });
   const skillId = addSkill.payload?.skill?._id;
   assert(skillId, 'Skill offering creation did not return skill id', addSkill.payload);
@@ -297,12 +340,14 @@ async function main() {
       description: 'Deep smoke posted offering',
       skills: skillName,
       timePerHour: '1 hour',
-      price: '0'
-    }
+      price: '0',
+    },
   });
   assert(postSkill.payload?.success === true, 'Posting skill offering failed', postSkill.payload);
 
-  const searchSkills = await request(`/api/skills/search?q=${encodeURIComponent(skillName)}&type=offering`);
+  const searchSkills = await request(
+    `/api/skills/search?q=${encodeURIComponent(skillName)}&type=offering`
+  );
   const foundSkill = Array.isArray(searchSkills.payload?.data)
     ? searchSkills.payload.data.find((item) => item && item._id === skillId)
     : null;
@@ -318,15 +363,15 @@ async function main() {
       skill: skillId,
       date: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
       duration: 60,
-      notes: 'Deep smoke booking'
-    }
+      notes: 'Deep smoke booking',
+    },
   });
   const bookingId = createBooking.payload?.booking?._id;
   assert(bookingId, 'Booking creation did not return booking id', createBooking.payload);
   created.bookingIds.push(bookingId);
 
   const studentBookings = await request(`/api/booking/student/${studentId}`, {
-    token: studentToken
+    token: studentToken,
   });
   assert(
     Array.isArray(studentBookings.payload?.bookings) &&
@@ -336,7 +381,7 @@ async function main() {
   );
 
   const instructorBookings = await request(`/api/booking/instructor/${mentorId}`, {
-    token: mentorToken
+    token: mentorToken,
   });
   assert(
     Array.isArray(instructorBookings.payload?.bookings) &&
@@ -349,10 +394,14 @@ async function main() {
     method: 'PATCH',
     token: mentorToken,
     body: {
-      status: 'confirmed'
-    }
+      status: 'confirmed',
+    },
   });
-  assert(updateBooking.payload?.booking?.status === 'confirmed', 'Booking status did not update', updateBooking.payload);
+  assert(
+    updateBooking.payload?.booking?.status === 'confirmed',
+    'Booking status did not update',
+    updateBooking.payload
+  );
 
   const completeStudent = await request(`/api/booking/${bookingId}/complete`, {
     method: 'POST',
@@ -360,8 +409,8 @@ async function main() {
     body: {
       rating: 5,
       review: 'Useful session',
-      userType: 'student'
-    }
+      userType: 'student',
+    },
   });
   assert(
     completeStudent.payload?.requiresOtherRating === true,
@@ -375,8 +424,8 @@ async function main() {
     body: {
       rating: 5,
       review: 'Great learner',
-      userType: 'instructor'
-    }
+      userType: 'instructor',
+    },
   });
   assert(
     completeMentor.payload?.booking?.status === 'completed',
@@ -385,9 +434,13 @@ async function main() {
   );
 
   const sessionDetails = await request(`/api/booking/session/${bookingId}`, {
-    token: mentorToken
+    token: mentorToken,
   });
-  assert(sessionDetails.payload?.session?._id === bookingId, 'Booking session lookup failed', sessionDetails.payload);
+  assert(
+    sessionDetails.payload?.session?._id === bookingId,
+    'Booking session lookup failed',
+    sessionDetails.payload
+  );
 
   const createPost = await request('/api/posts', {
     method: 'POST',
@@ -397,8 +450,8 @@ async function main() {
       title: `Smoke Post ${RUN_ID}`,
       excerpt: 'Verifying authenticated community posting.',
       category: 'Testing',
-      tags: ['qa', 'smoke']
-    }
+      tags: ['qa', 'smoke'],
+    },
   });
   const postId = createPost.payload?._id;
   assert(postId, 'Post creation did not return a post id', createPost.payload);
@@ -411,18 +464,26 @@ async function main() {
 
   const likePost = await request(`/api/posts/${postId}/like`, {
     method: 'POST',
-    token: studentToken
+    token: studentToken,
   });
-  assert(likePost.payload?.stats?.likes === 1, 'Post like did not increment correctly', likePost.payload);
+  assert(
+    likePost.payload?.stats?.likes === 1,
+    'Post like did not increment correctly',
+    likePost.payload
+  );
 
   const commentPost = await request(`/api/posts/${postId}/comment`, {
     method: 'POST',
     token: studentToken,
     body: {
-      text: 'Deep smoke comment'
-    }
+      text: 'Deep smoke comment',
+    },
   });
-  assert(commentPost.payload?.stats?.comments === 1, 'Post comment did not increment correctly', commentPost.payload);
+  assert(
+    commentPost.payload?.stats?.comments === 1,
+    'Post comment did not increment correctly',
+    commentPost.payload
+  );
 
   const listPosts = await request('/api/posts?page=1&limit=10');
   assert(
@@ -441,19 +502,27 @@ async function main() {
       weeklyHours: 4,
       targetWeeks: 6,
       focusAreas: ['API testing', 'debugging'],
-      savePlan: true
-    }
+      savePlan: true,
+    },
   });
   assert(roadmap.payload?.success === true, 'AI roadmap generation failed', roadmap.payload);
-  assert(Array.isArray(roadmap.payload?.roadmap?.steps) && roadmap.payload.roadmap.steps.length > 0, 'AI roadmap returned no steps', roadmap.payload);
+  assert(
+    Array.isArray(roadmap.payload?.roadmap?.steps) && roadmap.payload.roadmap.steps.length > 0,
+    'AI roadmap returned no steps',
+    roadmap.payload
+  );
   if (roadmap.payload?.savedPlanId) {
     created.planIds.push(roadmap.payload.savedPlanId);
   }
 
   const plans = await request('/api/ai/plans', {
-    token: mentorToken
+    token: mentorToken,
   });
-  assert(Array.isArray(plans.payload?.plans), 'Learning plans endpoint did not return plans', plans.payload);
+  assert(
+    Array.isArray(plans.payload?.plans),
+    'Learning plans endpoint did not return plans',
+    plans.payload
+  );
   const savedPlan = Array.isArray(plans.payload?.plans)
     ? plans.payload.plans.find((plan) => String(plan._id) === String(roadmap.payload?.savedPlanId))
     : null;
@@ -463,14 +532,18 @@ async function main() {
     method: 'PATCH',
     token: mentorToken,
     body: {
-      completedStepIndexes: [0]
-    }
+      completedStepIndexes: [0],
+    },
   });
-  assert(updateProgress.payload?.progressPercentage >= 0, 'Learning progress update failed', updateProgress.payload);
+  assert(
+    updateProgress.payload?.progressPercentage >= 0,
+    'Learning progress update failed',
+    updateProgress.payload
+  );
 
   const deletePost = await request(`/api/posts/${postId}`, {
     method: 'DELETE',
-    token: mentorToken
+    token: mentorToken,
   });
   assert(deletePost.payload?.success === true, 'Post deletion failed', deletePost.payload);
 

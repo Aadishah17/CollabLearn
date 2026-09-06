@@ -40,18 +40,22 @@ const Teach = lazy(() => import('./components/user/Teach'));
 const AiLearningPage = lazy(() => import('./components/user/AiLearningPage'));
 const StatusPage = lazy(() => import('./components/user/StatusPage'));
 const CompetitionsPage = lazy(() =>
-  import('./components/public/CompetitionsPage').then((module) => ({ default: module.CompetitionsPage })),
+  import('./components/public/CompetitionsPage').then((module) => ({
+    default: module.CompetitionsPage,
+  }))
 );
 const CompetitionDetailPage = lazy(() =>
   import('./components/public/CompetitionDetailPage').then((module) => ({
     default: module.CompetitionDetailPage,
-  })),
+  }))
 );
 const CareerPage = lazy(() =>
-  import('./components/public/CareerPage').then((module) => ({ default: module.CareerPage })),
+  import('./components/public/CareerPage').then((module) => ({ default: module.CareerPage }))
 );
 const CareerTrackPage = lazy(() =>
-  import('./components/public/CareerTrackPage').then((module) => ({ default: module.CareerTrackPage })),
+  import('./components/public/CareerTrackPage').then((module) => ({
+    default: module.CareerTrackPage,
+  }))
 );
 const NotFoundPage = lazy(() => import('./components/user/NotFoundPage'));
 
@@ -79,34 +83,223 @@ function App() {
           <Route path="/competitions/:slug" element={<CompetitionDetailPage />} />
           <Route path="/career" element={<CareerPage />} />
           <Route path="/career/:trackSlug" element={<CareerTrackPage />} />
-          <Route path="/admin" element={<ProtectedRoute requiredRole="admin"><AdminDashboard /></ProtectedRoute>} />
-          <Route path="/dashboard" element={<ProtectedRoute requiredRole="user"><Dashboard /></ProtectedRoute>} />
-          <Route path="/modules" element={<ProtectedRoute><ModuleDashboard /></ProtectedRoute>} />
-          <Route path="/modules/create" element={<ProtectedRoute><ModuleEditor /></ProtectedRoute>} />
+          <Route
+            path="/admin"
+            element={
+              <ProtectedRoute requiredRole="admin">
+                <AdminDashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard"
+            element={
+              <ProtectedRoute requiredRole="user">
+                <Dashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/modules"
+            element={
+              <ProtectedRoute>
+                <ModuleDashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/modules/create"
+            element={
+              <ProtectedRoute>
+                <ModuleEditor />
+              </ProtectedRoute>
+            }
+          />
           <Route path="/modules/:id/view" element={<ModuleViewer />} />
-          <Route path="/modules/:id" element={<ProtectedRoute><ModuleEditor /></ProtectedRoute>} />
-          <Route path="/browse-skills" element={<ProtectedRoute><BrowseSkills /></ProtectedRoute>} />
-          <Route path="/skill-recommendations" element={<ProtectedRoute><SkillRecommendations /></ProtectedRoute>} />
-          <Route path="/calendar" element={<ProtectedRoute><CalendarPage /></ProtectedRoute>} />
-          <Route path="/community" element={<ProtectedRoute><CommunityPage /></ProtectedRoute>} />
-          <Route path="/post/:postId" element={<ProtectedRoute><PostPage /></ProtectedRoute>} />
-          <Route path="/messages" element={<ProtectedRoute><MessagesPage /></ProtectedRoute>} />
-          <Route path="/achievements" element={<ProtectedRoute><Achievements /></ProtectedRoute>} />
-          <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
-          <Route path="/book-session" element={<ProtectedRoute><BookingSessionPage /></ProtectedRoute>} />
-          <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
-          <Route path="/skill-sessions" element={<ProtectedRoute><SkillSessions /></ProtectedRoute>} />
-          <Route path="/video-call" element={<ProtectedRoute><VideoCall /></ProtectedRoute>} />
-          <Route path="/video-call/:roomID" element={<ProtectedRoute><VideoCall /></ProtectedRoute>} />
-          <Route path="/ai-learning" element={<ProtectedRoute><AiLearningPage /></ProtectedRoute>} />
-          <Route path="/admin/manage-users" element={<ProtectedRoute requiredRole="admin"><ManageUsers /></ProtectedRoute>} />
-          <Route path="/admin/manage-posts" element={<ProtectedRoute requiredRole="admin"><ManagePosts /></ProtectedRoute>} />
-          <Route path="/admin/analytics" element={<ProtectedRoute requiredRole="admin"><AnalyticsDashboard /></ProtectedRoute>} />
-          <Route path="/admin/settings" element={<ProtectedRoute requiredRole="admin"><AdminSettings /></ProtectedRoute>} />
-          <Route path="/get-premium" element={<ProtectedRoute><GetPremium /></ProtectedRoute>} />
-          <Route path="/payment" element={<ProtectedRoute><GooglePayExample /></ProtectedRoute>} />
-          <Route path="/courses" element={<ProtectedRoute><Courses /></ProtectedRoute>} />
-          <Route path="/courses/:id/learn" element={<ProtectedRoute><CoursePlayer /></ProtectedRoute>} />
+          <Route
+            path="/modules/:id"
+            element={
+              <ProtectedRoute>
+                <ModuleEditor />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/browse-skills"
+            element={
+              <ProtectedRoute>
+                <BrowseSkills />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/skill-recommendations"
+            element={
+              <ProtectedRoute>
+                <SkillRecommendations />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/calendar"
+            element={
+              <ProtectedRoute>
+                <CalendarPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/community"
+            element={
+              <ProtectedRoute>
+                <CommunityPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/post/:postId"
+            element={
+              <ProtectedRoute>
+                <PostPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/messages"
+            element={
+              <ProtectedRoute>
+                <MessagesPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/achievements"
+            element={
+              <ProtectedRoute>
+                <Achievements />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/profile"
+            element={
+              <ProtectedRoute>
+                <ProfilePage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/book-session"
+            element={
+              <ProtectedRoute>
+                <BookingSessionPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/settings"
+            element={
+              <ProtectedRoute>
+                <SettingsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/skill-sessions"
+            element={
+              <ProtectedRoute>
+                <SkillSessions />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/video-call"
+            element={
+              <ProtectedRoute>
+                <VideoCall />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/video-call/:roomID"
+            element={
+              <ProtectedRoute>
+                <VideoCall />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/ai-learning"
+            element={
+              <ProtectedRoute>
+                <AiLearningPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/manage-users"
+            element={
+              <ProtectedRoute requiredRole="admin">
+                <ManageUsers />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/manage-posts"
+            element={
+              <ProtectedRoute requiredRole="admin">
+                <ManagePosts />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/analytics"
+            element={
+              <ProtectedRoute requiredRole="admin">
+                <AnalyticsDashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/settings"
+            element={
+              <ProtectedRoute requiredRole="admin">
+                <AdminSettings />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/get-premium"
+            element={
+              <ProtectedRoute>
+                <GetPremium />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/payment"
+            element={
+              <ProtectedRoute>
+                <GooglePayExample />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/courses"
+            element={
+              <ProtectedRoute>
+                <Courses />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/courses/:id/learn"
+            element={
+              <ProtectedRoute>
+                <CoursePlayer />
+              </ProtectedRoute>
+            }
+          />
           <Route path="/teach" element={<Teach />} />
           <Route path="*" element={<NotFoundPage />} />
         </Routes>
@@ -120,11 +313,7 @@ function App() {
     return appContent;
   }
 
-  return (
-    <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
-      {appContent}
-    </GoogleOAuthProvider>
-  );
+  return <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>{appContent}</GoogleOAuthProvider>;
 }
 
 export default App;

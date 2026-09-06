@@ -7,12 +7,12 @@ test('roadmap profile trades creativity for reliability and stays under the brow
   const genericProfile = getAiRequestProfile('default', {
     defaultTimeoutMs: 9000,
     providerDefaultTemperature: 0.7,
-    providerDefaultMaxOutputTokens: 2048
+    providerDefaultMaxOutputTokens: 2048,
   });
   const roadmapProfile = getAiRequestProfile('roadmap', {
     defaultTimeoutMs: 9000,
     providerDefaultTemperature: 0.7,
-    providerDefaultMaxOutputTokens: 2048
+    providerDefaultMaxOutputTokens: 2048,
   });
 
   assert.equal(genericProfile.timeoutMs, 9000);
@@ -29,7 +29,7 @@ test('health-check profile is intentionally tiny for fast readiness checks', () 
   const profile = getAiRequestProfile('health-check', {
     defaultTimeoutMs: 9000,
     providerDefaultTemperature: 0.7,
-    providerDefaultMaxOutputTokens: 2048
+    providerDefaultMaxOutputTokens: 2048,
   });
 
   assert.equal(profile.timeoutMs, 4000);

@@ -53,34 +53,37 @@ const getMockModules = () => [
     _id: 'mod-1',
     fixture: true,
     title: 'Frontend Interview Prep',
-    description: 'A curated list of typical frontend interview questions and system design tips, along with live coding practice outlines.',
+    description:
+      'A curated list of typical frontend interview questions and system design tips, along with live coding practice outlines.',
     updatedAt: new Date().toISOString(),
     tags: ['React', 'Interviews', 'JavaScript'],
     isPublic: true,
     collaborators: ['1', '2'],
-    content: 'Lorem ipsum dolor sit amet...'
+    content: 'Lorem ipsum dolor sit amet...',
   },
   {
     _id: 'mod-2',
     fixture: true,
     title: 'Guitar Chords Masterclass',
-    description: 'Learn the CAGED system and advanced chord voicings effortlessly. A step-by-step roadmap for all skill levels.',
+    description:
+      'Learn the CAGED system and advanced chord voicings effortlessly. A step-by-step roadmap for all skill levels.',
     updatedAt: new Date(Date.now() - 86400000).toISOString(),
     tags: ['Music', 'Guitar', 'Theory'],
     isPublic: true,
     collaborators: [],
-    content: 'CAGED system intro...'
+    content: 'CAGED system intro...',
   },
   {
     _id: 'mod-3',
     fixture: true,
     title: 'Data Science Bootcamp',
-    description: 'Python code snippets, Pandas cheat sheets, and machine learning models for fast reference during analytics sprints.',
+    description:
+      'Python code snippets, Pandas cheat sheets, and machine learning models for fast reference during analytics sprints.',
     updatedAt: new Date(Date.now() - 345600000).toISOString(),
     tags: ['Python', 'Data', 'ML'],
     isPublic: true,
     collaborators: ['1'],
-    content: 'Pandas setup...'
+    content: 'Pandas setup...',
   },
   {
     _id: 'mod-pretext',
@@ -94,8 +97,8 @@ const getMockModules = () => [
     collaborators: [],
     contentType: 'pretext',
     contentUrl: '/pretext/collablearn-intro.html',
-    content: ''
-  }
+    content: '',
+  },
 ];
 
 function formatUpdatedAt(dateString) {
@@ -161,12 +164,13 @@ export default function ModuleDashboard() {
     const total = modules.length;
     const publicModules = modules.filter((module) => module.visibility === 'public').length;
     const ownedModules = modules.filter(
-      (module) => String(module.owner?._id || module.owner?.id || '') === String(currentUserId),
+      (module) => String(module.owner?._id || module.owner?.id || '') === String(currentUserId)
     ).length;
     const collaborativeModules = modules.filter((module) =>
       (module.collaborators || []).some(
-        (collaborator) => String(collaborator.user?._id || collaborator.user?.id || '') !== String(currentUserId),
-      ),
+        (collaborator) =>
+          String(collaborator.user?._id || collaborator.user?.id || '') !== String(currentUserId)
+      )
     ).length;
 
     return { total, publicModules, ownedModules, collaborativeModules };
@@ -178,7 +182,7 @@ export default function ModuleDashboard() {
     const visibleModules = modules.filter((module) => {
       const ownerId = String(module.owner?._id || module.owner?.id || '');
       const collaboratorIds = (module.collaborators || []).map((collaborator) =>
-        String(collaborator.user?._id || collaborator.user?.id || collaborator.user || ''),
+        String(collaborator.user?._id || collaborator.user?.id || collaborator.user || '')
       );
       const isOwner = ownerId === String(currentUserId);
       const isShared = collaboratorIds.includes(String(currentUserId)) && !isOwner;
@@ -205,14 +209,17 @@ export default function ModuleDashboard() {
     const sortedModules = [...visibleModules];
 
     if (sortBy === 'alphabetical') {
-      sortedModules.sort((left, right) => String(left.title || '').localeCompare(String(right.title || '')));
+      sortedModules.sort((left, right) =>
+        String(left.title || '').localeCompare(String(right.title || ''))
+      );
     } else if (sortBy === 'collaborative') {
       sortedModules.sort(
-        (left, right) => (right.collaborators?.length || 0) - (left.collaborators?.length || 0),
+        (left, right) => (right.collaborators?.length || 0) - (left.collaborators?.length || 0)
       );
     } else {
       sortedModules.sort(
-        (left, right) => new Date(right.updatedAt || right.createdAt) - new Date(left.updatedAt || left.createdAt),
+        (left, right) =>
+          new Date(right.updatedAt || right.createdAt) - new Date(left.updatedAt || left.createdAt)
       );
     }
 
@@ -239,9 +246,9 @@ export default function ModuleDashboard() {
                 Modules that feel like a shared study workspace, not a file dump.
               </h1>
               <p className="mt-4 max-w-3xl text-base leading-7 text-zinc-300 md:text-lg">
-                Organize learning notes, workshop plans, and collaborative study docs in one
-                place. Search quickly, separate private work from the public library, and keep the
-                next resource easy to find.
+                Organize learning notes, workshop plans, and collaborative study docs in one place.
+                Search quickly, separate private work from the public library, and keep the next
+                resource easy to find.
               </p>
 
               <div className="mt-7 flex flex-col gap-3 sm:flex-row">
@@ -290,7 +297,9 @@ export default function ModuleDashboard() {
                 <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">
                   Collaborative docs
                 </p>
-                <p className="mt-3 text-3xl font-black text-white">{metrics.collaborativeModules}</p>
+                <p className="mt-3 text-3xl font-black text-white">
+                  {metrics.collaborativeModules}
+                </p>
                 <p className="mt-2 text-sm leading-6 text-zinc-300">
                   Shared with at least one additional collaborator.
                 </p>
@@ -303,7 +312,10 @@ export default function ModuleDashboard() {
           <div className="glass-panel p-5">
             <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
               <div className="relative flex-1">
-                <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
+                <Search
+                  size={16}
+                  className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400"
+                />
                 <input
                   type="text"
                   value={searchQuery}
@@ -333,7 +345,8 @@ export default function ModuleDashboard() {
 
             <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <p className="text-sm text-zinc-400">
-                Showing <span className="font-semibold text-zinc-200">{filteredModules.length}</span> module
+                Showing{' '}
+                <span className="font-semibold text-zinc-200">{filteredModules.length}</span> module
                 {filteredModules.length === 1 ? '' : 's'}
               </p>
 
@@ -460,7 +473,8 @@ export default function ModuleDashboard() {
 
                   <h2 className="mt-5 text-2xl font-bold text-white">{module.title}</h2>
                   <p className="mt-3 line-clamp-3 text-sm leading-7 text-zinc-300">
-                    {module.description || 'No description yet. Open the module to add context and resources.'}
+                    {module.description ||
+                      'No description yet. Open the module to add context and resources.'}
                   </p>
 
                   <div className="mt-4 flex flex-wrap gap-2">

@@ -24,7 +24,7 @@ export default function ModuleViewer() {
 
   const fixtureModule = useMemo(
     () => getModuleFixtureFromSearchParams(new URLSearchParams(location.search)),
-    [location.search],
+    [location.search]
   );
 
   useEffect(() => {
@@ -45,10 +45,7 @@ export default function ModuleViewer() {
         setModuleData(response.data?.data || null);
       } catch (fetchError) {
         console.error('Error loading module viewer:', fetchError);
-        setError(
-          fetchError?.response?.data?.message ||
-            'Could not load this module right now.',
-        );
+        setError(fetchError?.response?.data?.message || 'Could not load this module right now.');
       } finally {
         setLoading(false);
       }
@@ -58,10 +55,7 @@ export default function ModuleViewer() {
     return undefined;
   }, [fixtureModule, id]);
 
-  const viewerState = useMemo(
-    () => resolveModuleViewerState(moduleData),
-    [moduleData],
-  );
+  const viewerState = useMemo(() => resolveModuleViewerState(moduleData), [moduleData]);
 
   if (loading) {
     return (

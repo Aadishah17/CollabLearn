@@ -87,7 +87,7 @@ export default function SettingsPage() {
         action: () => navigate('/messages'),
       },
     ],
-    [navigate],
+    [navigate]
   );
 
   const handleManageProfile = () => {
@@ -101,7 +101,11 @@ export default function SettingsPage() {
   };
 
   const handleDeleteAccount = async () => {
-    if (!window.confirm('Delete your account permanently? This will remove your profile, bookings, and related data.')) {
+    if (
+      !window.confirm(
+        'Delete your account permanently? This will remove your profile, bookings, and related data.'
+      )
+    ) {
       return;
     }
 
@@ -130,7 +134,13 @@ export default function SettingsPage() {
       }
 
       clearSession();
-      emitProfileUpdated({ name: 'Guest', email: '', isPremium: false, role: 'user', isSuperAdmin: false });
+      emitProfileUpdated({
+        name: 'Guest',
+        email: '',
+        isPremium: false,
+        role: 'user',
+        isSuperAdmin: false,
+      });
 
       toast.success('Account deleted.');
       navigate('/');
@@ -157,7 +167,8 @@ export default function SettingsPage() {
               Settings that keep your workspace clear and reliable.
             </h1>
             <p className="mt-4 max-w-2xl text-base leading-7 text-zinc-300">
-              Manage your profile, visual preferences, and session state without leaving the learning flow.
+              Manage your profile, visual preferences, and session state without leaving the
+              learning flow.
             </p>
           </div>
         </header>
@@ -177,7 +188,10 @@ export default function SettingsPage() {
                     <h2 className="mt-2 text-2xl font-bold text-white">{user.name}</h2>
                     <p className="mt-1 text-sm text-zinc-300">{user.email || 'No email synced'}</p>
                     <div className="mt-4 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-sm font-semibold text-zinc-200">
-                      <Trophy size={15} className={user.isPremium ? 'text-amber-300' : 'text-zinc-400'} />
+                      <Trophy
+                        size={15}
+                        className={user.isPremium ? 'text-amber-300' : 'text-zinc-400'}
+                      />
                       {user.isPremium ? 'Premium member' : 'Standard member'}
                     </div>
                   </div>
@@ -202,7 +216,8 @@ export default function SettingsPage() {
                   </p>
                   <h2 className="mt-2 text-2xl font-bold text-white">Theme mode</h2>
                   <p className="mt-3 max-w-2xl text-sm leading-7 text-zinc-300">
-                    Keep the interface aligned with your preference. The theme is shared across the website and app workspace.
+                    Keep the interface aligned with your preference. The theme is shared across the
+                    website and app workspace.
                   </p>
                 </div>
 
@@ -213,7 +228,11 @@ export default function SettingsPage() {
                   aria-pressed={isDarkMode}
                 >
                   <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white/8">
-                    {isDarkMode ? <Sun size={18} className="text-amber-300" /> : <Moon size={18} className="text-blue-300" />}
+                    {isDarkMode ? (
+                      <Sun size={18} className="text-amber-300" />
+                    ) : (
+                      <Moon size={18} className="text-blue-300" />
+                    )}
                   </span>
                   <span>{isDarkMode ? 'Dark mode enabled' : 'Light mode enabled'}</span>
                 </button>
@@ -224,7 +243,9 @@ export default function SettingsPage() {
               <p className="text-sm font-semibold uppercase tracking-[0.2em] text-zinc-400">
                 Quick access
               </p>
-              <h2 className="mt-2 text-2xl font-bold text-white">Jump back into the parts of the app you use most.</h2>
+              <h2 className="mt-2 text-2xl font-bold text-white">
+                Jump back into the parts of the app you use most.
+              </h2>
               <div className="mt-6 grid gap-4 md:grid-cols-3">
                 {quickLinks.map((linkItem) => (
                   <button
@@ -256,7 +277,8 @@ export default function SettingsPage() {
                   </p>
                   <h2 className="mt-2 text-2xl font-bold text-white">Session control</h2>
                   <p className="mt-3 text-sm leading-7 text-zinc-300">
-                    This build now clears both the browser session snapshot and the server auth cookie when you sign out.
+                    This build now clears both the browser session snapshot and the server auth
+                    cookie when you sign out.
                   </p>
                 </div>
               </div>

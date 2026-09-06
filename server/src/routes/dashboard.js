@@ -28,46 +28,46 @@ router.get('/stats', auth, async (req, res) => {
     if (!user) {
       return res.status(404).json({
         success: false,
-        message: 'User not found'
+        message: 'User not found',
       });
     }
 
     // Get teaching bookings
-    const teachingBookings = await Booking.find({ 
+    const teachingBookings = await Booking.find({
       instructor: userId,
-      status: { $in: ['confirmed', 'pending', 'completed', 'ongoing'] }
+      status: { $in: ['confirmed', 'pending', 'completed', 'ongoing'] },
     })
-    .populate('student', 'name email avatar bio totalSessions')
-    .populate('skill')
-    .sort({ date: 1 });
+      .populate('student', 'name email avatar bio totalSessions')
+      .populate('skill')
+      .sort({ date: 1 });
 
     // Get learning bookings
-    const learningBookings = await Booking.find({ 
+    const learningBookings = await Booking.find({
       student: userId,
-      status: { $in: ['confirmed', 'pending', 'completed', 'ongoing'] }
+      status: { $in: ['confirmed', 'pending', 'completed', 'ongoing'] },
     })
-    .populate('instructor', 'name email avatar bio totalSessions')
-    .populate('skill')
-    .sort({ date: 1 });
+      .populate('instructor', 'name email avatar bio totalSessions')
+      .populate('skill')
+      .sort({ date: 1 });
 
     const upcomingTeachingSessions = teachingBookings.filter((booking) =>
-      isUpcomingBooking(booking, now),
+      isUpcomingBooking(booking, now)
     );
 
     const upcomingLearningSessions = learningBookings.filter((booking) =>
-      isUpcomingBooking(booking, now),
+      isUpcomingBooking(booking, now)
     );
 
     // Get skills being taught
-    const teachingSkills = await Skill.find({ 
-      user: userId, 
-      isOffering: true
+    const teachingSkills = await Skill.find({
+      user: userId,
+      isOffering: true,
     });
 
     // Get skills being learned
-    const learningSkills = await Skill.find({ 
-      user: userId, 
-      isSeeking: true
+    const learningSkills = await Skill.find({
+      user: userId,
+      isSeeking: true,
     }).populate('seeking.currentInstructor', 'name');
 
     const studentIds = Array.from(
@@ -75,8 +75,8 @@ router.get('/stats', auth, async (req, res) => {
         teachingBookings
           .map((booking) => booking?.student?._id)
           .filter(Boolean)
-          .map((id) => String(id)),
-      ),
+          .map((id) => String(id))
+      )
     );
 
     const studentSeekingSkills = studentIds.length
@@ -90,13 +90,13 @@ router.get('/stats', auth, async (req, res) => {
     const recentActivity = buildRecentActivity(
       [...teachingBookings, ...learningBookings],
       userId,
-      now,
+      now
     );
     const totalTeachingSessions = teachingBookings.filter((booking) =>
-      isCompletedBooking(booking, now),
+      isCompletedBooking(booking, now)
     ).length;
     const totalLearningSessions = learningBookings.filter((booking) =>
-      isCompletedBooking(booking, now),
+      isCompletedBooking(booking, now)
     ).length;
 
     res.json({
@@ -112,7 +112,7 @@ router.get('/stats', auth, async (req, res) => {
           totalSessions: user.totalSessions,
           badges: user.badges,
           joinDate: user.createdAt,
-          isPremium: user.isPremium || false
+          isPremium: user.isPremium || false,
         },
         stats: {
           totalSessions: user.totalSessions,
@@ -129,23 +129,22 @@ router.get('/stats', auth, async (req, res) => {
         },
         upcomingBookings: {
           teaching: upcomingTeachingSessions.slice(0, 5),
-          learning: upcomingLearningSessions.slice(0, 5)
+          learning: upcomingLearningSessions.slice(0, 5),
         },
         skills: {
           teaching: teachingSkills,
-          learning: learningSkills
+          learning: learningSkills,
         },
         studentSummaries,
         recentActivity,
-      }
+      },
     });
-
   } catch (error) {
     console.error('Dashboard stats error:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to fetch dashboard stats',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
     });
   }
 });
@@ -160,25 +159,23 @@ router.get('/student/:studentId', auth, async (req, res) => {
     const teachingRelationship = await Booking.findOne({
       instructor: instructorId,
       student: studentId,
-      status: { $in: ['confirmed', 'pending'] }
+      status: { $in: ['confirmed', 'pending'] },
     });
 
     if (!teachingRelationship) {
       return res.status(403).json({
         success: false,
-        message: 'You are not authorized to view this student\'s information'
+        message: "You are not authorized to view this student's information",
       });
     }
 
     // Get student details
-    const student = await User.findById(studentId)
-      .select('-password')
-      .populate('skillsSeeking');
+    const student = await User.findById(studentId).select('-password').populate('skillsSeeking');
 
     if (!student) {
       return res.status(404).json({
         success: false,
-        message: 'Student not found'
+        message: 'Student not found',
       });
     }
 
@@ -186,8 +183,8 @@ router.get('/student/:studentId', auth, async (req, res) => {
     const allBookings = await Booking.find({
       $or: [
         { instructor: instructorId, student: studentId },
-        { instructor: studentId, student: instructorId }
-      ]
+        { instructor: studentId, student: instructorId },
+      ],
     })
       .populate('skill', 'name')
       .sort({ date: -1 });
@@ -205,13 +202,12 @@ router.get('/student/:studentId', auth, async (req, res) => {
         learningSkills,
       }),
     });
-
   } catch (error) {
     console.error('Student details error:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to fetch student details',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
     });
   }
 });

@@ -23,6 +23,4 @@ router.put('/users/:userId/subscription', adminController.updateUserSubscription
 router.get('/posts', adminController.getAllPosts);
 router.delete('/posts/:postId', adminController.deletePostAsAdmin);
 
-
 module.exports = router;
-

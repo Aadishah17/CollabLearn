@@ -10,7 +10,7 @@ const connectionState = {
   lastAttemptAt: null,
   lastConnectedAt: null,
   lastError: null,
-  nextRetryAt: null
+  nextRetryAt: null,
 };
 
 let activeConnectionPromise = null;
@@ -54,7 +54,7 @@ const redactMongoUri = (mongoUri) => {
 
 const buildMongoConnectOptions = (mongoUri) => {
   const options = {
-    serverSelectionTimeoutMS: 10000
+    serverSelectionTimeoutMS: 10000,
   };
 
   if (/^mongodb:\/\/(localhost|127\.0\.0\.1)(?::|\/)/i.test(String(mongoUri || '').trim())) {
@@ -75,7 +75,7 @@ const sleep = (ms) =>
 const snapshotConnectionState = () => ({
   ...connectionState,
   readyState: mongoose.connection.readyState,
-  mongoUri: redactMongoUri(resolveMongoUri())
+  mongoUri: redactMongoUri(resolveMongoUri()),
 });
 
 const ensureConnectionListeners = () => {
@@ -139,7 +139,7 @@ const connectDB = async (options = {}) => {
       Number.isFinite(Number(options.maxRetryDelayMs)) && Number(options.maxRetryDelayMs) > 0
         ? Number(options.maxRetryDelayMs)
         : resolveFiniteNumber(process.env.DB_CONNECT_RETRY_MAX_MS, DEFAULT_MAX_RETRY_DELAY_MS),
-    logger: options.logger || console
+    logger: options.logger || console,
   };
 
   lastConnectOptions = { ...normalizedOptions };
@@ -168,12 +168,16 @@ const connectDB = async (options = {}) => {
         connectionState.status = 'degraded';
         connectionState.lastError = error?.message || 'MongoDB connection failed';
 
-        const resolvedAttempts = normalizedOptions.maxAttempts === Infinity ? 'unbounded' : normalizedOptions.maxAttempts;
+        const resolvedAttempts =
+          normalizedOptions.maxAttempts === Infinity ? 'unbounded' : normalizedOptions.maxAttempts;
         normalizedOptions.logger.error?.(
           `MongoDB connection attempt ${attempt}/${resolvedAttempts} failed: ${connectionState.lastError}`
         );
 
-        if (normalizedOptions.maxAttempts !== Infinity && attempt >= normalizedOptions.maxAttempts) {
+        if (
+          normalizedOptions.maxAttempts !== Infinity &&
+          attempt >= normalizedOptions.maxAttempts
+        ) {
           return null;
         }
 
@@ -213,5 +217,5 @@ module.exports = {
   resolveMongoUri,
   redactMongoUri,
   DEFAULT_LOCAL_MONGO_URI,
-  getMongoConnectionState: snapshotConnectionState
+  getMongoConnectionState: snapshotConnectionState,
 };

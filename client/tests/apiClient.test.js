@@ -15,7 +15,7 @@ const createLocalStorageMock = () => {
     },
     removeItem(key) {
       store.delete(key);
-    }
+    },
   };
 };
 
@@ -43,17 +43,17 @@ test('requestJson includes credentials and bearer auth when present', async () =
       return {
         ok: true,
         headers: {
-          get: () => 'application/json'
+          get: () => 'application/json',
         },
         json: async () => ({ success: true, received: true }),
-        text: async () => JSON.stringify({ success: true, received: true })
+        text: async () => JSON.stringify({ success: true, received: true }),
       };
     };
 
     const payload = await requestJson('/api/example', {
       method: 'POST',
       auth: true,
-      body: { hello: 'world' }
+      body: { hello: 'world' },
     });
 
     assert.equal(payload.received, true);
@@ -71,10 +71,10 @@ test('requestJson omits bearer auth when no token is stored', async () => {
       return {
         ok: true,
         headers: {
-          get: () => 'application/json'
+          get: () => 'application/json',
         },
         json: async () => ({ success: true }),
-        text: async () => JSON.stringify({ success: true })
+        text: async () => JSON.stringify({ success: true }),
       };
     };
 
@@ -96,8 +96,8 @@ test('requestJson turns raw fetch failures into a user-friendly network error', 
         method: 'POST',
         body: {
           email: 'user@example.com',
-          password: 'secret'
-        }
+          password: 'secret',
+        },
       }),
       (error) => {
         assert.equal(error.message, 'Unable to reach the server. Please try again later.');

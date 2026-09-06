@@ -9,7 +9,7 @@ import {
   LayoutDashboard,
   Trash2,
   Home,
-  ShieldCheck
+  ShieldCheck,
 } from 'lucide-react';
 import CollabLearnLogo from '../assets/collablearn-logo.svg';
 import { resolveAdminWebsiteRoute } from './navLinks.js';
@@ -45,7 +45,7 @@ export default function AdminNavbar() {
       { path: '/admin/manage-users', icon: Users, label: 'Users' },
       { path: '/admin/manage-posts', icon: Trash2, label: 'Posts' },
       { path: '/admin/analytics', icon: BarChart2, label: 'Analytics' },
-      { path: '/admin/settings', icon: Settings, label: 'Settings' }
+      { path: '/admin/settings', icon: Settings, label: 'Settings' },
     ],
     []
   );

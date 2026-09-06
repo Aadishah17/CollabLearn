@@ -18,10 +18,7 @@ const detectAiIssueCode = (message) => {
     return 'quota_exceeded';
   }
 
-  if (
-    normalized.includes('404') ||
-    normalized.includes('not found')
-  ) {
+  if (normalized.includes('404') || normalized.includes('not found')) {
     return 'not_found';
   }
 
@@ -55,7 +52,7 @@ const createStudioDiagnostics = ({
   latencyMs,
   preview,
   error,
-  checkedAt
+  checkedAt,
 }) => {
   const issueMessage = normalizeStatusMessage(error || preview);
   const issueCode = success ? null : detectAiIssueCode(issueMessage);
@@ -72,7 +69,7 @@ const createStudioDiagnostics = ({
     configured: Boolean(configured),
     model: model || null,
     preview: normalizeStatusMessage(preview),
-    error: success ? null : issueMessage || 'Unknown AI provider error'
+    error: success ? null : issueMessage || 'Unknown AI provider error',
   };
 };
 
@@ -91,13 +88,17 @@ const buildStudioStatusPayload = ({ publicConfig, diagnostics }) => {
     success: true,
     ...publicConfig,
     ready: Boolean(publicConfig?.configured) && modelCandidates.length > 0,
-    liveReady: diagnostics ? Boolean(diagnostics.available) : publicConfig?.provider === 'local-basic-engine',
+    liveReady: diagnostics
+      ? Boolean(diagnostics.available)
+      : publicConfig?.provider === 'local-basic-engine',
     liveStatus: diagnostics?.liveStatus || defaultLiveStatus,
-    fallbackActive: diagnostics ? Boolean(diagnostics.fallbackActive) : publicConfig?.provider === 'local-basic-engine',
+    fallbackActive: diagnostics
+      ? Boolean(diagnostics.fallbackActive)
+      : publicConfig?.provider === 'local-basic-engine',
     diagnostics: diagnostics || null,
     lastCheckedAt: diagnostics?.checkedAt || null,
     lastError: diagnostics?.error || null,
-    quotaExceeded: diagnostics?.quotaExceeded || false
+    quotaExceeded: diagnostics?.quotaExceeded || false,
   };
 };
 
@@ -118,5 +119,5 @@ module.exports = {
   createStudioDiagnostics,
   detectAiIssueCode,
   normalizeStatusMessage,
-  resolveStudioHttpStatus
+  resolveStudioHttpStatus,
 };

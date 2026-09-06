@@ -13,7 +13,10 @@ test('normalizePublicCollection prefers explicit collection keys', () => {
     items: [{ slug: 'ignored' }],
   };
 
-  assert.deepEqual(normalizePublicCollection(payload, ['competitions', 'items']), payload.competitions);
+  assert.deepEqual(
+    normalizePublicCollection(payload, ['competitions', 'items']),
+    payload.competitions
+  );
 });
 
 test('findPublicItemBySlug matches slug aliases and identifiers', () => {
@@ -30,11 +33,11 @@ test('findPublicItemBySlug matches slug aliases and identifiers', () => {
 test('resolvePublicPageCta sends guests to signup and sessions to the workspace entry', () => {
   assert.deepEqual(
     resolvePublicPageCta({ hasSession: false, userRole: null, isSuperAdmin: false }),
-    { path: '/signup', label: 'Get started' },
+    { path: '/signup', label: 'Get started' }
   );
 
   assert.deepEqual(
     resolvePublicPageCta({ hasSession: true, userRole: 'admin', isSuperAdmin: true }),
-    { path: '/browse-skills', label: 'Open learning site' },
+    { path: '/browse-skills', label: 'Open learning site' }
   );
 });

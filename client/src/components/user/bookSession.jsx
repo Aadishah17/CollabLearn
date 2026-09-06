@@ -181,7 +181,8 @@ export default function BookingSessionPage() {
           <div className="surface-card w-full p-8 text-center">
             <h1 className="text-2xl font-bold text-white">Booking details are missing</h1>
             <p className="mt-3 text-sm leading-6 text-zinc-300">
-              Open booking from the skills marketplace so the instructor and skill context are carried in.
+              Open booking from the skills marketplace so the instructor and skill context are
+              carried in.
             </p>
             <div className="mt-6 flex justify-center gap-3">
               <Link to="/browse-skills" className="glass-cta">
@@ -237,9 +238,12 @@ export default function BookingSessionPage() {
             <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full border border-emerald-300/25 bg-emerald-500/10 text-emerald-100">
               <CheckCircle2 size={28} />
             </div>
-            <h1 className="mt-5 text-3xl font-black text-white">Request sent to {sessionDetails.instructorName}</h1>
+            <h1 className="mt-5 text-3xl font-black text-white">
+              Request sent to {sessionDetails.instructorName}
+            </h1>
             <p className="mt-3 text-sm leading-7 text-zinc-300">
-              Your booking request is in. The instructor can now review the session context and respond.
+              Your booking request is in. The instructor can now review the session context and
+              respond.
             </p>
             <div className="mt-7 flex flex-col justify-center gap-3 sm:flex-row">
               <Link to="/calendar" className="glass-cta">
@@ -299,7 +303,9 @@ export default function BookingSessionPage() {
                   <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">
                     Skill
                   </p>
-                  <p className="mt-2 text-xl font-black text-white">{sessionDetails.title || 'Selected skill'}</p>
+                  <p className="mt-2 text-xl font-black text-white">
+                    {sessionDetails.title || 'Selected skill'}
+                  </p>
                 </div>
                 <div className="rounded-[24px] border border-white/10 bg-white/[0.05] p-4">
                   <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">
@@ -395,7 +401,8 @@ export default function BookingSessionPage() {
 
             <div className="mt-6 flex flex-col gap-3 border-t border-white/8 pt-5 md:flex-row md:items-center md:justify-between">
               <p className="text-sm text-zinc-400">
-                The more context you give, the easier it is for the instructor to prepare a focused session.
+                The more context you give, the easier it is for the instructor to prepare a focused
+                session.
               </p>
               <button
                 type="submit"
@@ -428,7 +435,9 @@ export default function BookingSessionPage() {
                   </p>
                 </div>
                 <div className="rounded-[22px] border border-white/10 bg-white/[0.04] p-4">
-                  <p className="text-xs uppercase tracking-[0.22em] text-zinc-500">Standard duration</p>
+                  <p className="text-xs uppercase tracking-[0.22em] text-zinc-500">
+                    Standard duration
+                  </p>
                   <p className="mt-2 text-sm font-semibold text-white">
                     {sessionDetails.baseDuration || 'Custom'}
                   </p>
@@ -436,7 +445,9 @@ export default function BookingSessionPage() {
                 <div className="rounded-[22px] border border-white/10 bg-white/[0.04] p-4">
                   <p className="text-xs uppercase tracking-[0.22em] text-zinc-500">Rate</p>
                   <p className="mt-2 text-sm font-semibold text-white">
-                    {sessionDetails.price > 0 ? `${formatCurrency(sessionDetails.price)}/hr` : 'Free or flexible'}
+                    {sessionDetails.price > 0
+                      ? `${formatCurrency(sessionDetails.price)}/hr`
+                      : 'Free or flexible'}
                   </p>
                 </div>
               </div>
@@ -471,7 +482,8 @@ export default function BookingSessionPage() {
               </div>
               <div className="mt-4 space-y-3">
                 <div className="rounded-[22px] border border-white/10 bg-white/[0.04] p-4 text-sm leading-7 text-zinc-300">
-                  Mention your current level, what you already tried, and what outcome would make the session successful.
+                  Mention your current level, what you already tried, and what outcome would make
+                  the session successful.
                 </div>
                 <div className="rounded-[22px] border border-white/10 bg-white/[0.04] p-4 text-sm leading-7 text-zinc-300">
                   If you are booking project feedback, include links or files before the call.
@@ -483,7 +495,8 @@ export default function BookingSessionPage() {
                   </div>
                   <div className="mt-2 flex items-center gap-2 text-white">
                     <CircleDollarSign size={15} />
-                    Current estimate: {estimatedCost > 0 ? formatCurrency(estimatedCost) : 'Flexible'}
+                    Current estimate:{' '}
+                    {estimatedCost > 0 ? formatCurrency(estimatedCost) : 'Flexible'}
                   </div>
                 </div>
               </div>

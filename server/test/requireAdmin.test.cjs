@@ -15,9 +15,9 @@ test('requireAdmin blocks non-admin requests', () => {
       return {
         json(body) {
           payload = body;
-        }
+        },
       };
-    }
+    },
   };
 
   requireAdmin(req, res, () => {
@@ -28,7 +28,7 @@ test('requireAdmin blocks non-admin requests', () => {
   assert.equal(statusCode, 403);
   assert.deepEqual(payload, {
     success: false,
-    message: 'Admin access required.'
+    message: 'Admin access required.',
   });
 });
 

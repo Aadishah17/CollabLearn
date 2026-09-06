@@ -6,7 +6,9 @@ export function PublicListBlock({ kind, items }) {
     return (
       <div className="surface-card p-8 text-center">
         <p className="text-lg font-semibold text-white">No public entries available</p>
-        <p className="mt-2 text-sm text-zinc-400">A small fallback fixture keeps the page usable even when the API is empty.</p>
+        <p className="mt-2 text-sm text-zinc-400">
+          A small fallback fixture keeps the page usable even when the API is empty.
+        </p>
       </div>
     );
   }
@@ -37,7 +39,10 @@ export function PublicListBlock({ kind, items }) {
                 <p className="mt-2 max-w-3xl text-sm leading-7 text-zinc-300">{summary}</p>
                 <div className="mt-3 flex flex-wrap gap-2">
                   {(item.tags || []).slice(0, 3).map((tag) => (
-                    <span key={tag} className="glass-chip border-white/10 bg-white/[0.035] text-[11px] text-zinc-300">
+                    <span
+                      key={tag}
+                      className="glass-chip border-white/10 bg-white/[0.035] text-[11px] text-zinc-300"
+                    >
                       {tag}
                     </span>
                   ))}
@@ -54,4 +59,3 @@ export function PublicListBlock({ kind, items }) {
     </section>
   );
 }
-

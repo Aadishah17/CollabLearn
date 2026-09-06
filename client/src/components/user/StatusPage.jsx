@@ -65,9 +65,7 @@ export default function StatusPage() {
       }
 
       setLastRefreshAt(new Date().toISOString());
-      setLoadError(
-        loadFailures.length ? `Could not refresh ${loadFailures.join(' and ')}.` : '',
-      );
+      setLoadError(loadFailures.length ? `Could not refresh ${loadFailures.join(' and ')}.` : '');
     } catch (error) {
       console.error('Public status load error:', error);
       setLoadError(error.message || 'Could not load public system status');
@@ -119,15 +117,24 @@ export default function StatusPage() {
                   See whether the website, API, and AI layer are actually ready.
                 </h1>
                 <p className="mt-5 max-w-2xl text-base leading-7 text-zinc-300 md:text-lg">
-                  This page exposes the public health snapshot, the current AI provider state, and the latest live verification result so learners do not have to guess.
+                  This page exposes the public health snapshot, the current AI provider state, and
+                  the latest live verification result so learners do not have to guess.
                 </p>
                 <div className="mt-6 flex flex-wrap gap-3">
                   <span className={`glass-chip ${getToneClasses(healthMeta.tone)}`}>
-                    {healthMeta.tone === 'emerald' ? <ShieldCheck size={14} /> : <CircleAlert size={14} />}
+                    {healthMeta.tone === 'emerald' ? (
+                      <ShieldCheck size={14} />
+                    ) : (
+                      <CircleAlert size={14} />
+                    )}
                     {healthMeta.label}
                   </span>
                   <span className={`glass-chip ${getToneClasses(aiMeta.tone)}`}>
-                    {aiMeta.tone === 'emerald' ? <ShieldCheck size={14} /> : <CircleAlert size={14} />}
+                    {aiMeta.tone === 'emerald' ? (
+                      <ShieldCheck size={14} />
+                    ) : (
+                      <CircleAlert size={14} />
+                    )}
                     {aiMeta.label}
                   </span>
                   <span className="glass-chip border-white/15">
@@ -168,7 +175,9 @@ export default function StatusPage() {
 
           {loadError ? (
             <section className="rounded-[28px] border border-rose-500/35 bg-rose-500/10 p-5 text-sm leading-7 text-rose-100">
-              <p className="font-semibold text-white">Status page could not load the latest snapshot.</p>
+              <p className="font-semibold text-white">
+                Status page could not load the latest snapshot.
+              </p>
               <p className="mt-2">{loadError}</p>
             </section>
           ) : null}
@@ -177,7 +186,9 @@ export default function StatusPage() {
             <section className="rounded-[28px] border border-amber-500/35 bg-amber-500/10 p-5 text-sm leading-7 text-amber-100">
               <p className="font-semibold text-white">Primary AI quota is currently exhausted.</p>
               <p className="mt-2">
-                Gemini is configured, but the last live check hit provider quota. The learning workspace can still rely on the local planner until quota or billing headroom is restored.
+                Gemini is configured, but the last live check hit provider quota. The learning
+                workspace can still rely on the local planner until quota or billing headroom is
+                restored.
               </p>
             </section>
           ) : null}
@@ -185,20 +196,26 @@ export default function StatusPage() {
           <section className="grid gap-5 lg:grid-cols-3">
             <div className="surface-card p-6">
               <div className="flex items-center justify-between">
-                <p className="text-sm font-semibold uppercase tracking-[0.2em] text-zinc-400">Platform</p>
+                <p className="text-sm font-semibold uppercase tracking-[0.2em] text-zinc-400">
+                  Platform
+                </p>
                 <Server size={18} className="text-blue-300" />
               </div>
               <p className="mt-5 text-3xl font-black text-white">{healthMeta.label}</p>
               <p className="mt-3 text-sm leading-7 text-zinc-300">{healthMeta.detail}</p>
               <div className="mt-5 flex flex-wrap gap-2 text-xs text-zinc-400">
-                <span className="glass-chip border-white/12">API {health?.status || 'unknown'}</span>
+                <span className="glass-chip border-white/12">
+                  API {health?.status || 'unknown'}
+                </span>
                 <span className="glass-chip border-white/12">DB {dbStatus}</span>
               </div>
             </div>
 
             <div className="surface-card p-6">
               <div className="flex items-center justify-between">
-                <p className="text-sm font-semibold uppercase tracking-[0.2em] text-zinc-400">Database</p>
+                <p className="text-sm font-semibold uppercase tracking-[0.2em] text-zinc-400">
+                  Database
+                </p>
                 <Database size={18} className="text-emerald-300" />
               </div>
               <p className="mt-5 text-3xl font-black text-white">{dbStatus}</p>
@@ -206,21 +223,33 @@ export default function StatusPage() {
                 Connection state reported by the API health endpoint.
               </p>
               <div className="mt-5 space-y-2 text-sm text-zinc-300">
-                <p>Environment: <span className="text-white">{health?.environment || 'unknown'}</span></p>
-                <p>Uptime: <span className="text-white">{health?.uptimeSeconds ?? 'unknown'} seconds</span></p>
+                <p>
+                  Environment:{' '}
+                  <span className="text-white">{health?.environment || 'unknown'}</span>
+                </p>
+                <p>
+                  Uptime:{' '}
+                  <span className="text-white">{health?.uptimeSeconds ?? 'unknown'} seconds</span>
+                </p>
               </div>
             </div>
 
             <div className="surface-card p-6">
               <div className="flex items-center justify-between">
-                <p className="text-sm font-semibold uppercase tracking-[0.2em] text-zinc-400">Learning AI</p>
+                <p className="text-sm font-semibold uppercase tracking-[0.2em] text-zinc-400">
+                  Learning AI
+                </p>
                 <Sparkles size={18} className="text-red-300" />
               </div>
               <p className="mt-5 text-3xl font-black text-white">{aiMeta.label}</p>
               <p className="mt-3 text-sm leading-7 text-zinc-300">{aiMeta.detail}</p>
               <div className="mt-5 flex flex-wrap gap-2 text-xs text-zinc-400">
-                <span className="glass-chip border-white/12">{formatProviderLabel(aiStatus?.provider)}</span>
-                {aiModelLabel ? <span className="glass-chip border-white/12">{aiModelLabel}</span> : null}
+                <span className="glass-chip border-white/12">
+                  {formatProviderLabel(aiStatus?.provider)}
+                </span>
+                {aiModelLabel ? (
+                  <span className="glass-chip border-white/12">{aiModelLabel}</span>
+                ) : null}
               </div>
             </div>
           </section>
@@ -229,8 +258,12 @@ export default function StatusPage() {
             <div className="surface-card p-6 md:p-7">
               <div className="flex items-center justify-between gap-3">
                 <div>
-                  <p className="text-sm font-semibold uppercase tracking-[0.2em] text-zinc-400">Public diagnostics</p>
-                  <h2 className="mt-2 text-2xl font-bold text-white">What the platform is reporting right now</h2>
+                  <p className="text-sm font-semibold uppercase tracking-[0.2em] text-zinc-400">
+                    Public diagnostics
+                  </p>
+                  <h2 className="mt-2 text-2xl font-bold text-white">
+                    What the platform is reporting right now
+                  </h2>
                 </div>
                 <Cpu size={20} className="text-zinc-300" />
               </div>
@@ -240,7 +273,9 @@ export default function StatusPage() {
               ) : (
                 <div className="mt-6 grid gap-4 md:grid-cols-2">
                   <div className="rounded-[24px] border border-white/10 bg-black/25 p-4">
-                    <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">API endpoint</p>
+                    <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">
+                      API endpoint
+                    </p>
                     <p className="mt-3 text-base font-semibold text-white">{API_URL}</p>
                     <p className="mt-2 text-sm leading-6 text-zinc-300">
                       Health checked via <span className="text-white">/api/health</span>.
@@ -248,9 +283,13 @@ export default function StatusPage() {
                   </div>
 
                   <div className="rounded-[24px] border border-white/10 bg-black/25 p-4">
-                    <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Last live AI check</p>
+                    <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">
+                      Last live AI check
+                    </p>
                     <p className="mt-3 text-base font-semibold text-white">
-                      {formatStatusTimestamp(aiStatus?.lastCheckedAt || aiStatus?.diagnostics?.checkedAt)}
+                      {formatStatusTimestamp(
+                        aiStatus?.lastCheckedAt || aiStatus?.diagnostics?.checkedAt
+                      )}
                     </p>
                     <p className="mt-2 text-sm leading-6 text-zinc-300">
                       The latest cached verification result from the AI status endpoint.
@@ -258,22 +297,28 @@ export default function StatusPage() {
                   </div>
 
                   <div className="rounded-[24px] border border-white/10 bg-black/25 p-4">
-                    <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Fallback mode</p>
+                    <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">
+                      Fallback mode
+                    </p>
                     <p className="mt-3 text-base font-semibold text-white">
                       {aiStatus?.fallbackActive ? 'Enabled' : 'Not needed'}
                     </p>
                     <p className="mt-2 text-sm leading-6 text-zinc-300">
-                      If the live provider is unavailable, the workspace can still generate a local plan.
+                      If the live provider is unavailable, the workspace can still generate a local
+                      plan.
                     </p>
                   </div>
 
                   <div className="rounded-[24px] border border-white/10 bg-black/25 p-4">
-                    <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">Latest issue</p>
+                    <p className="text-xs font-semibold uppercase tracking-[0.22em] text-zinc-400">
+                      Latest issue
+                    </p>
                     <p className="mt-3 text-base font-semibold text-white">
                       {aiStatus?.lastError || 'No provider issue cached'}
                     </p>
                     <p className="mt-2 text-sm leading-6 text-zinc-300">
-                      Provider errors are normalized so degraded and quota states can be shown clearly.
+                      Provider errors are normalized so degraded and quota states can be shown
+                      clearly.
                     </p>
                   </div>
                 </div>
@@ -281,20 +326,31 @@ export default function StatusPage() {
             </div>
 
             <div className="surface-card p-6 md:p-7">
-              <p className="text-sm font-semibold uppercase tracking-[0.2em] text-zinc-400">Operational notes</p>
+              <p className="text-sm font-semibold uppercase tracking-[0.2em] text-zinc-400">
+                Operational notes
+              </p>
               <h2 className="mt-2 text-2xl font-bold text-white">How to read this page</h2>
               <div className="mt-6 space-y-4 text-sm leading-7 text-zinc-300">
                 <div className="rounded-[24px] border border-white/10 bg-white/[0.03] p-4">
                   <p className="font-semibold text-white">Healthy</p>
-                  <p className="mt-2">The API is reachable, the database is connected, and the latest AI live check succeeded.</p>
+                  <p className="mt-2">
+                    The API is reachable, the database is connected, and the latest AI live check
+                    succeeded.
+                  </p>
                 </div>
                 <div className="rounded-[24px] border border-white/10 bg-white/[0.03] p-4">
                   <p className="font-semibold text-white">Degraded</p>
-                  <p className="mt-2">The site is up, but the external AI provider failed its latest live check. The app may fall back to local planning.</p>
+                  <p className="mt-2">
+                    The site is up, but the external AI provider failed its latest live check. The
+                    app may fall back to local planning.
+                  </p>
                 </div>
                 <div className="rounded-[24px] border border-white/10 bg-white/[0.03] p-4">
                   <p className="font-semibold text-white">Quota exhausted</p>
-                  <p className="mt-2">The AI key is recognized, but the provider has no available request quota right now. A new live check will return once quota or billing is fixed.</p>
+                  <p className="mt-2">
+                    The AI key is recognized, but the provider has no available request quota right
+                    now. A new live check will return once quota or billing is fixed.
+                  </p>
                 </div>
               </div>
             </div>

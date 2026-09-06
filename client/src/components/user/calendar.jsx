@@ -12,11 +12,10 @@ import {
   isSameDay,
   isToday,
   addWeeks,
-  subWeeks
+  subWeeks,
 } from 'date-fns';
 import MainNavbar from '../../navbar/mainNavbar';
 import { API_URL } from '../../config';
-
 
 const CalendarPage = () => {
   // --- STATE MANAGEMENT ---
@@ -38,7 +37,7 @@ const CalendarPage = () => {
     const userId = localStorage.getItem('userId');
     const token = localStorage.getItem('token');
     if (!userId || !token) {
-      console.error("User not authenticated");
+      console.error('User not authenticated');
       setLoadingRequests(false);
       return;
     }
@@ -47,21 +46,33 @@ const CalendarPage = () => {
       setLoadingRequests(true);
       try {
         const [instructorBookingsRes, studentBookingsRes] = await Promise.all([
-          fetch(`${API_URL}/api/booking/instructor/${userId}`, { headers: { 'Authorization': `Bearer ${token}` } }),
-          fetch(`${API_URL}/api/booking/student/${userId}`, { headers: { 'Authorization': `Bearer ${token}` } })
+          fetch(`${API_URL}/api/booking/instructor/${userId}`, {
+            headers: { Authorization: `Bearer ${token}` },
+          }),
+          fetch(`${API_URL}/api/booking/student/${userId}`, {
+            headers: { Authorization: `Bearer ${token}` },
+          }),
         ]);
 
         let instructorBookingsData = { success: false, bookings: [] };
         let studentBookingsData = { success: false, bookings: [] };
 
         if (instructorBookingsRes.ok) {
-          try { instructorBookingsData = await instructorBookingsRes.json(); } catch (err) { console.error('Invalid JSON from instructor bookings response', err); }
+          try {
+            instructorBookingsData = await instructorBookingsRes.json();
+          } catch (err) {
+            console.error('Invalid JSON from instructor bookings response', err);
+          }
         } else {
           console.error('Failed to fetch instructor bookings:', instructorBookingsRes.status);
         }
 
         if (studentBookingsRes.ok) {
-          try { studentBookingsData = await studentBookingsRes.json(); } catch (err) { console.error('Invalid JSON from student bookings response', err); }
+          try {
+            studentBookingsData = await studentBookingsRes.json();
+          } catch (err) {
+            console.error('Invalid JSON from student bookings response', err);
+          }
         } else {
           console.error('Failed to fetch student bookings:', studentBookingsRes.status);
         }
@@ -70,26 +81,27 @@ const CalendarPage = () => {
         let confirmed = [];
 
         if (instructorBookingsData.success) {
-          pending = instructorBookingsData.bookings.filter(b => b.status === 'pending');
+          pending = instructorBookingsData.bookings.filter((b) => b.status === 'pending');
           const instructorConfirmed = instructorBookingsData.bookings
-            .filter(b => b.status === 'confirmed')
-            .map(b => ({ ...b, role: 'instructor' }));
+            .filter((b) => b.status === 'confirmed')
+            .map((b) => ({ ...b, role: 'instructor' }));
           confirmed.push(...instructorConfirmed);
         }
 
         if (studentBookingsData.success) {
           const studentConfirmed = studentBookingsData.bookings
-            .filter(b => b.status === 'confirmed')
-            .map(b => ({ ...b, role: 'student' }));
+            .filter((b) => b.status === 'confirmed')
+            .map((b) => ({ ...b, role: 'student' }));
           confirmed.push(...studentConfirmed);
         }
 
         const bookingsById = new Map();
-        confirmed.forEach(booking => {
+        confirmed.forEach((booking) => {
           if (bookingsById.has(booking._id)) {
             const existingBooking = bookingsById.get(booking._id);
             if (typeof booking.student === 'object') existingBooking.student = booking.student;
-            if (typeof booking.instructor === 'object') existingBooking.instructor = booking.instructor;
+            if (typeof booking.instructor === 'object')
+              existingBooking.instructor = booking.instructor;
             if (typeof booking.skill === 'object') existingBooking.skill = booking.skill;
           } else {
             bookingsById.set(booking._id, { ...booking });
@@ -99,9 +111,8 @@ const CalendarPage = () => {
 
         setBookingRequests(pending);
         setScheduledSessions(uniqueConfirmed);
-
       } catch (error) {
-        console.error("Error fetching booking data:", error);
+        console.error('Error fetching booking data:', error);
       } finally {
         setLoadingRequests(false);
       }
@@ -115,7 +126,7 @@ const CalendarPage = () => {
   const handleBookingAction = async (bookingId, status) => {
     const token = localStorage.getItem('token');
     if (!token) {
-      console.error("No token found");
+      console.error('No token found');
       return;
     }
 
@@ -124,40 +135,45 @@ const CalendarPage = () => {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ status })
+        body: JSON.stringify({ status }),
       });
 
       let data = null;
       if (response.ok) {
-        try { data = await response.json(); } catch (err) { console.error('Failed to parse booking update JSON', err); }
+        try {
+          data = await response.json();
+        } catch (err) {
+          console.error('Failed to parse booking update JSON', err);
+        }
       } else {
         console.error('Failed booking update, status:', response.status);
       }
 
       if (data && data.success && data.booking) {
         if (status === 'confirmed') {
-          const confirmedSession = bookingRequests.find(req => req._id === bookingId);
+          const confirmedSession = bookingRequests.find((req) => req._id === bookingId);
           if (confirmedSession) {
-            setScheduledSessions(prevSessions => [
+            setScheduledSessions((prevSessions) => [
               ...prevSessions,
-              { ...confirmedSession, status: 'confirmed', role: 'instructor' }
+              { ...confirmedSession, status: 'confirmed', role: 'instructor' },
             ]);
           }
         }
-        setBookingRequests(prevRequests => prevRequests.filter(req => req._id !== bookingId));
+        setBookingRequests((prevRequests) => prevRequests.filter((req) => req._id !== bookingId));
 
-        const feedbackMessage = status === 'confirmed' ? 'Request has been confirmed.' : 'Request has been cancelled.';
+        const feedbackMessage =
+          status === 'confirmed' ? 'Request has been confirmed.' : 'Request has been cancelled.';
         setFeedback({ show: true, message: feedbackMessage, type: 'success' });
         setTimeout(() => setFeedback({ show: false, message: '', type: '' }), 3000);
       } else {
-        console.error("Failed to update booking:", data.message);
+        console.error('Failed to update booking:', data.message);
         setFeedback({ show: true, message: 'Failed to update request.', type: 'error' });
         setTimeout(() => setFeedback({ show: false, message: '', type: '' }), 3000);
       }
     } catch (error) {
-      console.error("Error updating booking:", error);
+      console.error('Error updating booking:', error);
     }
   };
 
@@ -208,22 +224,24 @@ const CalendarPage = () => {
     return days;
   }, [currentDate, currentView]);
 
-  const todaySessions = useMemo(() =>
-    scheduledSessions.filter(session => isToday(new Date(session.date)))
-    , [scheduledSessions]);
+  const todaySessions = useMemo(
+    () => scheduledSessions.filter((session) => isToday(new Date(session.date))),
+    [scheduledSessions]
+  );
 
   const weekStats = useMemo(() => {
     const startOfThisWeek = startOfWeek(new Date(), { weekStartsOn: 0 });
     const endOfThisWeek = endOfWeek(new Date(), { weekStartsOn: 0 });
 
-    const thisWeekSessions = scheduledSessions.filter(session => {
+    const thisWeekSessions = scheduledSessions.filter((session) => {
       const sessionDate = new Date(session.date);
       return sessionDate >= startOfThisWeek && sessionDate <= endOfThisWeek;
     });
 
-    const teachingCount = thisWeekSessions.filter(s => s.role === 'instructor').length;
-    const learningCount = thisWeekSessions.filter(s => s.role === 'student').length;
-    const totalHours = thisWeekSessions.reduce((acc, session) => acc + (session.duration || 0), 0) / 60;
+    const teachingCount = thisWeekSessions.filter((s) => s.role === 'instructor').length;
+    const learningCount = thisWeekSessions.filter((s) => s.role === 'student').length;
+    const totalHours =
+      thisWeekSessions.reduce((acc, session) => acc + (session.duration || 0), 0) / 60;
     const earnings = 0; // Placeholder for earnings calculation
 
     return { teachingCount, learningCount, totalHours, earnings };
@@ -231,16 +249,17 @@ const CalendarPage = () => {
 
   return (
     <div className="flex h-screen bg-black font-sans">
-
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col overflow-auto">
-
         <MainNavbar />
 
         {/* Main Calendar Content */}
         <main className="flex-1 p-6 bg-black pt-24">
           {feedback.show && (
-            <div className={`${feedback.type === 'success' ? 'bg-green-100 border-green-400 text-green-700' : 'bg-red-100 border-red-400 text-red-700'} px-4 py-3 rounded relative mb-4`} role="alert">
+            <div
+              className={`${feedback.type === 'success' ? 'bg-green-100 border-green-400 text-green-700' : 'bg-red-100 border-red-400 text-red-700'} px-4 py-3 rounded relative mb-4`}
+              role="alert"
+            >
               <span className="block sm:inline">{feedback.message}</span>
             </div>
           )}
@@ -266,7 +285,6 @@ const CalendarPage = () => {
                     <option>Week</option>
                     <option>Month</option>
                 </select> */}
-
               </div>
 
               {/* <button className="flex items-center px-4 py-2 bg-white text-gray-700 border border-gray-300 rounded-lg shadow-sm hover:bg-gray-50 transition-colors duration-200">
@@ -282,7 +300,6 @@ const CalendarPage = () => {
 
           {/* Main Grid: Calendar and Side Panel */}
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-
             {/* Left Column: Calendar View (lg:col-span-3) */}
             <div className="lg:col-span-3 bg-black p-6 rounded-xl shadow-md border border-white">
               <div className="flex justify-between items-center mb-4">
@@ -292,8 +309,7 @@ const CalendarPage = () => {
                     ? monthName
                     : currentView === 'Week'
                       ? `Week of ${format(startOfWeek(currentDate, { weekStartsOn: 0 }), 'MMM do')}`
-                      : format(currentDate, 'EEEE, MMM do, yyyy')
-                  }
+                      : format(currentDate, 'EEEE, MMM do, yyyy')}
                 </h3>
 
                 {/* Navigation Buttons - MADE FUNCTIONAL */}
@@ -324,15 +340,18 @@ const CalendarPage = () => {
                 // --- MONTH VIEW GRID ---
                 <div className="grid grid-cols-7 text-center border border-white">
                   {/* Day Headers */}
-                  {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
-                    <div key={day} className="py-2 text-sm font-semibold text-white border-b border-white bg-black">
+                  {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
+                    <div
+                      key={day}
+                      className="py-2 text-sm font-semibold text-white border-b border-white bg-black"
+                    >
                       {day}
                     </div>
                   ))}
 
                   {/* Days */}
                   {monthCalendarDays.map((day, index) => {
-                    const daySessions = scheduledSessions.filter(session =>
+                    const daySessions = scheduledSessions.filter((session) =>
                       isSameDay(new Date(session.date), day)
                     );
 
@@ -341,20 +360,23 @@ const CalendarPage = () => {
                         key={index}
                         className={`h-32 p-1 border-b border-r border-white ${!isSameMonth(day, currentDate) ? 'bg-gray-900' : 'bg-black'} transition-colors duration-300 hover:bg-gray-800`}
                       >
-                        <div className={`text-sm font-medium h-6 w-6 flex items-center justify-center rounded-full 
+                        <div
+                          className={`text-sm font-medium h-6 w-6 flex items-center justify-center rounded-full 
                             ${isToday(day) ? 'bg-red-600 text-white' : 'text-white'} 
                             ${!isSameMonth(day, currentDate) ? 'text-gray-500' : ''}
-                          `}>
+                          `}
+                        >
                           {format(day, 'd')}
                         </div>
 
                         <div className="mt-1 space-y-1 overflow-y-auto h-20">
-                          {daySessions.map(session => {
+                          {daySessions.map((session) => {
                             console.log('Session skill:', session.skill);
                             const skillName = session.skill?.name || 'Unknown Skill';
                             const studentName = session.student?.name || 'Unknown Student';
                             const instructorName = session.instructor?.name || 'Unknown Instructor';
-                            const partnerName = session.role === 'instructor' ? studentName : instructorName;
+                            const partnerName =
+                              session.role === 'instructor' ? studentName : instructorName;
 
                             return (
                               <div
@@ -363,7 +385,9 @@ const CalendarPage = () => {
                                 title={`${skillName} with ${partnerName} at ${format(new Date(session.date), 'p')}`}
                               >
                                 <p className="font-bold truncate">{skillName}</p>
-                                <p className="truncate">{format(new Date(session.date), 'p')} - {partnerName}</p>
+                                <p className="truncate">
+                                  {format(new Date(session.date), 'p')} - {partnerName}
+                                </p>
                               </div>
                             );
                           })}
@@ -377,8 +401,10 @@ const CalendarPage = () => {
                 <div className="text-center py-20 text-gray-400 border border-white rounded-lg h-96 flex items-center justify-center bg-black">
                   <p className="text-lg">
                     {currentView} View is currently displaying: <br />
-                    <span className="font-semibold text-white">{format(currentDate, 'EEEE, MMMM do, yyyy')}</span>.
-                    Detailed Day/Week grid implementation goes here.
+                    <span className="font-semibold text-white">
+                      {format(currentDate, 'EEEE, MMMM do, yyyy')}
+                    </span>
+                    . Detailed Day/Week grid implementation goes here.
                   </p>
                 </div>
               )}
@@ -386,20 +412,23 @@ const CalendarPage = () => {
 
             {/* Right Column: Sessions and Requests */}
             <div className="lg:col-span-1 space-y-6">
-
               {/* Today's Sessions Card */}
               <div className="bg-black p-6 rounded-xl shadow-md border border-white">
                 <h3 className="text-xl font-semibold text-white mb-4">Today's Sessions</h3>
                 {todaySessions.length > 0 ? (
                   <div className="space-y-3">
-                    {todaySessions.map(session => {
+                    {todaySessions.map((session) => {
                       const skillName = session.skill?.name || 'Unknown Skill';
                       const studentName = session.student?.name || 'Unknown Student';
                       const instructorName = session.instructor?.name || 'Unknown Instructor';
-                      const partnerName = session.role === 'instructor' ? studentName : instructorName;
+                      const partnerName =
+                        session.role === 'instructor' ? studentName : instructorName;
 
                       return (
-                        <div key={session._id} className={`p-2 rounded-lg text-white ${session.role === 'instructor' ? 'bg-red-600' : 'bg-red-700'} border border-white`}>
+                        <div
+                          key={session._id}
+                          className={`p-2 rounded-lg text-white ${session.role === 'instructor' ? 'bg-red-600' : 'bg-red-700'} border border-white`}
+                        >
                           <p className="font-bold text-sm truncate">{skillName}</p>
                           <p className="text-xs truncate">
                             {format(new Date(session.date), 'p')} with {partnerName}
@@ -428,17 +457,28 @@ const CalendarPage = () => {
                     const studentId = request.student?._id || 'default';
 
                     return (
-                      <div key={request._id} className="border-b border-gray-700 last:border-b-0 pb-4 mb-4">
+                      <div
+                        key={request._id}
+                        className="border-b border-gray-700 last:border-b-0 pb-4 mb-4"
+                      >
                         <div className="flex items-center space-x-3 mb-2">
-                          <img src={`https://i.pravatar.cc/32?u=${studentId}`} alt={studentName} className="h-8 w-8 rounded-full" />
+                          <img
+                            src={`https://i.pravatar.cc/32?u=${studentId}`}
+                            alt={studentName}
+                            className="h-8 w-8 rounded-full"
+                          />
                           <div>
                             <p className="font-semibold text-white">{studentName}</p>
                             <p className="text-xs text-red-500">{skillName}</p>
                           </div>
                         </div>
                         <p className="text-sm text-gray-300 mb-2">
-                          {format(new Date(request.date), 'MMM d, yyyy')} at {format(new Date(request.date), 'p')}<br />
-                          <span className="text-xs text-gray-400">Duration: {request.duration} minutes</span>
+                          {format(new Date(request.date), 'MMM d, yyyy')} at{' '}
+                          {format(new Date(request.date), 'p')}
+                          <br />
+                          <span className="text-xs text-gray-400">
+                            Duration: {request.duration} minutes
+                          </span>
                         </p>
                         {request.notes && (
                           <p className="text-xs italic text-gray-400 mb-3">"{request.notes}"</p>
@@ -446,12 +486,14 @@ const CalendarPage = () => {
                         <div className="flex justify-between space-x-2">
                           <button
                             onClick={() => handleBookingAction(request._id, 'confirmed')}
-                            className="flex-1 px-3 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg shadow-sm transition-colors duration-200 text-sm font-medium border border-white">
+                            className="flex-1 px-3 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg shadow-sm transition-colors duration-200 text-sm font-medium border border-white"
+                          >
                             Accept
                           </button>
                           <button
                             onClick={() => handleBookingAction(request._id, 'cancelled')}
-                            className="flex-1 px-3 py-2 bg-black text-white border border-white rounded-lg shadow-sm hover:bg-red-600 transition-colors duration-200 text-sm font-medium">
+                            className="flex-1 px-3 py-2 bg-black text-white border border-white rounded-lg shadow-sm hover:bg-red-600 transition-colors duration-200 text-sm font-medium"
+                          >
                             Decline
                           </button>
                         </div>

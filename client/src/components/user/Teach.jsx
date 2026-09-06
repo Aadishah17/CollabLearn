@@ -42,7 +42,8 @@ const CREATOR_FORMATS = [
   },
   {
     title: 'Recorded path',
-    detail: 'Turn proven lessons into a self-paced system with community threads and follow-up prompts.',
+    detail:
+      'Turn proven lessons into a self-paced system with community threads and follow-up prompts.',
   },
   {
     title: 'Mentor office hours',
@@ -53,26 +54,33 @@ const CREATOR_FORMATS = [
 const ROADMAP = [
   { title: 'Apply', copy: 'Show us your topic, teaching style, and strongest learning assets.' },
   { title: 'Shape', copy: 'We help position your offer, pacing, and learner outcome.' },
-  { title: 'Launch', copy: 'Publish the page, open community discussion, and invite the first cohort.' },
+  {
+    title: 'Launch',
+    copy: 'Publish the page, open community discussion, and invite the first cohort.',
+  },
   { title: 'Scale', copy: 'Reuse modules, iterate content, and expand into additional formats.' },
 ];
 
 const FAQS = [
   {
     question: 'Do I need a full course before applying?',
-    answer: 'No. Existing workshops, playlists, notes, and community sessions are enough to start if the teaching quality is already there.',
+    answer:
+      'No. Existing workshops, playlists, notes, and community sessions are enough to start if the teaching quality is already there.',
   },
   {
     question: 'Can I teach live and recorded formats together?',
-    answer: 'Yes. The strongest offers usually combine a reusable content base with a lightweight live layer such as reviews or office hours.',
+    answer:
+      'Yes. The strongest offers usually combine a reusable content base with a lightweight live layer such as reviews or office hours.',
   },
   {
     question: 'Is this only for professional instructors?',
-    answer: 'No. Practitioners who teach clearly and have a strong point of view can fit if they can guide learners to an outcome.',
+    answer:
+      'No. Practitioners who teach clearly and have a strong point of view can fit if they can guide learners to an outcome.',
   },
   {
     question: 'What should I prepare first?',
-    answer: 'A topic, learner promise, 2-3 proof points, and one example asset you would want to turn into a learning experience.',
+    answer:
+      'A topic, learner promise, 2-3 proof points, and one example asset you would want to turn into a learning experience.',
   },
 ];
 
@@ -225,12 +233,15 @@ export default function Teach() {
                     <p className="text-xs font-semibold uppercase tracking-[0.22em] text-red-100/80">
                       Estimated creator payout
                     </p>
-                    <p className="mt-3 text-3xl font-black text-white">${earnings.estimatedPayout}</p>
+                    <p className="mt-3 text-3xl font-black text-white">
+                      ${earnings.estimatedPayout}
+                    </p>
                   </div>
                 </div>
 
                 <p className="mt-4 text-sm leading-6 text-zinc-400">
-                  This is a directional estimate for planning offer design, not a contractual payout.
+                  This is a directional estimate for planning offer design, not a contractual
+                  payout.
                 </p>
               </div>
             </div>
@@ -283,7 +294,10 @@ export default function Teach() {
                 'At least one strong teaching asset such as notes, recordings, or workshops.',
                 'Willingness to refine the offer using learner feedback.',
               ].map((item) => (
-                <div key={item} className="flex gap-3 rounded-2xl border border-white/8 bg-white/[0.03] p-4">
+                <div
+                  key={item}
+                  className="flex gap-3 rounded-2xl border border-white/8 bg-white/[0.03] p-4"
+                >
                   <BadgeCheck size={18} className="mt-0.5 text-red-200" />
                   <p className="text-sm leading-7 text-zinc-300">{item}</p>
                 </div>
@@ -332,11 +346,26 @@ export default function Teach() {
             </div>
             <div className="mt-5 grid gap-4">
               {[
-                { icon: Video, title: 'Live touchpoints', copy: 'Office hours, kickoff calls, or critiques keep the offer human and high-trust.' },
-                { icon: Layers3, title: 'Reusable modules', copy: 'Notes, prompts, and templates stay useful after the first cohort finishes.' },
-                { icon: Users, title: 'Community loops', copy: 'Discussions surface learner friction so each new run gets better.' },
+                {
+                  icon: Video,
+                  title: 'Live touchpoints',
+                  copy: 'Office hours, kickoff calls, or critiques keep the offer human and high-trust.',
+                },
+                {
+                  icon: Layers3,
+                  title: 'Reusable modules',
+                  copy: 'Notes, prompts, and templates stay useful after the first cohort finishes.',
+                },
+                {
+                  icon: Users,
+                  title: 'Community loops',
+                  copy: 'Discussions surface learner friction so each new run gets better.',
+                },
               ].map(({ copy, icon, title }) => (
-                <div key={title} className="flex gap-4 rounded-[24px] border border-white/8 bg-white/[0.03] p-4">
+                <div
+                  key={title}
+                  className="flex gap-4 rounded-[24px] border border-white/8 bg-white/[0.03] p-4"
+                >
                   <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.05] text-white">
                     {createElement(icon, { size: 18 })}
                   </div>
@@ -356,7 +385,10 @@ export default function Teach() {
             </div>
             <div className="mt-5 space-y-4">
               {FAQS.map((item) => (
-                <div key={item.question} className="rounded-[24px] border border-white/10 bg-white/[0.04] p-5">
+                <div
+                  key={item.question}
+                  className="rounded-[24px] border border-white/10 bg-white/[0.04] p-5"
+                >
                   <p className="text-lg font-semibold text-white">{item.question}</p>
                   <p className="mt-2 text-sm leading-7 text-zinc-300">{item.answer}</p>
                 </div>

@@ -1,6 +1,9 @@
 const DEFAULT_SUPER_ADMIN_EMAILS = ['shahaadi285@gmail.com'];
 
-const normalizeEmail = (value) => String(value || '').trim().toLowerCase();
+const normalizeEmail = (value) =>
+  String(value || '')
+    .trim()
+    .toLowerCase();
 
 const getConfiguredSuperAdminEmails = () =>
   String(process.env.SUPER_ADMIN_EMAILS || '')
@@ -26,7 +29,7 @@ const getAccessProfile = (email, requestedRole = 'user') => {
     email: normalizedEmail,
     isSuperAdmin,
     role,
-    accessLevel: isSuperAdmin ? 'super-admin' : role
+    accessLevel: isSuperAdmin ? 'super-admin' : role,
   };
 };
 
@@ -34,5 +37,5 @@ module.exports = {
   getAccessProfile,
   getSuperAdminEmails,
   isSuperAdminEmail,
-  normalizeEmail
+  normalizeEmail,
 };

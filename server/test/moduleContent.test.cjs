@@ -1,10 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 
-const {
-  MODULE_CONTENT_TYPES,
-  normalizeModuleInput,
-} = require('../src/utils/moduleContent');
+const { MODULE_CONTENT_TYPES, normalizeModuleInput } = require('../src/utils/moduleContent');
 
 test('normalizeModuleInput defaults to richtext content and trims common fields', () => {
   const normalized = normalizeModuleInput({

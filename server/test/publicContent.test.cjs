@@ -8,8 +8,8 @@ const requestJson = async (server, path) => {
   const url = `http://127.0.0.1:${address.port}${path}`;
   const response = await fetch(url, {
     headers: {
-      Accept: 'application/json'
-    }
+      Accept: 'application/json',
+    },
   });
   const body = await response.json();
 
@@ -39,7 +39,10 @@ test('GET /api/public/competitions/:slug returns a public competition detail pay
   const server = app.listen(0);
 
   try {
-    const { response, body } = await requestJson(server, '/api/public/competitions/frontend-founders-cup');
+    const { response, body } = await requestJson(
+      server,
+      '/api/public/competitions/frontend-founders-cup'
+    );
 
     assert.equal(response.status, 200);
     assert.equal(body.success, true);
@@ -56,7 +59,10 @@ test('GET /api/public/career/tracks/:slug returns a public track detail payload'
   const server = app.listen(0);
 
   try {
-    const { response, body } = await requestJson(server, '/api/public/career/tracks/full-stack-react');
+    const { response, body } = await requestJson(
+      server,
+      '/api/public/career/tracks/full-stack-react'
+    );
 
     assert.equal(response.status, 200);
     assert.equal(body.success, true);

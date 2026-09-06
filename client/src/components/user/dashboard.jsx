@@ -148,7 +148,7 @@ export default function Dashboard() {
         setLoading(false);
       }
     },
-    [navigate],
+    [navigate]
   );
 
   useEffect(() => {
@@ -183,7 +183,7 @@ export default function Dashboard() {
       nextSession: allUpcomingSessions[0] || null,
       totalCompletedSessions: studentSummaries.reduce(
         (sum, summary) => sum + (summary.completedSessions || 0),
-        0,
+        0
       ),
     };
   }, [dashboardData]);
@@ -213,7 +213,7 @@ export default function Dashboard() {
       navigate('/messages', { state: { startChat: student } });
       setShowStudentModal(false);
     },
-    [navigate],
+    [navigate]
   );
 
   const handleOpenSkill = useCallback(
@@ -224,7 +224,7 @@ export default function Dashboard() {
 
       navigate('/skill-sessions', { state: { skill } });
     },
-    [navigate],
+    [navigate]
   );
 
   if (loading) {
@@ -255,7 +255,11 @@ export default function Dashboard() {
             Your workspace did not load cleanly.
           </h2>
           <p className="mx-auto mt-4 max-w-xl text-sm leading-7 text-zinc-300">{error}</p>
-          <button type="button" onClick={() => fetchDashboardData({ bypassCache: true })} className="glass-cta mt-8">
+          <button
+            type="button"
+            onClick={() => fetchDashboardData({ bypassCache: true })}
+            className="glass-cta mt-8"
+          >
             Retry
           </button>
         </div>
@@ -338,7 +342,10 @@ export default function Dashboard() {
                 </div>
                 <div className="flex items-center gap-2">
                   <div className="inline-flex items-center gap-2 rounded-full border border-emerald-400/20 bg-emerald-500/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.24em] text-emerald-200">
-                    <span className="h-2 w-2 animate-pulse rounded-full bg-emerald-300" aria-hidden="true" />
+                    <span
+                      className="h-2 w-2 animate-pulse rounded-full bg-emerald-300"
+                      aria-hidden="true"
+                    />
                     Live data
                   </div>
                   {lastUpdated && (
@@ -354,7 +361,11 @@ export default function Dashboard() {
                     className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-400 transition-colors hover:border-red-400/30 hover:text-red-300 disabled:cursor-not-allowed disabled:opacity-50"
                     aria-label="Refresh dashboard data"
                   >
-                    <RefreshCw size={12} className={loading ? 'animate-spin' : ''} aria-hidden="true" />
+                    <RefreshCw
+                      size={12}
+                      className={loading ? 'animate-spin' : ''}
+                      aria-hidden="true"
+                    />
                     <span className="hidden sm:inline">Refresh</span>
                   </button>
                 </div>
@@ -362,12 +373,15 @@ export default function Dashboard() {
 
               <div className="mt-8 grid gap-8 lg:grid-cols-[1.15fr_0.85fr]">
                 <div>
-                  <p className="text-sm font-semibold uppercase tracking-[0.3em] text-zinc-400">Command center</p>
+                  <p className="text-sm font-semibold uppercase tracking-[0.3em] text-zinc-400">
+                    Command center
+                  </p>
                   <h1 className="mt-4 max-w-3xl text-4xl font-black tracking-tight text-white md:text-5xl xl:text-6xl">
                     Welcome back, {derivedData.user?.name || 'Learner'}.
                   </h1>
                   <p className="mt-4 max-w-2xl text-sm leading-7 text-zinc-300 md:text-base">
-                    Real sessions, current learning momentum, and active student progress are all surfaced here in one operating view.
+                    Real sessions, current learning momentum, and active student progress are all
+                    surfaced here in one operating view.
                   </p>
 
                   <div className="signal-marquee mt-6 rounded-[24px] px-3 py-3">
@@ -394,7 +408,9 @@ export default function Dashboard() {
                         }
                       >
                         <span className="block">
-                          <span className="block text-sm font-semibold text-white">{action.label}</span>
+                          <span className="block text-sm font-semibold text-white">
+                            {action.label}
+                          </span>
                           <span className="mt-1 block text-xs font-medium uppercase tracking-[0.18em] text-zinc-400">
                             {action.note}
                           </span>
@@ -408,7 +424,9 @@ export default function Dashboard() {
                   <div className="glow-frame reveal-up reveal-delay-2 rounded-[28px] border border-white/10 bg-black/20 p-5 shadow-[0_20px_60px_rgba(0,0,0,0.25)] backdrop-blur-sm transition duration-300 hover:border-white/15 hover:bg-black/25">
                     <div className="flex items-start justify-between gap-4">
                       <div>
-                        <p className="text-xs font-semibold uppercase tracking-[0.24em] text-zinc-500">Next session</p>
+                        <p className="text-xs font-semibold uppercase tracking-[0.24em] text-zinc-500">
+                          Next session
+                        </p>
                         <h2 className="mt-3 text-2xl font-bold text-white">
                           {derivedData.nextSession?.skill?.name || 'No session scheduled'}
                         </h2>
@@ -429,7 +447,9 @@ export default function Dashboard() {
 
                     <div className="mt-5 flex items-center justify-between gap-3 rounded-[22px] border border-white/10 bg-white/[0.04] px-4 py-3">
                       <div>
-                        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-500">Session queue</p>
+                        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-500">
+                          Session queue
+                        </p>
                         <p className="mt-1 text-sm text-zinc-200">
                           {derivedData.allUpcomingSessions.length} upcoming{' '}
                           {derivedData.allUpcomingSessions.length === 1 ? 'booking' : 'bookings'}
@@ -448,7 +468,9 @@ export default function Dashboard() {
                   <div className="glow-frame reveal-up reveal-delay-3 rounded-[28px] border border-white/10 bg-white/[0.03] p-5 transition duration-300 hover:border-white/15 hover:bg-white/[0.05]">
                     <div className="flex items-start justify-between gap-4">
                       <div>
-                        <p className="text-xs font-semibold uppercase tracking-[0.24em] text-zinc-500">Account access</p>
+                        <p className="text-xs font-semibold uppercase tracking-[0.24em] text-zinc-500">
+                          Account access
+                        </p>
                         <h2 className="mt-3 text-2xl font-bold text-white">
                           {allowJoin ? 'Premium active' : 'Standard access'}
                         </h2>
@@ -487,14 +509,15 @@ export default function Dashboard() {
 
               <div className="mt-8 grid gap-3 md:grid-cols-4">
                 {statCards.map((card) => (
-                  <div
-                    key={card.label}
-                    className="metric-rail group/stat relative overflow-hidden"
-                  >
-                    <div className={`pointer-events-none absolute inset-0 bg-gradient-to-br opacity-60 ${card.accent}`} />
+                  <div key={card.label} className="metric-rail group/stat relative overflow-hidden">
+                    <div
+                      className={`pointer-events-none absolute inset-0 bg-gradient-to-br opacity-60 ${card.accent}`}
+                    />
                     <div className="relative">
                       <div className="flex items-center justify-between gap-3">
-                        <p className="text-xs font-semibold uppercase tracking-[0.24em] text-zinc-400">{card.label}</p>
+                        <p className="text-xs font-semibold uppercase tracking-[0.24em] text-zinc-400">
+                          {card.label}
+                        </p>
                         <div className="text-zinc-300 transition-transform duration-300 group-hover/stat:scale-110">
                           {card.icon}
                         </div>
@@ -514,7 +537,9 @@ export default function Dashboard() {
             <section className="glass-panel glow-frame reveal-up overflow-hidden p-6">
               <div className="mb-5 flex flex-wrap items-center justify-between gap-4">
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.24em] text-zinc-500">Schedule</p>
+                  <p className="text-xs font-semibold uppercase tracking-[0.24em] text-zinc-500">
+                    Schedule
+                  </p>
                   <h2 className="mt-2 text-xl font-semibold text-white">Upcoming sessions</h2>
                 </div>
                 <button
@@ -546,13 +571,17 @@ export default function Dashboard() {
                             </div>
                             <div className="min-w-0">
                               <div className="flex flex-wrap items-center gap-2">
-                                <p className="text-lg font-semibold text-white">{booking.skill?.name || 'Unknown skill'}</p>
+                                <p className="text-lg font-semibold text-white">
+                                  {booking.skill?.name || 'Unknown skill'}
+                                </p>
                                 <span className="rounded-full border border-white/10 bg-white/5 px-2 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-300">
                                   {isTeaching ? 'Teaching' : 'Learning'}
                                 </span>
                               </div>
                               <p className="mt-1 text-sm text-zinc-300">
-                                {isTeaching ? `Teaching ${otherUserName}` : `Learning with ${otherUserName}`}
+                                {isTeaching
+                                  ? `Teaching ${otherUserName}`
+                                  : `Learning with ${otherUserName}`}
                               </p>
                               <div className="mt-3 flex flex-wrap items-center gap-3 text-xs uppercase tracking-[0.18em] text-zinc-500">
                                 <span className="inline-flex items-center gap-2">
@@ -595,7 +624,9 @@ export default function Dashboard() {
               ) : (
                 <div className="rounded-[24px] border border-dashed border-white/15 bg-white/[0.03] p-8 text-center">
                   <p className="text-lg font-semibold text-white">No upcoming sessions</p>
-                  <p className="mt-2 text-sm text-zinc-400">Book a session or open the calendar to plan the next one.</p>
+                  <p className="mt-2 text-sm text-zinc-400">
+                    Book a session or open the calendar to plan the next one.
+                  </p>
                 </div>
               )}
             </section>
@@ -603,7 +634,9 @@ export default function Dashboard() {
             <section className="glass-panel glow-frame reveal-up reveal-delay-1 p-6">
               <div className="mb-5 flex flex-wrap items-center justify-between gap-4">
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.24em] text-zinc-500">Teaching</p>
+                  <p className="text-xs font-semibold uppercase tracking-[0.24em] text-zinc-500">
+                    Teaching
+                  </p>
                   <h2 className="mt-2 text-xl font-semibold text-white">Teaching skills</h2>
                 </div>
                 <button
@@ -619,7 +652,7 @@ export default function Dashboard() {
                 <div className="space-y-3">
                   {derivedData.teachingSkills.map((skill) => {
                     const activeStudents = derivedData.studentSummaries.filter((summary) =>
-                      summary.sharedSkills.includes(skill.name),
+                      summary.sharedSkills.includes(skill.name)
                     );
 
                     return (
@@ -660,9 +693,17 @@ export default function Dashboard() {
                 </div>
               ) : (
                 <div className="rounded-[24px] border border-dashed border-white/15 bg-white/[0.03] p-8 text-center">
-                  <p className="text-lg font-semibold text-white">You are not teaching any skills yet</p>
-                  <p className="mt-2 text-sm text-zinc-400">Post your first skill to start building teaching momentum.</p>
-                  <button type="button" onClick={() => navigate('/browse-skills')} className="glass-cta mt-5">
+                  <p className="text-lg font-semibold text-white">
+                    You are not teaching any skills yet
+                  </p>
+                  <p className="mt-2 text-sm text-zinc-400">
+                    Post your first skill to start building teaching momentum.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => navigate('/browse-skills')}
+                    className="glass-cta mt-5"
+                  >
                     Add teaching skill
                   </button>
                 </div>
@@ -678,9 +719,13 @@ export default function Dashboard() {
                     <Users size={18} />
                   </div>
                   <div>
-                    <p className="text-xs font-semibold uppercase tracking-[0.24em] text-zinc-500">Coaching</p>
+                    <p className="text-xs font-semibold uppercase tracking-[0.24em] text-zinc-500">
+                      Coaching
+                    </p>
                     <h2 className="mt-1 text-xl font-semibold text-white">Student momentum</h2>
-                    <p className="text-sm text-zinc-400">Live coaching relationships with deterministic progress signals.</p>
+                    <p className="text-sm text-zinc-400">
+                      Live coaching relationships with deterministic progress signals.
+                    </p>
                   </div>
                 </div>
                 <div className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-zinc-400">
@@ -699,8 +744,8 @@ export default function Dashboard() {
                         <div>
                           <p className="text-lg font-semibold text-white">{summary.student.name}</p>
                           <p className="mt-1 text-sm text-zinc-300">
-                            {summary.focusSkill?.name || 'Active learner'} · {summary.completedSessions}/{summary.totalSessions}{' '}
-                            sessions completed
+                            {summary.focusSkill?.name || 'Active learner'} ·{' '}
+                            {summary.completedSessions}/{summary.totalSessions} sessions completed
                           </p>
                           <p className="mt-2 text-xs uppercase tracking-[0.18em] text-zinc-500">
                             {summary.nextSessionAt
@@ -722,19 +767,21 @@ export default function Dashboard() {
                         <div className="flex items-center justify-between text-xs uppercase tracking-[0.18em] text-zinc-500">
                           <span>Tracked progress</span>
                           <span>
-                            {summary.focusSkill?.progress === null || summary.focusSkill?.progress === undefined
+                            {summary.focusSkill?.progress === null ||
+                            summary.focusSkill?.progress === undefined
                               ? 'Not tracked'
                               : `${summary.focusSkill.progress}%`}
                           </span>
                         </div>
                         <div className="mt-2 h-2 overflow-hidden rounded-full bg-white/8">
                           <div
-                            className={`h-full rounded-full bg-gradient-to-r transition-all duration-700 ${
-                              getProgressTone(summary.focusSkill?.progress || 0)
-                            }`}
+                            className={`h-full rounded-full bg-gradient-to-r transition-all duration-700 ${getProgressTone(
+                              summary.focusSkill?.progress || 0
+                            )}`}
                             style={{
                               width: `${
-                                summary.focusSkill?.progress === null || summary.focusSkill?.progress === undefined
+                                summary.focusSkill?.progress === null ||
+                                summary.focusSkill?.progress === undefined
                                   ? 0
                                   : Math.max(8, summary.focusSkill.progress)
                               }%`,
@@ -747,7 +794,8 @@ export default function Dashboard() {
                 </div>
               ) : (
                 <p className="text-sm leading-7 text-zinc-300">
-                  Student relationships will appear here as soon as confirmed teaching bookings start accumulating.
+                  Student relationships will appear here as soon as confirmed teaching bookings
+                  start accumulating.
                 </p>
               )}
             </section>
@@ -758,9 +806,13 @@ export default function Dashboard() {
                   <GraduationCap size={18} />
                 </div>
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.24em] text-zinc-500">Learning</p>
+                  <p className="text-xs font-semibold uppercase tracking-[0.24em] text-zinc-500">
+                    Learning
+                  </p>
                   <h2 className="mt-1 text-xl font-semibold text-white">Learning tracks</h2>
-                  <p className="text-sm text-zinc-400">Progress reflects the actual percentages stored on your goals.</p>
+                  <p className="text-sm text-zinc-400">
+                    Progress reflects the actual percentages stored on your goals.
+                  </p>
                 </div>
               </div>
 
@@ -808,9 +860,13 @@ export default function Dashboard() {
                     <TrendingUp size={18} />
                   </div>
                   <div>
-                    <p className="text-xs font-semibold uppercase tracking-[0.24em] text-zinc-500">Activity</p>
+                    <p className="text-xs font-semibold uppercase tracking-[0.24em] text-zinc-500">
+                      Activity
+                    </p>
                     <h2 className="mt-1 text-xl font-semibold text-white">Recent activity</h2>
-                    <p className="text-sm text-zinc-400">Completed sessions and recent learning movement.</p>
+                    <p className="text-sm text-zinc-400">
+                      Completed sessions and recent learning movement.
+                    </p>
                   </div>
                 </div>
                 <div className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-zinc-400">
@@ -827,7 +883,11 @@ export default function Dashboard() {
                     >
                       <div className="flex items-start gap-3">
                         <div className="mt-1 rounded-full bg-red-500/12 p-2 text-red-200">
-                          {activity.type === 'teaching_completed' ? <Users size={14} /> : <BookOpen size={14} />}
+                          {activity.type === 'teaching_completed' ? (
+                            <Users size={14} />
+                          ) : (
+                            <BookOpen size={14} />
+                          )}
                         </div>
                         <div>
                           <p className="text-sm font-semibold text-white">{activity.description}</p>

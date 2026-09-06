@@ -22,8 +22,8 @@ test('connectDB reports a degraded state instead of exiting when Mongo is unavai
     logger: {
       info() {},
       warn() {},
-      error() {}
-    }
+      error() {},
+    },
   });
 
   assert.equal(result, null);
@@ -44,8 +44,8 @@ test('connectDB resolves to the active mongoose connection when Mongo is availab
     logger: {
       info() {},
       warn() {},
-      error() {}
-    }
+      error() {},
+    },
   });
 
   assert.equal(result, mongoose.connection);

@@ -7,52 +7,52 @@ const competitionSchema = new mongoose.Schema(
       required: true,
       unique: true,
       trim: true,
-      lowercase: true
+      lowercase: true,
     },
     title: {
       type: String,
       required: true,
-      trim: true
+      trim: true,
     },
     status: {
       type: String,
       enum: ['live', 'upcoming', 'archived'],
-      default: 'upcoming'
+      default: 'upcoming',
     },
     tags: [
       {
         type: String,
-        trim: true
-      }
+        trim: true,
+      },
     ],
     sourceUrl: {
       type: String,
       required: true,
-      trim: true
+      trim: true,
     },
     timing: {
       startsAt: String,
       endsAt: String,
       timezone: String,
-      label: String
+      label: String,
     },
     summary: {
       type: String,
-      default: ''
+      default: '',
     },
     prize: {
       type: String,
-      default: ''
+      default: '',
     },
     eligibility: [
       {
         type: String,
-        trim: true
-      }
-    ]
+        trim: true,
+      },
+    ],
   },
   {
-    timestamps: true
+    timestamps: true,
   }
 );
 

@@ -15,7 +15,7 @@ import {
   ArrowRight,
   Bookmark,
   TrendingUp,
-  BadgeCheck
+  BadgeCheck,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import MainNavbar from '../../navbar/mainNavbar.jsx';
@@ -38,7 +38,7 @@ const SUB_CATEGORIES = {
   Photography: ['Portrait', 'Landscape', 'Editing'],
   Marketing: ['SEO', 'Content', 'Social Media', 'Email Marketing'],
   Language: ['English', 'Spanish', 'French', 'German', 'Japanese'],
-  Cooking: ['Baking', 'Meal Prep', 'Regional Cuisine']
+  Cooking: ['Baking', 'Meal Prep', 'Regional Cuisine'],
 };
 
 const DURATION_OPTIONS = ['30 minutes', '1 hour', '1.5 hours', '2 hours', '2.5 hours', '3 hours'];
@@ -48,11 +48,12 @@ const SORT_OPTIONS = [
   { key: 'rating', label: 'Highest rated' },
   { key: 'price-low', label: 'Lowest price' },
   { key: 'price-high', label: 'Highest price' },
-  { key: 'recent', label: 'Newest' }
+  { key: 'recent', label: 'Newest' },
 ];
 
 const getLevelBadgeClass = (level) => {
-  if (level === 'Advanced' || level === 'Expert') return 'bg-rose-500/20 text-rose-200 border-rose-400/30';
+  if (level === 'Advanced' || level === 'Expert')
+    return 'bg-rose-500/20 text-rose-200 border-rose-400/30';
   if (level === 'Intermediate') return 'bg-amber-500/20 text-amber-200 border-amber-400/30';
   return 'bg-emerald-500/20 text-emerald-200 border-emerald-400/30';
 };
@@ -119,7 +120,7 @@ export default function SkillSwapBrowse() {
     category: 'Other',
     subCategory: '',
     timePerHour: '1 hour',
-    price: ''
+    price: '',
   });
   const [availableSkills, setAvailableSkills] = useState([]);
   const [skillsLoading, setSkillsLoading] = useState(false);
@@ -156,9 +157,12 @@ export default function SkillSwapBrowse() {
   useEffect(() => {
     fetchPostedSkills(true);
 
-    const autoRefreshInterval = setInterval(() => {
-      fetchPostedSkills(false);
-    }, 5 * 60 * 1000);
+    const autoRefreshInterval = setInterval(
+      () => {
+        fetchPostedSkills(false);
+      },
+      5 * 60 * 1000
+    );
 
     return () => clearInterval(autoRefreshInterval);
   }, []);
@@ -175,7 +179,9 @@ export default function SkillSwapBrowse() {
   }, [skills]);
 
   const categories = useMemo(() => {
-    const names = Object.keys(categoryCounts).filter((name) => name !== 'All Categories').sort();
+    const names = Object.keys(categoryCounts)
+      .filter((name) => name !== 'All Categories')
+      .sort();
     return ['All Categories', ...names];
   }, [categoryCounts]);
 
@@ -203,7 +209,7 @@ export default function SkillSwapBrowse() {
         skill.user?.name,
         skill.category,
         skill.subCategory,
-        ...(Array.isArray(skill.tags) ? skill.tags : [])
+        ...(Array.isArray(skill.tags) ? skill.tags : []),
       ]
         .filter(Boolean)
         .join(' ')
@@ -218,12 +224,16 @@ export default function SkillSwapBrowse() {
       sorted.sort(
         (left, right) =>
           Number(right.user?.rating?.average || right.offering?.rating || 0) -
-          Number(left.user?.rating?.average || left.offering?.rating || 0),
+          Number(left.user?.rating?.average || left.offering?.rating || 0)
       );
     } else if (sortBy === 'price-low') {
-      sorted.sort((left, right) => Number(left.offering?.price || 0) - Number(right.offering?.price || 0));
+      sorted.sort(
+        (left, right) => Number(left.offering?.price || 0) - Number(right.offering?.price || 0)
+      );
     } else if (sortBy === 'price-high') {
-      sorted.sort((left, right) => Number(right.offering?.price || 0) - Number(left.offering?.price || 0));
+      sorted.sort(
+        (left, right) => Number(right.offering?.price || 0) - Number(left.offering?.price || 0)
+      );
     } else if (sortBy === 'recent') {
       sorted.sort((left, right) => new Date(right.createdAt) - new Date(left.createdAt));
     } else {
@@ -231,15 +241,29 @@ export default function SkillSwapBrowse() {
     }
 
     return sorted;
-  }, [deferredSearchQuery, savedSkills, selectedCategory, selectedLevel, showSavedOnly, skills, sortBy]);
+  }, [
+    deferredSearchQuery,
+    savedSkills,
+    selectedCategory,
+    selectedLevel,
+    showSavedOnly,
+    skills,
+    sortBy,
+  ]);
 
-  const displayedSkills = useMemo(() => filteredSkills.slice(0, visibleSkills), [filteredSkills, visibleSkills]);
+  const displayedSkills = useMemo(
+    () => filteredSkills.slice(0, visibleSkills),
+    [filteredSkills, visibleSkills]
+  );
 
-  const featuredSkill = useMemo(() => filteredSkills[0] || skills[0] || null, [filteredSkills, skills]);
+  const featuredSkill = useMemo(
+    () => filteredSkills[0] || skills[0] || null,
+    [filteredSkills, skills]
+  );
 
   const marketplaceSignals = useMemo(() => {
     const topRatedCount = skills.filter(
-      (skill) => Number(skill.user?.rating?.average || skill.offering?.rating || 0) >= 4,
+      (skill) => Number(skill.user?.rating?.average || skill.offering?.rating || 0) >= 4
     ).length;
 
     return {
@@ -249,7 +273,8 @@ export default function SkillSwapBrowse() {
         skills.length === 0
           ? 0
           : Math.round(
-              skills.reduce((sum, item) => sum + Number(item.offering?.price || 0), 0) / skills.length,
+              skills.reduce((sum, item) => sum + Number(item.offering?.price || 0), 0) /
+                skills.length
             ),
     };
   }, [savedSkills.length, skills]);
@@ -266,7 +291,13 @@ export default function SkillSwapBrowse() {
       `${marketplaceSignals.saved} saved listings`,
       ...topCategories,
     ];
-  }, [categories, categoryCounts, filteredSkills.length, marketplaceSignals.saved, marketplaceSignals.topRatedCount]);
+  }, [
+    categories,
+    categoryCounts,
+    filteredSkills.length,
+    marketplaceSignals.saved,
+    marketplaceSignals.topRatedCount,
+  ]);
 
   useEffect(() => {
     setVisibleSkills(8);
@@ -290,8 +321,13 @@ export default function SkillSwapBrowse() {
         throw new Error(data.message || 'Failed to fetch your skills');
       }
 
-      const skillsOffering = Array.isArray(data.data?.skillsOffering) ? data.data.skillsOffering : [];
-      const postable = skillsOffering.filter((item) => !item.isPosted).map((item) => item.name).filter(Boolean);
+      const skillsOffering = Array.isArray(data.data?.skillsOffering)
+        ? data.data.skillsOffering
+        : [];
+      const postable = skillsOffering
+        .filter((item) => !item.isPosted)
+        .map((item) => item.name)
+        .filter(Boolean);
       setAvailableSkills(Array.from(new Set(postable)).sort());
     } catch (err) {
       console.error('Fetch available skills error:', err);
@@ -343,7 +379,7 @@ export default function SkillSwapBrowse() {
           category: postSkillForm.category,
           subCategory: postSkillForm.subCategory.trim(),
           timePerHour: postSkillForm.timePerHour,
-          price: postSkillForm.price
+          price: postSkillForm.price,
         },
       });
 
@@ -361,7 +397,7 @@ export default function SkillSwapBrowse() {
         category: 'Other',
         subCategory: '',
         timePerHour: '1 hour',
-        price: ''
+        price: '',
       });
       setShowSkillsDropdown(false);
       setShowPostSkillModal(false);
@@ -379,9 +415,7 @@ export default function SkillSwapBrowse() {
 
   const toggleSavedSkill = (skillId) => {
     setSavedSkills((current) =>
-      current.includes(skillId)
-        ? current.filter((id) => id !== skillId)
-        : [...current, skillId],
+      current.includes(skillId) ? current.filter((id) => id !== skillId) : [...current, skillId]
     );
   };
 
@@ -404,12 +438,16 @@ export default function SkillSwapBrowse() {
                 Book from a marketplace that reads like a live signal board, not a directory dump.
               </h1>
               <p className="text-zinc-300 mt-3 max-w-3xl leading-7">
-                CollabLearn surfaces who is trusted, what is worth saving, and which sessions feel actionable before you open a single listing.
+                CollabLearn surfaces who is trusted, what is worth saving, and which sessions feel
+                actionable before you open a single listing.
               </p>
             </div>
 
             <div className="reveal-up reveal-delay-1 flex items-center gap-2 flex-wrap">
-              <Link to="/skill-recommendations" className="glass-chip border-sky-400/40 bg-sky-500/15 text-sky-100">
+              <Link
+                to="/skill-recommendations"
+                className="glass-chip border-sky-400/40 bg-sky-500/15 text-sky-100"
+              >
                 <BookOpen size={14} />
                 Recommendations
               </Link>
@@ -443,7 +481,9 @@ export default function SkillSwapBrowse() {
             </div>
             <div className="metric-rail reveal-up reveal-delay-1">
               <p className="text-xs uppercase text-zinc-400">Avg Price</p>
-              <p className="text-xl font-bold mt-1">INR {marketplaceSignals.avgPrice.toLocaleString('en-IN')}</p>
+              <p className="text-xl font-bold mt-1">
+                INR {marketplaceSignals.avgPrice.toLocaleString('en-IN')}
+              </p>
             </div>
           </div>
 
@@ -462,7 +502,10 @@ export default function SkillSwapBrowse() {
         <section className="glass-panel glow-frame sticky top-24 z-20 p-4 md:p-5 space-y-4 backdrop-blur-xl">
           <div className="grid grid-cols-1 lg:grid-cols-[1fr,220px,220px,auto] gap-3 items-center">
             <div className="relative">
-              <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
+              <Search
+                size={16}
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400"
+              />
               <input
                 type="text"
                 value={searchQuery}
@@ -473,7 +516,10 @@ export default function SkillSwapBrowse() {
             </div>
 
             <label className="relative">
-              <SlidersHorizontal size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
+              <SlidersHorizontal
+                size={16}
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400"
+              />
               <select
                 value={selectedLevel}
                 onChange={(event) => setSelectedLevel(event.target.value)}
@@ -488,7 +534,10 @@ export default function SkillSwapBrowse() {
             </label>
 
             <label className="relative">
-              <TrendingUp size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
+              <TrendingUp
+                size={16}
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400"
+              />
               <select
                 value={sortBy}
                 onChange={(event) => setSortBy(event.target.value)}
@@ -560,7 +609,8 @@ export default function SkillSwapBrowse() {
                   {featuredSkill.name}
                 </h2>
                 <p className="mt-3 max-w-3xl text-sm leading-7 text-zinc-300">
-                  {featuredSkill.offering?.description || 'A focused skill listing ready for booking.'}
+                  {featuredSkill.offering?.description ||
+                    'A focused skill listing ready for booking.'}
                 </p>
                 <div className="luminous-divider mt-5" />
                 <div className="mt-4 flex flex-wrap gap-2">
@@ -572,7 +622,9 @@ export default function SkillSwapBrowse() {
                       {featuredSkill.subCategory}
                     </span>
                   )}
-                  <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] ${getLevelBadgeClass(featuredSkill.offering?.level)}`}>
+                  <span
+                    className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] ${getLevelBadgeClass(featuredSkill.offering?.level)}`}
+                  >
                     {featuredSkill.offering?.level || 'Beginner'}
                   </span>
                 </div>
@@ -582,21 +634,31 @@ export default function SkillSwapBrowse() {
                 <div className="space-y-3 text-sm text-zinc-300">
                   <div className="flex items-center justify-between">
                     <span>Instructor</span>
-                    <span className="font-semibold text-white">{featuredSkill.user?.name || 'Unknown'}</span>
+                    <span className="font-semibold text-white">
+                      {featuredSkill.user?.name || 'Unknown'}
+                    </span>
                   </div>
                   <div className="flex items-center justify-between">
                     <span>Rating</span>
                     <span className="font-semibold text-white">
-                      {(featuredSkill.user?.rating?.average || featuredSkill.offering?.rating || 0).toFixed(1)}
+                      {(
+                        featuredSkill.user?.rating?.average ||
+                        featuredSkill.offering?.rating ||
+                        0
+                      ).toFixed(1)}
                     </span>
                   </div>
                   <div className="flex items-center justify-between">
                     <span>Duration</span>
-                    <span className="font-semibold text-white">{featuredSkill.offering?.duration || 'Flexible'}</span>
+                    <span className="font-semibold text-white">
+                      {featuredSkill.offering?.duration || 'Flexible'}
+                    </span>
                   </div>
                   <div className="flex items-center justify-between">
                     <span>Price</span>
-                    <span className="font-semibold text-white">{formatPriceLabel(featuredSkill.offering?.price)}</span>
+                    <span className="font-semibold text-white">
+                      {formatPriceLabel(featuredSkill.offering?.price)}
+                    </span>
                   </div>
                 </div>
                 <div className="mt-5 flex flex-col gap-3">
@@ -650,7 +712,11 @@ export default function SkillSwapBrowse() {
                 : 'Try another category, level, or search term.'}
             </p>
             {skills.length === 0 ? (
-              <button type="button" onClick={() => setShowPostSkillModal(true)} className="glass-cta mt-6">
+              <button
+                type="button"
+                onClick={() => setShowPostSkillModal(true)}
+                className="glass-cta mt-6"
+              >
                 Post the first skill
               </button>
             ) : null}
@@ -660,7 +726,8 @@ export default function SkillSwapBrowse() {
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
               {displayedSkills.map((skill, index) => {
                 const ownerId = skill.user?._id || skill.user?.id;
-                const isOwnSkill = currentUserId && ownerId && String(ownerId) === String(currentUserId);
+                const isOwnSkill =
+                  currentUserId && ownerId && String(ownerId) === String(currentUserId);
                 const avatar = getAvatarDisplayProps(skill.user, 44);
                 const rating = Number(skill.user?.rating?.average || skill.offering?.rating || 0);
                 const isSaved = savedSkills.includes(skill._id);
@@ -680,12 +747,17 @@ export default function SkillSwapBrowse() {
                             className="w-11 h-11 rounded-full object-cover border border-white/25"
                           />
                         ) : (
-                          <div className="w-11 h-11 rounded-full border border-white/20 flex items-center justify-center text-sm font-bold text-white" style={{ backgroundColor: avatar.initialsColor }}>
+                          <div
+                            className="w-11 h-11 rounded-full border border-white/20 flex items-center justify-center text-sm font-bold text-white"
+                            style={{ backgroundColor: avatar.initialsColor }}
+                          >
                             {avatar.initials}
                           </div>
                         )}
                         <div className="min-w-0">
-                          <p className="font-semibold text-zinc-100 truncate">{skill.user?.name || 'Unknown Instructor'}</p>
+                          <p className="font-semibold text-zinc-100 truncate">
+                            {skill.user?.name || 'Unknown Instructor'}
+                          </p>
                           <p className="text-xs text-zinc-400 flex items-center gap-1">
                             <Star size={12} className="text-amber-300" />
                             {rating.toFixed(1)}
@@ -708,8 +780,12 @@ export default function SkillSwapBrowse() {
                       </button>
                     </div>
 
-                    <h3 className="text-xl font-semibold leading-tight text-zinc-100">{skill.name}</h3>
-                    <p className="text-sm text-zinc-400 mt-2 line-clamp-3 flex-1">{skill.offering?.description || 'No description yet.'}</p>
+                    <h3 className="text-xl font-semibold leading-tight text-zinc-100">
+                      {skill.name}
+                    </h3>
+                    <p className="text-sm text-zinc-400 mt-2 line-clamp-3 flex-1">
+                      {skill.offering?.description || 'No description yet.'}
+                    </p>
 
                     <div className="flex flex-wrap items-center gap-2 mt-3">
                       {skill.subCategory && (
@@ -717,11 +793,16 @@ export default function SkillSwapBrowse() {
                           {skill.subCategory}
                         </span>
                       )}
-                      <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] ${getLevelBadgeClass(skill.offering?.level)}`}>
+                      <span
+                        className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] ${getLevelBadgeClass(skill.offering?.level)}`}
+                      >
                         {skill.offering?.level || 'Beginner'}
                       </span>
                       {(skill.tags || []).slice(0, 2).map((tag) => (
-                        <span key={tag} className="glass-chip text-[10px] border-white/15 bg-white/5 text-zinc-300">
+                        <span
+                          key={tag}
+                          className="glass-chip text-[10px] border-white/15 bg-white/5 text-zinc-300"
+                        >
                           {tag}
                         </span>
                       ))}
@@ -729,12 +810,20 @@ export default function SkillSwapBrowse() {
 
                     <div className="mt-4 grid grid-cols-2 gap-3">
                       <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-3">
-                        <p className="text-[11px] uppercase tracking-[0.2em] text-zinc-500">Match</p>
-                        <p className="mt-2 text-lg font-bold text-white">{Math.min(98, Math.round(getSkillScore(skill) * 5))}%</p>
+                        <p className="text-[11px] uppercase tracking-[0.2em] text-zinc-500">
+                          Match
+                        </p>
+                        <p className="mt-2 text-lg font-bold text-white">
+                          {Math.min(98, Math.round(getSkillScore(skill) * 5))}%
+                        </p>
                       </div>
                       <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-3">
-                        <p className="text-[11px] uppercase tracking-[0.2em] text-zinc-500">Sessions</p>
-                        <p className="mt-2 text-lg font-bold text-white">{skill.offering?.sessions || 0}</p>
+                        <p className="text-[11px] uppercase tracking-[0.2em] text-zinc-500">
+                          Sessions
+                        </p>
+                        <p className="mt-2 text-lg font-bold text-white">
+                          {skill.offering?.sessions || 0}
+                        </p>
                       </div>
                     </div>
 
@@ -803,7 +892,11 @@ export default function SkillSwapBrowse() {
           <div className="glass-panel w-full max-w-xl p-6 max-h-[88vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-semibold">Post a New Skill</h2>
-              <button type="button" onClick={clearModal} className="glass-chip border-white/20 bg-white/8">
+              <button
+                type="button"
+                onClick={clearModal}
+                className="glass-chip border-white/20 bg-white/8"
+              >
                 <X size={14} />
               </button>
             </div>
@@ -843,11 +936,13 @@ export default function SkillSwapBrowse() {
                     className="glass-input appearance-none"
                   >
                     <option value="Other">Other</option>
-                    {Object.keys(SUB_CATEGORIES).sort().map((category) => (
-                      <option key={category} value={category}>
-                        {category}
-                      </option>
-                    ))}
+                    {Object.keys(SUB_CATEGORIES)
+                      .sort()
+                      .map((category) => (
+                        <option key={category} value={category}>
+                          {category}
+                        </option>
+                      ))}
                   </select>
                 </div>
 
@@ -890,7 +985,10 @@ export default function SkillSwapBrowse() {
                     <span className={postSkillForm.skills ? 'text-zinc-100' : 'text-zinc-400'}>
                       {postSkillForm.skills || 'Select from your available skills'}
                     </span>
-                    <ChevronDown size={16} className={`${showSkillsDropdown ? 'rotate-180' : ''} transition-transform`} />
+                    <ChevronDown
+                      size={16}
+                      className={`${showSkillsDropdown ? 'rotate-180' : ''} transition-transform`}
+                    />
                   </button>
 
                   {showSkillsDropdown && (
@@ -898,7 +996,9 @@ export default function SkillSwapBrowse() {
                       {skillsLoading ? (
                         <p className="px-3 py-2 text-sm text-zinc-400">Loading skills...</p>
                       ) : availableSkills.length === 0 ? (
-                        <p className="px-3 py-2 text-sm text-zinc-400">No unposted offering skills found.</p>
+                        <p className="px-3 py-2 text-sm text-zinc-400">
+                          No unposted offering skills found.
+                        </p>
                       ) : (
                         availableSkills.map((skillName) => {
                           const selected = postSkillForm.skills === skillName;
@@ -908,7 +1008,9 @@ export default function SkillSwapBrowse() {
                               type="button"
                               onClick={() => handleSkillSelect(skillName)}
                               className={`w-full px-3 py-2 text-left text-sm flex items-center justify-between ${
-                                selected ? 'bg-red-500/20 text-red-100' : 'text-zinc-200 hover:bg-white/8'
+                                selected
+                                  ? 'bg-red-500/20 text-red-100'
+                                  : 'text-zinc-200 hover:bg-white/8'
                               }`}
                             >
                               {skillName}
@@ -953,7 +1055,11 @@ export default function SkillSwapBrowse() {
               </div>
 
               <div className="flex items-center gap-2 pt-2">
-                <button type="button" onClick={clearModal} className="glass-chip border-white/20 bg-white/8 px-4 py-2">
+                <button
+                  type="button"
+                  onClick={clearModal}
+                  className="glass-chip border-white/20 bg-white/8 px-4 py-2"
+                >
                   Cancel
                 </button>
                 <button

@@ -75,7 +75,7 @@ export default function SkillSessions() {
     deriveSkillSessionView({
       currentUserId: '',
       skillId,
-    }),
+    })
   );
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -130,7 +130,7 @@ export default function SkillSessions() {
           skillId,
           instructorBookings,
           studentBookings,
-        }),
+        })
       );
     } catch (fetchError) {
       console.error('SkillSessions error:', fetchError);
@@ -183,7 +183,12 @@ export default function SkillSessions() {
         icon: FileText,
       },
     ],
-    [view.sharedDocuments.length, view.stats.completedSessions, view.stats.totalSessions, view.stats.upcomingSessions],
+    [
+      view.sharedDocuments.length,
+      view.stats.completedSessions,
+      view.stats.totalSessions,
+      view.stats.upcomingSessions,
+    ]
   );
 
   const handleFileChange = (event) => {
@@ -225,7 +230,7 @@ export default function SkillSessions() {
           credentials: 'include',
           headers: token ? { Authorization: `Bearer ${token}` } : {},
           body: formData,
-        },
+        }
       );
 
       const payload = await readJsonSafely(response);
@@ -262,7 +267,7 @@ export default function SkillSessions() {
             ...(token ? { Authorization: `Bearer ${token}` } : {}),
             Accept: 'application/json',
           },
-        },
+        }
       );
 
       const payload = await readJsonSafely(response);
@@ -330,13 +335,19 @@ export default function SkillSessions() {
             <p className="text-sm font-semibold uppercase tracking-[0.3em] text-red-300/80">
               Session thread error
             </p>
-            <h1 className="mt-3 text-2xl font-bold text-white">This skill view did not load cleanly</h1>
+            <h1 className="mt-3 text-2xl font-bold text-white">
+              This skill view did not load cleanly
+            </h1>
             <p className="mt-4 text-sm leading-7 text-zinc-300">{error}</p>
             <div className="mt-6 flex flex-col justify-center gap-3 sm:flex-row">
               <button type="button" onClick={fetchSessions} className="glass-cta">
                 Retry
               </button>
-              <button type="button" onClick={() => navigate('/dashboard')} className="glass-outline-btn">
+              <button
+                type="button"
+                onClick={() => navigate('/dashboard')}
+                className="glass-outline-btn"
+              >
                 Return to dashboard
               </button>
             </div>
@@ -399,7 +410,9 @@ export default function SkillSessions() {
                     Session rate
                   </p>
                   <p className="mt-2 text-xl font-black text-white">
-                    {skill?.offering?.price ? `${formatINR(skill.offering.price)}/hr` : 'Flexible or free'}
+                    {skill?.offering?.price
+                      ? `${formatINR(skill.offering.price)}/hr`
+                      : 'Flexible or free'}
                   </p>
                 </div>
                 <div className="rounded-[24px] border border-white/10 bg-white/[0.05] p-4">
@@ -445,7 +458,10 @@ export default function SkillSessions() {
                 </div>
               </div>
 
-              <form onSubmit={handleUpload} className="rounded-[24px] border border-white/8 bg-black/20 p-4">
+              <form
+                onSubmit={handleUpload}
+                className="rounded-[24px] border border-white/8 bg-black/20 p-4"
+              >
                 <div className="grid gap-4 md:grid-cols-[0.55fr_0.45fr]">
                   <label className="grid gap-2">
                     <span className="text-sm font-semibold text-zinc-200">Resource title</span>
@@ -469,7 +485,9 @@ export default function SkillSessions() {
 
                 <div className="mt-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                   <p className="text-sm text-zinc-400">
-                    {selectedFile ? `Ready to upload ${selectedFile.name}` : 'PDFs, docs, images, and text files are supported.'}
+                    {selectedFile
+                      ? `Ready to upload ${selectedFile.name}`
+                      : 'PDFs, docs, images, and text files are supported.'}
                   </p>
                   <button
                     type="submit"
@@ -485,12 +503,18 @@ export default function SkillSessions() {
               {view.sharedDocuments.length ? (
                 <div className="mt-5 space-y-3">
                   {view.sharedDocuments.map((document) => (
-                    <div key={document._id || document.filename} className="rounded-[22px] border border-white/8 bg-black/20 p-4">
+                    <div
+                      key={document._id || document.filename}
+                      className="rounded-[22px] border border-white/8 bg-black/20 p-4"
+                    >
                       <div className="flex flex-wrap items-start justify-between gap-4">
                         <div>
-                          <p className="font-semibold text-white">{document.title || document.originalName || 'Untitled file'}</p>
+                          <p className="font-semibold text-white">
+                            {document.title || document.originalName || 'Untitled file'}
+                          </p>
                           <p className="mt-1 text-sm text-zinc-400">
-                            Uploaded by {document.uploadedBy || 'participant'} on {formatDateTime(document.uploadedAt)}
+                            Uploaded by {document.uploadedBy || 'participant'} on{' '}
+                            {formatDateTime(document.uploadedAt)}
                           </p>
                         </div>
 
@@ -519,7 +543,8 @@ export default function SkillSessions() {
                 </div>
               ) : (
                 <div className="mt-5 rounded-[22px] border border-dashed border-white/15 bg-white/[0.03] p-6 text-sm leading-7 text-zinc-300">
-                  Shared resources will appear here after the first upload. There is no separate course library anymore; files now stay with the live 1:1 booking thread.
+                  Shared resources will appear here after the first upload. There is no separate
+                  course library anymore; files now stay with the live 1:1 booking thread.
                 </div>
               )}
             </section>
@@ -544,7 +569,10 @@ export default function SkillSessions() {
                     const canComplete = canCompleteSession(session);
 
                     return (
-                      <div key={session._id} className="rounded-[24px] border border-white/8 bg-black/20 p-5">
+                      <div
+                        key={session._id}
+                        className="rounded-[24px] border border-white/8 bg-black/20 p-5"
+                      >
                         <div className="flex flex-wrap items-start justify-between gap-4">
                           <div>
                             <div className="flex flex-wrap items-center gap-2">
@@ -554,9 +582,9 @@ export default function SkillSessions() {
                                   : `Session with ${otherParticipant?.name || 'instructor'}`}
                               </p>
                               <span
-                                className={`inline-flex rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] ${
-                                  getBookingStatusTone(session.status)
-                                }`}
+                                className={`inline-flex rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] ${getBookingStatusTone(
+                                  session.status
+                                )}`}
                               >
                                 {session.status || 'pending'}
                               </span>
@@ -565,16 +593,23 @@ export default function SkillSessions() {
                             <div className="mt-3 flex flex-wrap gap-3 text-xs uppercase tracking-[0.18em] text-zinc-500">
                               <span>{formatDateTime(session.date)}</span>
                               <span>{session.duration} min</span>
-                              {otherParticipant?.email ? <span>{otherParticipant.email}</span> : null}
+                              {otherParticipant?.email ? (
+                                <span>{otherParticipant.email}</span>
+                              ) : null}
                             </div>
 
                             {session.notes ? (
-                              <p className="mt-4 text-sm leading-7 text-zinc-300">{session.notes}</p>
+                              <p className="mt-4 text-sm leading-7 text-zinc-300">
+                                {session.notes}
+                              </p>
                             ) : (
-                              <p className="mt-4 text-sm text-zinc-500">No session notes were added.</p>
+                              <p className="mt-4 text-sm text-zinc-500">
+                                No session notes were added.
+                              </p>
                             )}
 
-                            {(session.sessionRating?.student?.rating || session.sessionRating?.instructor?.rating) ? (
+                            {session.sessionRating?.student?.rating ||
+                            session.sessionRating?.instructor?.rating ? (
                               <div className="mt-4 flex flex-wrap gap-2">
                                 {session.sessionRating?.student?.rating ? (
                                   <span className="glass-chip border-emerald-400/25 bg-emerald-500/10 text-emerald-200">
@@ -599,9 +634,12 @@ export default function SkillSessions() {
                             >
                               {actionSessionId === session._id ? 'Updating' : 'Mark complete'}
                             </button>
-                            {!canComplete && session.status !== 'completed' && session.status !== 'cancelled' ? (
+                            {!canComplete &&
+                            session.status !== 'completed' &&
+                            session.status !== 'cancelled' ? (
                               <p className="max-w-[220px] text-right text-xs leading-5 text-zinc-500">
-                                Completion stays locked until the scheduled session time has started or passed.
+                                Completion stays locked until the scheduled session time has started
+                                or passed.
                               </p>
                             ) : null}
                           </div>
@@ -614,13 +652,22 @@ export default function SkillSessions() {
                 <div className="rounded-[22px] border border-dashed border-white/15 bg-white/[0.03] p-8 text-center">
                   <p className="text-lg font-semibold text-white">No 1:1 bookings yet</p>
                   <p className="mt-2 text-sm text-zinc-400">
-                    Create or accept the first session and this skill thread will start tracking it here.
+                    Create or accept the first session and this skill thread will start tracking it
+                    here.
                   </p>
                   <div className="mt-5 flex justify-center gap-3">
-                    <button type="button" onClick={() => navigate('/calendar')} className="glass-outline-btn">
+                    <button
+                      type="button"
+                      onClick={() => navigate('/calendar')}
+                      className="glass-outline-btn"
+                    >
                       Open calendar
                     </button>
-                    <button type="button" onClick={() => navigate('/browse-skills')} className="glass-cta">
+                    <button
+                      type="button"
+                      onClick={() => navigate('/browse-skills')}
+                      className="glass-cta"
+                    >
                       Browse skills
                     </button>
                   </div>
@@ -637,7 +684,9 @@ export default function SkillSessions() {
               </div>
 
               <div className="mt-4 rounded-[24px] border border-white/10 bg-white/[0.04] p-4">
-                <p className="text-xs uppercase tracking-[0.22em] text-zinc-500">Primary counterpart</p>
+                <p className="text-xs uppercase tracking-[0.22em] text-zinc-500">
+                  Primary counterpart
+                </p>
                 <p className="mt-2 text-lg font-semibold text-white">
                   {view.primaryParticipant?.name || 'No active counterpart yet'}
                 </p>
@@ -651,8 +700,12 @@ export default function SkillSessions() {
               </div>
 
               <div className="mt-4 rounded-[24px] border border-white/10 bg-white/[0.04] p-4">
-                <p className="text-xs uppercase tracking-[0.22em] text-zinc-500">Unique participants</p>
-                <p className="mt-2 text-2xl font-black text-white">{view.stats.uniqueParticipantCount}</p>
+                <p className="text-xs uppercase tracking-[0.22em] text-zinc-500">
+                  Unique participants
+                </p>
+                <p className="mt-2 text-2xl font-black text-white">
+                  {view.stats.uniqueParticipantCount}
+                </p>
                 <p className="mt-2 text-sm leading-6 text-zinc-300">
                   Counted from the other side of the booking relation for this skill only.
                 </p>

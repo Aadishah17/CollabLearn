@@ -21,7 +21,7 @@ export const buildRoadmapRequestPayload = (formState, savedPlanId = null) => {
     weeklyHours: normalizeNumber(formState?.weeklyHours, 6),
     targetWeeks: normalizeNumber(formState?.targetWeeks, 8),
     focusAreas: normalizeFocusAreas(formState?.focusAreas),
-    savePlan: true
+    savePlan: true,
   };
 
   const normalizedPlanId = normalizePlanId(savedPlanId);
@@ -39,7 +39,7 @@ export const createSavedPlanSnapshot = ({
   source = null,
   provider = null,
   model = null,
-  completedStepIndexes = []
+  completedStepIndexes = [],
 }) => {
   const normalizedPlanId = normalizePlanId(planId);
   if (!normalizedPlanId) {
@@ -67,7 +67,7 @@ export const createSavedPlanSnapshot = ({
     source: source || 'fallback',
     provider: provider || (source === 'ai' ? 'local-basic-engine' : 'fallback'),
     model: model || null,
-    updatedAt: new Date().toISOString()
+    updatedAt: new Date().toISOString(),
   };
 };
 
@@ -82,9 +82,9 @@ export const upsertSavedPlanSnapshot = (savedPlans, nextPlan) => {
   return [
     {
       ...(existingPlan || {}),
-      ...nextPlan
+      ...nextPlan,
     },
-    ...savedPlans.filter((plan) => String(plan?._id) !== nextPlanId)
+    ...savedPlans.filter((plan) => String(plan?._id) !== nextPlanId),
   ];
 };
 
@@ -104,16 +104,14 @@ export const applySavedPlanProgress = (savedPlans, planId, completedStepIndexes,
 
   const safeTotalSteps = Math.max(0, Number(totalSteps) || 0);
   const progressPercentage =
-    safeTotalSteps > 0
-      ? Math.round((normalizedStepIndexes.length / safeTotalSteps) * 100)
-      : 0;
+    safeTotalSteps > 0 ? Math.round((normalizedStepIndexes.length / safeTotalSteps) * 100) : 0;
 
   return savedPlans.map((plan) =>
     String(plan?._id) === normalizedPlanId
       ? {
           ...plan,
           completedStepIndexes: normalizedStepIndexes,
-          progressPercentage
+          progressPercentage,
         }
       : plan
   );

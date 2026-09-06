@@ -13,30 +13,30 @@ const nodePath = 'C:\\Program Files\\nodejs\\node.exe';
 const npmPath = 'C:\\Program Files\\nodejs\\npm.cmd';
 
 function run(name, cmd, args, cwd) {
-    const proc = spawn(cmd, args, { cwd, shell: true });
-    proc.stdout.on('data', (data) => {
-        logStream.write(`[${name}] ${data}`);
-    });
-    proc.stderr.on('data', (data) => {
-        logStream.write(`[${name}] ERROR: ${data}`);
-    });
-    proc.on('close', (code) => {
-        logStream.write(`[${name}] Exited with code ${code}\n`);
-    });
-    return proc;
+  const proc = spawn(cmd, args, { cwd, shell: true });
+  proc.stdout.on('data', (data) => {
+    logStream.write(`[${name}] ${data}`);
+  });
+  proc.stderr.on('data', (data) => {
+    logStream.write(`[${name}] ERROR: ${data}`);
+  });
+  proc.on('close', (code) => {
+    logStream.write(`[${name}] Exited with code ${code}\n`);
+  });
+  return proc;
 }
 
 const serverProc = run('SERVER', npmPath, ['run', 'dev'], path.join(__dirname, 'server'));
 const clientProc = run('CLIENT', npmPath, ['run', 'dev'], path.join(__dirname, 'client'));
 
 process.on('SIGINT', () => {
-    serverProc.kill();
-    clientProc.kill();
-    process.exit();
+  serverProc.kill();
+  clientProc.kill();
+  process.exit();
 });
 
 console.log(`Processes started. Logging to ${logPath}`);
 setTimeout(() => {
-    console.log('Stopping runner (processes will continue in background if shell allows)...');
-    process.exit(0);
+  console.log('Stopping runner (processes will continue in background if shell allows)...');
+  process.exit(0);
 }, 10000);

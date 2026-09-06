@@ -74,7 +74,7 @@ export async function logoutSession() {
   try {
     await requestJson('/api/auth/logout', {
       method: 'POST',
-      credentials: 'include'
+      credentials: 'include',
     });
   } catch {
     // Best effort: local session teardown still needs to happen even if the API is unavailable.
@@ -85,7 +85,7 @@ export async function logoutSession() {
       email: '',
       isPremium: false,
       role: 'user',
-      isSuperAdmin: false
+      isSuperAdmin: false,
     });
   }
 }

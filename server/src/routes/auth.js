@@ -19,7 +19,7 @@ const avatarStorage = multer.diskStorage({
     const ext = path.extname(safeOriginal).toLowerCase() || '.png';
     const base = path.basename(safeOriginal, ext) || 'avatar';
     cb(null, `${Date.now()}-${base}${ext}`);
-  }
+  },
 });
 
 const avatarFileFilter = (_req, file, cb) => {
@@ -33,9 +33,9 @@ const avatarFileFilter = (_req, file, cb) => {
 const avatarUpload = multer({
   storage: avatarStorage,
   limits: {
-    fileSize: 5 * 1024 * 1024
+    fileSize: 5 * 1024 * 1024,
   },
-  fileFilter: avatarFileFilter
+  fileFilter: avatarFileFilter,
 });
 
 const runAvatarUpload = (req, res, next) => {
@@ -49,7 +49,7 @@ const runAvatarUpload = (req, res, next) => {
 
     return res.status(400).json({
       success: false,
-      message
+      message,
     });
   });
 };
@@ -80,7 +80,12 @@ router.get('/user/:userId', validateParams(schemas.auth.userIdParam), authContro
 router.get('/me', auth, authController.getCurrentUser);
 
 // PUT /api/auth/profile - Update user profile
-router.put('/profile', auth, validateBody(schemas.auth.updateProfile), authController.updateProfile);
+router.put(
+  '/profile',
+  auth,
+  validateBody(schemas.auth.updateProfile),
+  authController.updateProfile
+);
 
 // POST /api/auth/avatar - Upload profile avatar image
 router.post('/avatar', auth, runAvatarUpload, authController.uploadAvatar);
@@ -101,8 +106,8 @@ router.get('/', (req, res) => {
         body: {
           name: 'string (required)',
           email: 'string (required)',
-          password: 'string (required, min 6 chars)'
-        }
+          password: 'string (required, min 6 chars)',
+        },
       },
       login: {
         method: 'POST',
@@ -110,37 +115,37 @@ router.get('/', (req, res) => {
         description: 'User login',
         body: {
           email: 'string (required)',
-          password: 'string (required)'
-        }
+          password: 'string (required)',
+        },
       },
       logout: {
         method: 'POST',
         url: '/api/auth/logout',
-        description: 'Clear the active session cookie'
+        description: 'Clear the active session cookie',
       },
       getCurrentUser: {
         method: 'GET',
         url: '/api/auth/me',
         description: 'Get current user profile (accepts cookie or bearer token)',
         headers: {
-          Authorization: 'Bearer your-jwt-token'
-        }
+          Authorization: 'Bearer your-jwt-token',
+        },
       },
       updateProfile: {
         method: 'PUT',
         url: '/api/auth/profile',
         description: 'Update user profile (accepts cookie or bearer token)',
         headers: {
-          Authorization: 'Bearer your-jwt-token'
+          Authorization: 'Bearer your-jwt-token',
         },
         body: {
           name: 'string (optional)',
           bio: 'string (optional)',
-          avatar: 'string (optional)'
-        }
-      }
+          avatar: 'string (optional)',
+        },
+      },
     },
-    note: 'Session authentication supports both httpOnly cookies and Authorization Bearer tokens.'
+    note: 'Session authentication supports both httpOnly cookies and Authorization Bearer tokens.',
   });
 });
 

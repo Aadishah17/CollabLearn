@@ -23,7 +23,10 @@ test('getDeterministicRecommendationScore favors higher quality skills without r
     },
   };
 
-  assert.ok(getDeterministicRecommendationScore(premiumSkill) > getDeterministicRecommendationScore(baselineSkill));
+  assert.ok(
+    getDeterministicRecommendationScore(premiumSkill) >
+      getDeterministicRecommendationScore(baselineSkill)
+  );
 });
 
 test('buildFallbackRecommendations sorts by deterministic score and annotates reasons', () => {

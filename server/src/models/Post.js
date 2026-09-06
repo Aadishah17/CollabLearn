@@ -44,8 +44,8 @@ const postSchema = new mongoose.Schema({
       userId: String,
       author: String,
       text: String,
-      createdAt: { type: Date, default: Date.now }
-    }
+      createdAt: { type: Date, default: Date.now },
+    },
   ],
 
   userId: {

@@ -5,7 +5,7 @@ import {
   applySavedPlanProgress,
   buildRoadmapRequestPayload,
   createSavedPlanSnapshot,
-  upsertSavedPlanSnapshot
+  upsertSavedPlanSnapshot,
 } from '../src/utils/aiLearningRoadmap.js';
 
 test('buildRoadmapRequestPayload includes planId and normalizes form values', () => {
@@ -15,7 +15,7 @@ test('buildRoadmapRequestPayload includes planId and normalizes form values', ()
       learnerLevel: 'Intermediate',
       weeklyHours: '12',
       targetWeeks: '6',
-      focusAreas: 'Portfolio, interview prep, ,  '
+      focusAreas: 'Portfolio, interview prep, ,  ',
     },
     '  plan-123  '
   );
@@ -27,7 +27,7 @@ test('buildRoadmapRequestPayload includes planId and normalizes form values', ()
     targetWeeks: 6,
     focusAreas: ['Portfolio', 'interview prep'],
     savePlan: true,
-    planId: 'plan-123'
+    planId: 'plan-123',
   });
 });
 
@@ -39,15 +39,15 @@ test('createSavedPlanSnapshot and upsertSavedPlanSnapshot keep the saved plan li
       learnerLevel: 'Intermediate',
       weeklyHours: 12,
       targetWeeks: 6,
-      focusAreas: 'Portfolio, interview prep'
+      focusAreas: 'Portfolio, interview prep',
     },
     roadmap: {
-      summary: 'A focused learning roadmap'
+      summary: 'A focused learning roadmap',
     },
     source: 'ai',
     provider: 'gemini',
     model: 'gemini-2.0-flash',
-    completedStepIndexes: [2, 0, 2]
+    completedStepIndexes: [2, 0, 2],
   });
 
   assert.equal(snapshot._id, 'plan-123');
@@ -61,12 +61,12 @@ test('createSavedPlanSnapshot and upsertSavedPlanSnapshot keep the saved plan li
       {
         _id: 'plan-123',
         skill: 'Old React',
-        extraField: true
+        extraField: true,
       },
       {
         _id: 'plan-456',
-        skill: 'Next.js'
-      }
+        skill: 'Next.js',
+      },
     ],
     snapshot
   );
@@ -84,13 +84,13 @@ test('applySavedPlanProgress updates only the targeted saved plan snapshot', () 
       {
         _id: 'plan-123',
         completedStepIndexes: [],
-        progressPercentage: 0
+        progressPercentage: 0,
       },
       {
         _id: 'plan-456',
         completedStepIndexes: [0],
-        progressPercentage: 50
-      }
+        progressPercentage: 50,
+      },
     ],
     'plan-123',
     [2, 0, 2],

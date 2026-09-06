@@ -34,14 +34,17 @@ const withEnv = async (overrides, callback) => {
 };
 
 test('storage paths switch to /tmp on Vercel', async () => {
-  await withEnv({ VERCEL: '1' }, ({ uploadsPath, avatarUploadsPath, sessionDocumentUploadsPath }) => {
-    assert.equal(uploadsPath, path.join('/tmp', 'collablearn-uploads'));
-    assert.equal(avatarUploadsPath, path.join('/tmp', 'collablearn-uploads', 'avatars'));
-    assert.equal(
-      sessionDocumentUploadsPath,
-      path.join('/tmp', 'collablearn-uploads', 'session-documents')
-    );
-  });
+  await withEnv(
+    { VERCEL: '1' },
+    ({ uploadsPath, avatarUploadsPath, sessionDocumentUploadsPath }) => {
+      assert.equal(uploadsPath, path.join('/tmp', 'collablearn-uploads'));
+      assert.equal(avatarUploadsPath, path.join('/tmp', 'collablearn-uploads', 'avatars'));
+      assert.equal(
+        sessionDocumentUploadsPath,
+        path.join('/tmp', 'collablearn-uploads', 'session-documents')
+      );
+    }
+  );
 });
 
 test('storage paths stay in the repo outside serverless runtimes', async () => {

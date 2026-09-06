@@ -9,7 +9,7 @@ test('dashboard route is restricted to user accounts', () => {
 
   assert.match(
     appSource,
-    /<Route path="\/dashboard" element={<ProtectedRoute requiredRole="user"><Dashboard \/><\/ProtectedRoute>} \/>/,
+    /<Route\s+path="\/dashboard"\s+element={\s*<ProtectedRoute requiredRole="user">\s*<Dashboard \/>\s*<\/ProtectedRoute>\s*}\s*\/>/
   );
 });
 
@@ -17,7 +17,10 @@ test('guest-facing competition and career routes are registered in the public ro
   const appSource = readFileSync(resolve(process.cwd(), 'src/App.jsx'), 'utf8');
 
   assert.match(appSource, /<Route path="\/competitions" element={<CompetitionsPage \/>} \/>/);
-  assert.match(appSource, /<Route path="\/competitions\/:slug" element={<CompetitionDetailPage \/>} \/>/);
+  assert.match(
+    appSource,
+    /<Route path="\/competitions\/:slug" element={<CompetitionDetailPage \/>} \/>/
+  );
   assert.match(appSource, /<Route path="\/career" element={<CareerPage \/>} \/>/);
   assert.match(appSource, /<Route path="\/career\/:trackSlug" element={<CareerTrackPage \/>} \/>/);
 });

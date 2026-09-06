@@ -5,16 +5,18 @@ const { resolveJwtSecret } = require('../config/auth');
 const {
   buildStudioStatusPayload,
   createStudioDiagnostics,
-  resolveStudioHttpStatus
+  resolveStudioHttpStatus,
 } = require('../utils/aiStatus');
 const { getAiRequestProfile } = require('../utils/aiRequestProfiles');
 const { TimeoutError, withTimeout } = require('../utils/withTimeout');
+const { aiPipelineService } = require('../services/aiPipelineService');
 
 // --- AI SDK Initialization ---
 const { OpenAI } = require('openai');
 
 const NVIDIA_API_KEY = (process.env.NVIDIA_API_KEY || '').trim();
-const NVIDIA_MODEL_NAME = String(process.env.NVIDIA_MODEL || '').trim() || 'meta/llama-3.1-8b-instruct';
+const NVIDIA_MODEL_NAME =
+  String(process.env.NVIDIA_MODEL || '').trim() || 'meta/llama-3.1-8b-instruct';
 let openaiClient = null;
 
 const GEMINI_API_KEY = (process.env.GEMINI_API_KEY || '').trim();
@@ -38,12 +40,17 @@ const isAiTimeoutError = (error) =>
   error?.code === 'ETIMEDOUT';
 
 function isPlaceholderApiKeyRaw(key) {
-  const normalized = String(key || '').trim().toLowerCase();
+  const normalized = String(key || '')
+    .trim()
+    .toLowerCase();
   if (!normalized) return true;
   const knownPlaceholders = [
-    'your_gemini_api_key', 'your_gemini_api_key_here',
-    'replace_with_gemini_api_key', 'replace-with-gemini-api-key',
-    'your-google-ai-studio-api-key', 'your_nvidia_api_key'
+    'your_gemini_api_key',
+    'your_gemini_api_key_here',
+    'replace_with_gemini_api_key',
+    'replace-with-gemini-api-key',
+    'your-google-ai-studio-api-key',
+    'your_nvidia_api_key',
   ];
   return knownPlaceholders.includes(normalized);
 }
@@ -71,11 +78,7 @@ try {
 
 const LEVELS = ['Beginner', 'Intermediate', 'Advanced'];
 const RESOURCE_TYPES = ['Video', 'Article', 'Course', 'Docs', 'Community', 'Practice'];
-const DEFAULT_MODEL_CANDIDATES = [
-  'llama3.1',
-  'llama3',
-  'mistral'
-];
+const DEFAULT_MODEL_CANDIDATES = ['llama3.1', 'llama3', 'mistral'];
 const YOUTUBE_API_BASE_URL = 'https://www.googleapis.com/youtube/v3';
 const YOUTUBE_SEARCH_RESULTS_PER_QUERY = 25;
 const YOUTUBE_CACHE_TTL_MS = 30 * 60 * 1000;
@@ -98,7 +101,11 @@ const parseIntegerEnv = (value, fallback) => {
   return Number.isInteger(parsed) ? parsed : fallback;
 };
 
-const AI_PROVIDER_TIMEOUT_MS = clamp(parseIntegerEnv(process.env.AI_PROVIDER_TIMEOUT_MS, 9000), 1000, 60000);
+const AI_PROVIDER_TIMEOUT_MS = clamp(
+  parseIntegerEnv(process.env.AI_PROVIDER_TIMEOUT_MS, 9000),
+  1000,
+  60000
+);
 
 const toTitleCase = (value) =>
   String(value || '')
@@ -121,7 +128,9 @@ const parseModelCandidates = () => {
 };
 
 const isPlaceholderApiKey = (apiKey) => {
-  const normalized = String(apiKey || '').trim().toLowerCase();
+  const normalized = String(apiKey || '')
+    .trim()
+    .toLowerCase();
   if (!normalized) return true;
 
   const knownPlaceholders = new Set([
@@ -129,7 +138,7 @@ const isPlaceholderApiKey = (apiKey) => {
     'your_gemini_api_key_here',
     'replace_with_gemini_api_key',
     'replace-with-gemini-api-key',
-    'your-google-ai-studio-api-key'
+    'your-google-ai-studio-api-key',
   ]);
 
   return knownPlaceholders.has(normalized);
@@ -141,7 +150,7 @@ const buildAiStudioConfig = async () => {
       provider: 'nvidia',
       configured: true,
       modelCandidates: [NVIDIA_MODEL_NAME],
-      generationConfig: { temperature: 0.7, maxOutputTokens: 2048 }
+      generationConfig: { temperature: 0.7, maxOutputTokens: 2048 },
     };
   }
   if (geminiModel) {
@@ -149,53 +158,62 @@ const buildAiStudioConfig = async () => {
       provider: 'gemini',
       configured: true,
       modelCandidates: [GEMINI_MODEL_NAME],
-      generationConfig: { temperature: 0.7, maxOutputTokens: 4096 }
+      generationConfig: { temperature: 0.7, maxOutputTokens: 4096 },
     };
   }
   return {
     provider: 'local-basic-engine',
     configured: true,
     modelCandidates: ['local-basic-engine'],
-    generationConfig: {}
+    generationConfig: {},
   };
 };
 
 let AI_STUDIO_CONFIG = {
-  provider: openaiClient ? 'nvidia' : (geminiModel ? 'gemini' : 'local-basic-engine'),
+  provider: openaiClient ? 'nvidia' : geminiModel ? 'gemini' : 'local-basic-engine',
   configured: true,
-  modelCandidates: openaiClient ? [NVIDIA_MODEL_NAME] : (geminiModel ? [GEMINI_MODEL_NAME] : ['local-basic-engine']),
-  generationConfig: openaiClient ? { temperature: 0.7, maxOutputTokens: 2048 } : (geminiModel ? { temperature: 0.7, maxOutputTokens: 4096 } : {})
+  modelCandidates: openaiClient
+    ? [NVIDIA_MODEL_NAME]
+    : geminiModel
+      ? [GEMINI_MODEL_NAME]
+      : ['local-basic-engine'],
+  generationConfig: openaiClient
+    ? { temperature: 0.7, maxOutputTokens: 2048 }
+    : geminiModel
+      ? { temperature: 0.7, maxOutputTokens: 4096 }
+      : {},
 };
 
-let lastStudioDiagnostics = (openaiClient || geminiModel)
-  ? null
-  : createStudioDiagnostics({
-      success: true,
-      provider: 'local-basic-engine',
-      configured: true,
-      model: 'local-basic-engine',
-      latencyMs: 0,
-      preview: 'CollabLearn local engine is active.'
-    });
+let lastStudioDiagnostics =
+  openaiClient || geminiModel
+    ? null
+    : createStudioDiagnostics({
+        success: true,
+        provider: 'local-basic-engine',
+        configured: true,
+        model: 'local-basic-engine',
+        latencyMs: 0,
+        preview: 'CollabLearn local engine is active.',
+      });
 
 const refreshAiStudioConfig = async () => {
   AI_STUDIO_CONFIG = await buildAiStudioConfig();
 };
 
 // Initial load
-refreshAiStudioConfig().catch(err => console.error('Initial AI config load failed:', err));
+refreshAiStudioConfig().catch((err) => console.error('Initial AI config load failed:', err));
 
 const getPublicAiStudioConfig = () => ({
   provider: AI_STUDIO_CONFIG.provider,
   configured: AI_STUDIO_CONFIG.configured,
   modelCandidates: AI_STUDIO_CONFIG.modelCandidates,
   generationConfig: AI_STUDIO_CONFIG.generationConfig,
-  hasSystemInstruction: false
+  hasSystemInstruction: false,
 });
 
 const buildGenerationConfig = (overrides = {}) => {
   const merged = {
-    ...AI_STUDIO_CONFIG.generationConfig
+    ...AI_STUDIO_CONFIG.generationConfig,
   };
 
   if (overrides.temperature !== undefined) {
@@ -233,7 +251,7 @@ const buildGenerationConfig = (overrides = {}) => {
 const buildModelConfig = (modelName, generationOverrides = {}) => {
   const modelConfig = {
     model: modelName,
-    generationConfig: buildGenerationConfig(generationOverrides)
+    generationConfig: buildGenerationConfig(generationOverrides),
   };
 
   if (AI_STUDIO_CONFIG.systemInstruction) {
@@ -295,7 +313,7 @@ const normalizeRoadmapInput = (body = {}) => {
     learnerLevel: safeLevel,
     weeklyHours: safeWeeklyHours,
     targetWeeks: safeTargetWeeks,
-    focusAreas: safeFocusAreas
+    focusAreas: safeFocusAreas,
   };
 };
 
@@ -326,7 +344,7 @@ const normalizeChatContext = (body = {}) => {
     focusAreas,
     roadmapSummary: sanitizeText(context.roadmapSummary),
     currentStepTitle: sanitizeText(context.currentStepTitle),
-    currentStepDescription: sanitizeText(context.currentStepDescription)
+    currentStepDescription: sanitizeText(context.currentStepDescription),
   };
 };
 
@@ -344,8 +362,11 @@ const normalizeStudySessionInput = (body = {}) => {
     currentStepTitle: sanitizeText(roadmap.currentStepTitle),
     currentStepDescription: sanitizeText(roadmap.currentStepDescription),
     currentStepGoals: Array.isArray(roadmap.currentStepGoals)
-      ? roadmap.currentStepGoals.map((item) => sanitizeText(item)).filter(Boolean).slice(0, 5)
-      : []
+      ? roadmap.currentStepGoals
+          .map((item) => sanitizeText(item))
+          .filter(Boolean)
+          .slice(0, 5)
+      : [],
   };
 };
 
@@ -389,10 +410,9 @@ const normalizeUrl = (rawUrl, fallbackQuery) => {
 const parseYouTubeApiKeys = () =>
   Array.from(
     new Set(
-      [
-        sanitizeText(process.env.YOUTUBE_API_KEY),
-        sanitizeText(process.env.GOOGLE_API_KEY)
-      ].filter(Boolean)
+      [sanitizeText(process.env.YOUTUBE_API_KEY), sanitizeText(process.env.GOOGLE_API_KEY)].filter(
+        Boolean
+      )
     )
   );
 
@@ -402,7 +422,12 @@ const buildVideoSearchQueries = ({ skill, focusAreas }) => {
 
   return Array.from(
     new Set(
-      [focusQuery, `${safeSkill} tutorial`, `learn ${safeSkill}`, `${safeSkill} full course`].filter(Boolean)
+      [
+        focusQuery,
+        `${safeSkill} tutorial`,
+        `learn ${safeSkill}`,
+        `${safeSkill} full course`,
+      ].filter(Boolean)
     )
   ).slice(0, 4);
 };
@@ -432,7 +457,7 @@ const getCachedYoutubeVideo = (cacheKey) => {
 const setCachedYoutubeVideo = (cacheKey, video) => {
   youtubeVideoCache.set(cacheKey, {
     timestamp: Date.now(),
-    video
+    video,
   });
 };
 
@@ -448,7 +473,7 @@ const collectYouTubeVideoIds = async (apiKey, queries) => {
         maxResults: String(YOUTUBE_SEARCH_RESULTS_PER_QUERY),
         relevanceLanguage: 'en',
         videoEmbeddable: 'true',
-        key: apiKey
+        key: apiKey,
       });
 
       const payload = await fetchJson(`${YOUTUBE_API_BASE_URL}/search?${params.toString()}`);
@@ -479,7 +504,7 @@ const fetchYouTubeVideoMetadata = async (apiKey, videoIds) => {
     const params = new URLSearchParams({
       part: 'snippet,statistics',
       id: idsChunk.join(','),
-      key: apiKey
+      key: apiKey,
     });
 
     const payload = await fetchJson(`${YOUTUBE_API_BASE_URL}/videos?${params.toString()}`);
@@ -496,7 +521,7 @@ const fetchYouTubeVideoMetadata = async (apiKey, videoIds) => {
         channelTitle,
         likeCount,
         viewCount,
-        url: `https://www.youtube.com/watch?v=${videoId}`
+        url: `https://www.youtube.com/watch?v=${videoId}`,
       };
     });
 
@@ -529,7 +554,7 @@ const findBestYouTubeVideoForSkill = async ({ skill, focusAreas }) => {
 
   const queries = buildVideoSearchQueries({
     skill: safeSkill,
-    focusAreas: safeFocusAreas
+    focusAreas: safeFocusAreas,
   });
   const apiKeys = parseYouTubeApiKeys();
 
@@ -654,7 +679,8 @@ const STUDY_SESSION_SCHEMA_REPAIR_TEMPLATE = `{
   "pitfalls": ["string"]
 }`;
 
-const buildJsonRepairPrompt = ({ schema, invalidJson }) => `
+const buildJsonRepairPrompt = ({ schema, invalidJson }) =>
+  `
 You repair malformed JSON.
 Convert the content below into one valid JSON object that matches this schema.
 Return ONLY JSON.
@@ -686,20 +712,21 @@ const buildFallbackRoadmap = ({ skill, learnerLevel, weeklyHours, targetWeeks, f
   const planWeeks = clamp(targetWeeks, 2, 24);
   const stepCount = clamp(Math.ceil(planWeeks / 2), 4, 8);
   const baseHoursPerStep = Math.max(2, Math.round((weeklyHours * planWeeks) / stepCount));
-  
+
   const skillKey = safeSkill.toLowerCase();
   const customSkillData = customTrainingData?.skills?.[skillKey];
 
-  const fallbackPhaseTitles = customSkillData?.phases || customTrainingData?.defaultPhases || [
-    'Foundation and setup',
-    'Core fundamentals',
-    'Controlled practice',
-    'Applied execution',
-    'Feedback and refinement',
-    'Advanced combinations',
-    'Independent performance',
-    'Capstone and next steps'
-  ];
+  const fallbackPhaseTitles = customSkillData?.phases ||
+    customTrainingData?.defaultPhases || [
+      'Foundation and setup',
+      'Core fundamentals',
+      'Controlled practice',
+      'Applied execution',
+      'Feedback and refinement',
+      'Advanced combinations',
+      'Independent performance',
+      'Capstone and next steps',
+    ];
 
   const fallbackFocusThemes = customSkillData?.phases || [
     `posture and basics in ${safeSkill}`,
@@ -709,14 +736,16 @@ const buildFallbackRoadmap = ({ skill, learnerLevel, weeklyHours, targetWeeks, f
     'self-review and corrections',
     `intermediate-to-advanced ${safeSkill} patterns`,
     'confident independent execution',
-    'final showcase and improvement plan'
+    'final showcase and improvement plan',
   ];
 
   const steps = Array.from({ length: stepCount }).map((_, index) => {
     const stepNumber = index + 1;
     const weekStart = Math.floor((index * planWeeks) / stepCount) + 1;
     const weekEnd = Math.max(weekStart, Math.floor(((index + 1) * planWeeks) / stepCount));
-    const phaseTitle = toTitleCase(fallbackPhaseTitles[Math.min(index, fallbackPhaseTitles.length - 1)]);
+    const phaseTitle = toTitleCase(
+      fallbackPhaseTitles[Math.min(index, fallbackPhaseTitles.length - 1)]
+    );
     const focusArea = sanitizeText(
       focusAreas[index % Math.max(1, focusAreas.length)] || fallbackFocusThemes[index],
       fallbackFocusThemes[Math.min(index, fallbackFocusThemes.length - 1)]
@@ -728,10 +757,10 @@ const buildFallbackRoadmap = ({ skill, learnerLevel, weeklyHours, targetWeeks, f
       goals: [
         `Learn and explain the key principles behind ${focusArea}.`,
         `Complete at least one guided ${safeSkill} drill tied to ${focusArea}.`,
-        'Capture what improved, what is weak, and the next practice adjustment.'
+        'Capture what improved, what is weak, and the next practice adjustment.',
       ],
       practiceTask: `Run one 60-minute deliberate-practice session on ${focusArea}. Keep one proof of work (video clip, solved exercise, or written notes) and list 3 quality improvements for the next session.`,
-      estimatedHours: baseHoursPerStep
+      estimatedHours: baseHoursPerStep,
     };
   });
 
@@ -739,18 +768,18 @@ const buildFallbackRoadmap = ({ skill, learnerLevel, weeklyHours, targetWeeks, f
     {
       week: 1,
       title: 'Learning environment ready',
-      successCriteria: `Set your ${safeSkill} study schedule, install required tools, and finish first guided lesson.`
+      successCriteria: `Set your ${safeSkill} study schedule, install required tools, and finish first guided lesson.`,
     },
     {
       week: Math.max(2, Math.ceil(planWeeks / 2)),
       title: 'Midpoint validation',
-      successCriteria: `Complete a strong ${safeSkill} practice output and identify two concrete improvement areas.`
+      successCriteria: `Complete a strong ${safeSkill} practice output and identify two concrete improvement areas.`,
     },
     {
       week: planWeeks,
       title: 'Capstone completion',
-      successCriteria: `Deliver a capstone-level ${safeSkill} demonstration and document what to learn next.`
-    }
+      successCriteria: `Deliver a capstone-level ${safeSkill} demonstration and document what to learn next.`,
+    },
   ];
 
   let resources = [];
@@ -763,49 +792,49 @@ const buildFallbackRoadmap = ({ skill, learnerLevel, weeklyHours, targetWeeks, f
         title: `${safeSkill} official documentation`,
         url: toSearchUrl(`${safeSkill} official documentation`),
         reason: 'Primary source for accurate concepts and API behavior.',
-        level: 'All Levels'
+        level: 'All Levels',
       },
       {
         type: 'Course',
         title: `${safeSkill} structured beginner-to-advanced course`,
         url: toSearchUrl(`${safeSkill} full course`),
         reason: 'Gives step-by-step structure with consistent progression.',
-        level: learnerLevel
+        level: learnerLevel,
       },
       {
         type: 'Video',
         title: `${safeSkill} practical walkthroughs`,
         url: toSearchUrl(`${safeSkill} tutorial playlist`),
         reason: 'Useful for seeing practical workflows and project execution.',
-        level: 'All Levels'
+        level: 'All Levels',
       },
       {
         type: 'Community',
         title: `${safeSkill} discussion and Q&A`,
         url: toSearchUrl(`${safeSkill} community forum`),
         reason: 'Get unstuck faster by learning from common issues and solutions.',
-        level: 'All Levels'
+        level: 'All Levels',
       },
       {
         type: 'Practice',
         title: `${safeSkill} exercises and challenges`,
         url: toSearchUrl(`${safeSkill} exercises challenges`),
         reason: 'Hands-on repetition helps convert theory into skill.',
-        level: learnerLevel
-      }
+        level: learnerLevel,
+      },
     ];
   }
 
   const habits = customTrainingData?.defaultHabits || [
     'Study in focused 45-60 minute blocks with short breaks.',
     'Log one lesson learned and one blocker after each session.',
-    'Practice before consuming more theory whenever possible.'
+    'Practice before consuming more theory whenever possible.',
   ];
 
   const checkpoints = customTrainingData?.defaultCheckpoints || [
     'Can you explain core concepts without notes?',
     'Can you complete one task from scratch without tutorial copy-paste?',
-    'Can you identify your next weak area and make a targeted practice plan?'
+    'Can you identify your next weak area and make a targeted practice plan?',
   ];
 
   return {
@@ -814,7 +843,7 @@ const buildFallbackRoadmap = ({ skill, learnerLevel, weeklyHours, targetWeeks, f
     milestones,
     resources,
     habits,
-    checkpoints
+    checkpoints,
   };
 };
 
@@ -830,20 +859,27 @@ const normalizeRoadmap = (rawRoadmap, input) => {
           const title = sanitizeText(safeStep.title, fallbackStep.title);
           const description = sanitizeText(safeStep.description, fallbackStep.description);
           const goals = Array.isArray(safeStep.goals)
-            ? safeStep.goals.map((goal) => sanitizeText(goal)).filter(Boolean).slice(0, 5)
+            ? safeStep.goals
+                .map((goal) => sanitizeText(goal))
+                .filter(Boolean)
+                .slice(0, 5)
             : [];
           const practiceTask = sanitizeText(safeStep.practiceTask, fallbackStep.practiceTask);
           const shouldUseFallbackStep = isLegacyFallbackStep({
             title,
             description,
             practiceTask,
-            goals
+            goals,
           });
 
           if (shouldUseFallbackStep) {
             return {
               ...fallbackStep,
-              estimatedHours: clamp(Number(safeStep.estimatedHours) || fallbackStep.estimatedHours, 1, 40)
+              estimatedHours: clamp(
+                Number(safeStep.estimatedHours) || fallbackStep.estimatedHours,
+                1,
+                40
+              ),
             };
           }
 
@@ -852,7 +888,7 @@ const normalizeRoadmap = (rawRoadmap, input) => {
             description: sanitizeText(description, fallbackStep.description),
             goals: goals.length > 0 ? goals : fallbackStep.goals,
             practiceTask: sanitizeText(practiceTask, fallbackStep.practiceTask),
-            estimatedHours: clamp(Number(safeStep.estimatedHours) || input.weeklyHours, 1, 40)
+            estimatedHours: clamp(Number(safeStep.estimatedHours) || input.weeklyHours, 1, 40),
           };
         })
         .filter((step) => step.title && step.description)
@@ -869,7 +905,7 @@ const normalizeRoadmap = (rawRoadmap, input) => {
             successCriteria: sanitizeText(
               safeMilestone.successCriteria,
               'Define a measurable checkpoint for this milestone.'
-            )
+            ),
           };
         })
         .slice(0, 6)
@@ -879,7 +915,9 @@ const normalizeRoadmap = (rawRoadmap, input) => {
     ? safeRaw.resources
         .map((resource) => {
           const safeResource = resource && typeof resource === 'object' ? resource : {};
-          const normalizedType = RESOURCE_TYPES.includes(safeResource.type) ? safeResource.type : 'Article';
+          const normalizedType = RESOURCE_TYPES.includes(safeResource.type)
+            ? safeResource.type
+            : 'Article';
           const title = sanitizeText(safeResource.title, `${input.skill} learning resource`);
 
           return {
@@ -890,14 +928,17 @@ const normalizeRoadmap = (rawRoadmap, input) => {
               safeResource.reason,
               'Supports your roadmap goals with focused practice.'
             ),
-            level: LEVELS.includes(safeResource.level) ? safeResource.level : 'All Levels'
+            level: LEVELS.includes(safeResource.level) ? safeResource.level : 'All Levels',
           };
         })
         .slice(0, 10)
     : [];
 
   const habits = Array.isArray(safeRaw.habits)
-    ? safeRaw.habits.map((habit) => sanitizeText(habit)).filter(Boolean).slice(0, 6)
+    ? safeRaw.habits
+        .map((habit) => sanitizeText(habit))
+        .filter(Boolean)
+        .slice(0, 6)
     : [];
 
   const checkpoints = Array.isArray(safeRaw.checkpoints)
@@ -913,16 +954,17 @@ const normalizeRoadmap = (rawRoadmap, input) => {
     milestones: normalizedMilestones.length > 0 ? normalizedMilestones : fallback.milestones,
     resources: normalizedResources.length > 0 ? normalizedResources : fallback.resources,
     habits: habits.length > 0 ? habits : fallback.habits,
-    checkpoints: checkpoints.length > 0 ? checkpoints : fallback.checkpoints
+    checkpoints: checkpoints.length > 0 ? checkpoints : fallback.checkpoints,
   };
 };
 
 const applyBestVideoGuidance = async (roadmap, input) => {
-  const safeRoadmap = roadmap && typeof roadmap === 'object' ? roadmap : buildFallbackRoadmap(input);
+  const safeRoadmap =
+    roadmap && typeof roadmap === 'object' ? roadmap : buildFallbackRoadmap(input);
   const resources = Array.isArray(safeRoadmap.resources) ? [...safeRoadmap.resources] : [];
   const bestVideo = await findBestYouTubeVideoForSkill({
     skill: input.skill,
-    focusAreas: input.focusAreas
+    focusAreas: input.focusAreas,
   });
 
   if (!bestVideo) {
@@ -932,7 +974,7 @@ const applyBestVideoGuidance = async (roadmap, input) => {
       url: toYouTubeSearchUrl(`${input.skill} tutorial`),
       reason:
         'Direct YouTube guidance link. Add YOUTUBE_API_KEY with YouTube Data API enabled to auto-pick the highest-liked video.',
-      level: input.learnerLevel
+      level: input.learnerLevel,
     };
     const existingVideoIndex = resources.findIndex(
       (resource) => String(resource?.type || '').toLowerCase() === 'video'
@@ -946,9 +988,9 @@ const applyBestVideoGuidance = async (roadmap, input) => {
     return {
       roadmap: {
         ...safeRoadmap,
-        resources: resources.slice(0, 10)
+        resources: resources.slice(0, 10),
       },
-      videoGuidance: null
+      videoGuidance: null,
     };
   }
 
@@ -962,7 +1004,7 @@ const applyBestVideoGuidance = async (roadmap, input) => {
     title: bestVideo.title,
     url: bestVideo.url,
     reason: `Top YouTube guidance selected by highest engagement (${likesOrViews}) from ${bestVideo.channelTitle}.`,
-    level: input.learnerLevel
+    level: input.learnerLevel,
   };
 
   const existingVideoIndex = resources.findIndex(
@@ -978,9 +1020,9 @@ const applyBestVideoGuidance = async (roadmap, input) => {
   return {
     roadmap: {
       ...safeRoadmap,
-      resources: resources.slice(0, 10)
+      resources: resources.slice(0, 10),
     },
-    videoGuidance: bestVideo
+    videoGuidance: bestVideo,
   };
 };
 
@@ -1052,8 +1094,14 @@ Rules:
 const resolveAiRequestProfile = (profileName = 'default') =>
   getAiRequestProfile(profileName, {
     defaultTimeoutMs: AI_PROVIDER_TIMEOUT_MS,
-    providerDefaultTemperature: parseNumericEnv(AI_STUDIO_CONFIG?.generationConfig?.temperature, 0.7),
-    providerDefaultMaxOutputTokens: parseIntegerEnv(AI_STUDIO_CONFIG?.generationConfig?.maxOutputTokens, 2048)
+    providerDefaultTemperature: parseNumericEnv(
+      AI_STUDIO_CONFIG?.generationConfig?.temperature,
+      0.7
+    ),
+    providerDefaultMaxOutputTokens: parseIntegerEnv(
+      AI_STUDIO_CONFIG?.generationConfig?.maxOutputTokens,
+      2048
+    ),
   });
 
 const callAI = async (prompt, profileName = 'default') => {
@@ -1070,7 +1118,7 @@ const callAI = async (prompt, profileName = 'default') => {
         },
         {
           timeout: requestProfile.timeoutMs,
-          maxRetries: 0
+          maxRetries: 0,
         }
       );
       return response.choices?.[0]?.message?.content || '';
@@ -1090,19 +1138,18 @@ const callAI = async (prompt, profileName = 'default') => {
         buildModelConfig(GEMINI_MODEL_NAME, {
           temperature: requestProfile.temperature,
           maxOutputTokens: requestProfile.maxOutputTokens,
-          ...(requestProfile.responseMimeType ? { responseMimeType: requestProfile.responseMimeType } : {})
+          ...(requestProfile.responseMimeType
+            ? { responseMimeType: requestProfile.responseMimeType }
+            : {}),
         })
       )
     : geminiModel;
 
   try {
-    const result = await withTimeout(
-      () => geminiRequestModel.generateContent(prompt),
-      {
-        timeoutMs: requestProfile.timeoutMs,
-        message: `Gemini request timed out after ${requestProfile.timeoutMs}ms`
-      }
-    );
+    const result = await withTimeout(() => geminiRequestModel.generateContent(prompt), {
+      timeoutMs: requestProfile.timeoutMs,
+      message: `Gemini request timed out after ${requestProfile.timeoutMs}ms`,
+    });
     const response = result.response;
     return response.text();
   } catch (error) {
@@ -1128,13 +1175,15 @@ const createRoadmap = async (input) => {
         roadmap: enriched.roadmap,
         source: 'ai',
         model: AI_STUDIO_CONFIG.modelCandidates[0],
-        videoGuidance: enriched.videoGuidance
+        videoGuidance: enriched.videoGuidance,
       };
     } catch (error) {
       if (isQuotaError(error)) {
         console.warn('[AI] Quota exceeded, switching to fallback.');
       } else if (isAiTimeoutError(error)) {
-          console.warn(`[AI] Provider request timed out after ${error.timeoutMs || AI_PROVIDER_TIMEOUT_MS}ms, switching to fallback.`);
+        console.warn(
+          `[AI] Provider request timed out after ${error.timeoutMs || AI_PROVIDER_TIMEOUT_MS}ms, switching to fallback.`
+        );
       } else {
         console.error('[AI] Roadmap generation failed:', error.message);
       }
@@ -1149,7 +1198,7 @@ const createRoadmap = async (input) => {
       roadmap: enrichedFallback.roadmap,
       source: 'basic-engine',
       model: 'local-basic-engine',
-      videoGuidance: enrichedFallback.videoGuidance
+      videoGuidance: enrichedFallback.videoGuidance,
     };
   } catch (error) {
     console.error('Fallback roadmap generation failed:', error.message);
@@ -1158,7 +1207,7 @@ const createRoadmap = async (input) => {
       roadmap: fallbackRoadmap,
       source: 'basic-engine',
       model: 'local-basic-engine',
-      videoGuidance: null
+      videoGuidance: null,
     };
   }
 };
@@ -1170,7 +1219,9 @@ const buildFallbackChatResponse = ({ message, skillContext, learnerLevel, contex
   const currentStepTitle = sanitizeText(context?.currentStepTitle);
   const focusAreas = Array.isArray(context?.focusAreas) ? context.focusAreas : [];
   const focusLine =
-    focusAreas.length > 0 ? `Prioritize ${focusAreas.slice(0, 3).join(', ')}.` : 'Prioritize practical fundamentals first.';
+    focusAreas.length > 0
+      ? `Prioritize ${focusAreas.slice(0, 3).join(', ')}.`
+      : 'Prioritize practical fundamentals first.';
   const currentStepLine = currentStepTitle
     ? `Focus today on "${currentStepTitle}" before moving ahead.`
     : 'Focus on the next incomplete roadmap step before adding new topics.';
@@ -1179,7 +1230,7 @@ const buildFallbackChatResponse = ({ message, skillContext, learnerLevel, contex
     `Great question. For ${focusSkill} (${learnerLevel}), use a simple loop: Learn -> Build -> Review.`,
     `Start by spending 60% of your time on practical exercises and 40% on concepts. You are at about ${progress}% progress. ${currentStepLine}`,
     focusLine,
-    `Next action: pick one small project linked to "${cleanedMessage}" and finish it this week. Avoid jumping between too many tutorials before you ship one complete result.`
+    `Next action: pick one small project linked to "${cleanedMessage}" and finish it this week. Avoid jumping between too many tutorials before you ship one complete result.`,
   ].join(' ');
 };
 
@@ -1225,7 +1276,7 @@ const chat = async (req, res) => {
     if (!message) {
       return res.status(400).json({
         success: false,
-        message: 'Message is required'
+        message: 'Message is required',
       });
     }
 
@@ -1243,13 +1294,15 @@ const chat = async (req, res) => {
           response: responseText,
           source: 'ai',
           provider: AI_STUDIO_CONFIG.provider,
-          model: AI_STUDIO_CONFIG.modelCandidates[0]
+          model: AI_STUDIO_CONFIG.modelCandidates[0],
         });
       } catch (error) {
         if (isQuotaError(error)) {
           console.warn('[AI] Chat quota exceeded, using fallback.');
         } else if (isAiTimeoutError(error)) {
-          console.warn(`[AI] Chat provider request timed out after ${error.timeoutMs || AI_PROVIDER_TIMEOUT_MS}ms, using fallback.`);
+          console.warn(
+            `[AI] Chat provider request timed out after ${error.timeoutMs || AI_PROVIDER_TIMEOUT_MS}ms, using fallback.`
+          );
         } else {
           console.error('[AI] Chat failed:', error.message);
         }
@@ -1263,57 +1316,65 @@ const chat = async (req, res) => {
       response: buildFallbackChatResponse({ message, skillContext, learnerLevel, context }),
       source: 'basic-engine',
       provider: AI_STUDIO_CONFIG.provider,
-      model: 'local-basic-engine'
+      model: 'local-basic-engine',
     });
   } catch (error) {
     console.error('AI Chat error:', error);
     return res.status(500).json({
       success: false,
-      message: 'Failed to process chat request'
+      message: 'Failed to process chat request',
     });
   }
 };
 
 const buildFallbackStudySession = (input) => {
   const focusSkill = input.skill || 'your skill';
-  const goals = input.currentStepGoals.length > 0 ? input.currentStepGoals : [`Practice the current ${focusSkill} concept hands-on`];
+  const goals =
+    input.currentStepGoals.length > 0
+      ? input.currentStepGoals
+      : [`Practice the current ${focusSkill} concept hands-on`];
   const hasCurrentStep = Boolean(input.currentStepTitle);
   const introTaskMinutes = clamp(Math.round(input.availableMinutes * 0.2), 10, 40);
   const buildTaskMinutes = clamp(Math.round(input.availableMinutes * 0.55), 20, 140);
-  const reviewTaskMinutes = Math.max(10, input.availableMinutes - introTaskMinutes - buildTaskMinutes);
+  const reviewTaskMinutes = Math.max(
+    10,
+    input.availableMinutes - introTaskMinutes - buildTaskMinutes
+  );
 
   return {
     summary: `Use this ${input.availableMinutes}-minute study session to move your ${focusSkill} plan forward with one focused build cycle.`,
     tasks: [
       {
-        title: hasCurrentStep ? `Review: ${input.currentStepTitle}` : `Review core ${focusSkill} concepts`,
+        title: hasCurrentStep
+          ? `Review: ${input.currentStepTitle}`
+          : `Review core ${focusSkill} concepts`,
         minutes: introTaskMinutes,
         instructions: 'Read concise notes and define one objective for this session.',
-        output: 'A one-sentence session objective and checklist.'
+        output: 'A one-sentence session objective and checklist.',
       },
       {
         title: 'Build a practical exercise',
         minutes: buildTaskMinutes,
         instructions: `Work on one focused exercise tied to: ${goals.slice(0, 2).join(' | ')}.`,
-        output: 'A working example, draft, or solved exercise.'
+        output: 'A working example, draft, or solved exercise.',
       },
       {
         title: 'Reflect and plan next move',
         minutes: reviewTaskMinutes,
         instructions: 'Write what worked, what failed, and what to improve in the next session.',
-        output: 'Three bullet notes plus one blocker to solve next.'
-      }
+        output: 'Three bullet notes plus one blocker to solve next.',
+      },
     ],
     reflectionQuestions: [
       'What concept was easiest to apply and why?',
       'Where did you get stuck, and what resource can unblock it?',
-      'What single improvement will you test in the next session?'
+      'What single improvement will you test in the next session?',
     ],
     pitfalls: [
       'Consuming too much theory without practice output.',
       'Switching topics before finishing one scoped exercise.',
-      'Ending a session without documenting blockers and next steps.'
-    ]
+      'Ending a session without documenting blockers and next steps.',
+    ],
   };
 };
 
@@ -1327,9 +1388,16 @@ const normalizeStudySession = (raw, input) => {
           const safeTask = task && typeof task === 'object' ? task : {};
           return {
             title: sanitizeText(safeTask.title, `Task ${index + 1}`),
-            minutes: clamp(Number(safeTask.minutes) || Math.round(input.availableMinutes / 3), 5, input.availableMinutes),
-            instructions: sanitizeText(safeTask.instructions, 'Complete this task with focused work.'),
-            output: sanitizeText(safeTask.output, 'Record one concrete output from this task.')
+            minutes: clamp(
+              Number(safeTask.minutes) || Math.round(input.availableMinutes / 3),
+              5,
+              input.availableMinutes
+            ),
+            instructions: sanitizeText(
+              safeTask.instructions,
+              'Complete this task with focused work.'
+            ),
+            output: sanitizeText(safeTask.output, 'Record one concrete output from this task.'),
           };
         })
         .filter((task) => task.title && task.instructions)
@@ -1337,18 +1405,25 @@ const normalizeStudySession = (raw, input) => {
     : [];
 
   const reflectionQuestions = Array.isArray(safeRaw.reflectionQuestions)
-    ? safeRaw.reflectionQuestions.map((item) => sanitizeText(item)).filter(Boolean).slice(0, 5)
+    ? safeRaw.reflectionQuestions
+        .map((item) => sanitizeText(item))
+        .filter(Boolean)
+        .slice(0, 5)
     : [];
 
   const pitfalls = Array.isArray(safeRaw.pitfalls)
-    ? safeRaw.pitfalls.map((item) => sanitizeText(item)).filter(Boolean).slice(0, 5)
+    ? safeRaw.pitfalls
+        .map((item) => sanitizeText(item))
+        .filter(Boolean)
+        .slice(0, 5)
     : [];
 
   return {
     summary: sanitizeText(safeRaw.summary, fallback.summary),
     tasks: tasks.length > 0 ? tasks : fallback.tasks,
-    reflectionQuestions: reflectionQuestions.length > 0 ? reflectionQuestions : fallback.reflectionQuestions,
-    pitfalls: pitfalls.length > 0 ? pitfalls : fallback.pitfalls
+    reflectionQuestions:
+      reflectionQuestions.length > 0 ? reflectionQuestions : fallback.reflectionQuestions,
+    pitfalls: pitfalls.length > 0 ? pitfalls : fallback.pitfalls,
   };
 };
 
@@ -1356,7 +1431,9 @@ const buildStudySessionPrompt = (input) => {
   const focusAreasText =
     input.focusAreas.length > 0 ? input.focusAreas.join(', ') : 'General mastery and consistency';
   const goalsText =
-    input.currentStepGoals.length > 0 ? input.currentStepGoals.join(' | ') : 'No explicit goals provided';
+    input.currentStepGoals.length > 0
+      ? input.currentStepGoals.join(' | ')
+      : 'No explicit goals provided';
 
   return `
 You are CollabLearn's AI study coach.
@@ -1406,10 +1483,16 @@ const createStudySession = async (input) => {
       const parsedSession = parseJsonWithCleanup(responseText);
       const normalizedSession = normalizeStudySession(parsedSession, input);
       console.log('[AI] Study session generated successfully.');
-      return { session: normalizedSession, source: 'ai', model: AI_STUDIO_CONFIG.modelCandidates[0] };
+      return {
+        session: normalizedSession,
+        source: 'ai',
+        model: AI_STUDIO_CONFIG.modelCandidates[0],
+      };
     } catch (error) {
       if (isAiTimeoutError(error)) {
-        console.warn(`[AI] Study session provider request timed out after ${error.timeoutMs || AI_PROVIDER_TIMEOUT_MS}ms, using fallback.`);
+        console.warn(
+          `[AI] Study session provider request timed out after ${error.timeoutMs || AI_PROVIDER_TIMEOUT_MS}ms, using fallback.`
+        );
       } else {
         console.error('[AI] Study session failed, using fallback:', error.message);
       }
@@ -1418,10 +1501,18 @@ const createStudySession = async (input) => {
 
   // Fallback
   try {
-    return { session: buildFallbackStudySession(input), source: 'basic-engine', model: 'local-basic-engine' };
+    return {
+      session: buildFallbackStudySession(input),
+      source: 'basic-engine',
+      model: 'local-basic-engine',
+    };
   } catch (error) {
     console.error('Fallback study session generation failed:', error.message);
-    return { session: buildFallbackStudySession(input), source: 'basic-engine', model: 'local-basic-engine' };
+    return {
+      session: buildFallbackStudySession(input),
+      source: 'basic-engine',
+      model: 'local-basic-engine',
+    };
   }
 };
 
@@ -1431,7 +1522,7 @@ const generateStudySession = async (req, res) => {
     if (!input.skill) {
       return res.status(400).json({
         success: false,
-        message: 'Skill is required'
+        message: 'Skill is required',
       });
     }
 
@@ -1442,13 +1533,13 @@ const generateStudySession = async (req, res) => {
       session,
       source,
       provider: source === 'ai' ? AI_STUDIO_CONFIG.provider : 'fallback',
-      model
+      model,
     });
   } catch (error) {
     console.error('Generate study session error:', error);
     return res.status(500).json({
       success: false,
-      message: 'Failed to generate study session'
+      message: 'Failed to generate study session',
     });
   }
 };
@@ -1459,7 +1550,7 @@ const generateRoadmap = async (req, res) => {
     if (!input.skill) {
       return res.status(400).json({
         success: false,
-        message: 'Skill is required'
+        message: 'Skill is required',
       });
     }
 
@@ -1484,16 +1575,19 @@ const generateRoadmap = async (req, res) => {
           plan: roadmap,
           completedStepIndexes: [],
           progressPercentage: 0,
-          source: normalizedSource
+          source: normalizedSource,
         };
 
         if (requestedPlanId) {
-          const existingPlan = await LearningPlan.findOne({ _id: requestedPlanId, user: optionalUserId });
+          const existingPlan = await LearningPlan.findOne({
+            _id: requestedPlanId,
+            user: optionalUserId,
+          });
           if (existingPlan) {
             applyRoadmapToLearningPlan(existingPlan, {
               input,
               roadmap,
-              source: normalizedSource
+              source: normalizedSource,
             });
             await existingPlan.save();
             savedPlanId = existingPlan._id;
@@ -1517,13 +1611,13 @@ const generateRoadmap = async (req, res) => {
       provider: normalizedSource === 'ai' ? AI_STUDIO_CONFIG.provider : 'fallback',
       model,
       videoGuidance,
-      savedPlanId
+      savedPlanId,
     });
   } catch (error) {
     console.error('AI Roadmap error:', error);
     return res.status(500).json({
       success: false,
-      message: 'Failed to generate roadmap'
+      message: 'Failed to generate roadmap',
     });
   }
 };
@@ -1537,13 +1631,13 @@ const listLearningPlans = async (req, res) => {
 
     return res.json({
       success: true,
-      plans
+      plans,
     });
   } catch (error) {
     console.error('List learning plans error:', error);
     return res.status(500).json({
       success: false,
-      message: 'Failed to fetch learning plans'
+      message: 'Failed to fetch learning plans',
     });
   }
 };
@@ -1556,19 +1650,19 @@ const getLearningPlan = async (req, res) => {
     if (!plan) {
       return res.status(404).json({
         success: false,
-        message: 'Learning plan not found'
+        message: 'Learning plan not found',
       });
     }
 
     return res.json({
       success: true,
-      plan
+      plan,
     });
   } catch (error) {
     console.error('Get learning plan error:', error);
     return res.status(500).json({
       success: false,
-      message: 'Failed to fetch learning plan'
+      message: 'Failed to fetch learning plan',
     });
   }
 };
@@ -1584,7 +1678,7 @@ const updateLearningProgress = async (req, res) => {
     if (!plan) {
       return res.status(404).json({
         success: false,
-        message: 'Learning plan not found'
+        message: 'Learning plan not found',
       });
     }
 
@@ -1599,7 +1693,9 @@ const updateLearningProgress = async (req, res) => {
     ).sort((a, b) => a - b);
 
     const normalizedStepCount = Math.max(1, totalSteps);
-    const progressPercentage = Math.round((completedStepIndexes.length / normalizedStepCount) * 100);
+    const progressPercentage = Math.round(
+      (completedStepIndexes.length / normalizedStepCount) * 100
+    );
 
     plan.completedStepIndexes = completedStepIndexes;
     plan.progressPercentage = progressPercentage;
@@ -1611,13 +1707,13 @@ const updateLearningProgress = async (req, res) => {
       success: true,
       planId: plan._id,
       completedStepIndexes: plan.completedStepIndexes,
-      progressPercentage: plan.progressPercentage
+      progressPercentage: plan.progressPercentage,
     });
   } catch (error) {
     console.error('Update learning progress error:', error);
     return res.status(500).json({
       success: false,
-      message: 'Failed to update learning progress'
+      message: 'Failed to update learning progress',
     });
   }
 };
@@ -1629,14 +1725,14 @@ const getStudioStatus = async (_req, res) => {
     return res.json(
       buildStudioStatusPayload({
         publicConfig,
-        diagnostics: lastStudioDiagnostics
+        diagnostics: lastStudioDiagnostics,
       })
     );
   } catch (error) {
     console.error('Learning engine status error:', error);
     return res.status(500).json({
       success: false,
-      message: 'Failed to fetch learning engine status'
+      message: 'Failed to fetch learning engine status',
     });
   }
 };
@@ -1646,7 +1742,10 @@ const runStudioConnectionCheck = async () => {
 
   if (openaiClient || geminiModel) {
     try {
-      const resultText = await callAI('Say "AI is connected to CollabLearn" in exactly those words.', 'health-check');
+      const resultText = await callAI(
+        'Say "AI is connected to CollabLearn" in exactly those words.',
+        'health-check'
+      );
       const preview = resultText.slice(0, 200);
       const payload = {
         success: true,
@@ -1654,7 +1753,7 @@ const runStudioConnectionCheck = async () => {
         configured: true,
         model: AI_STUDIO_CONFIG.modelCandidates[0],
         latencyMs: Date.now() - startedAt,
-        preview
+        preview,
       };
 
       const diagnostics = createStudioDiagnostics(payload);
@@ -1666,11 +1765,11 @@ const runStudioConnectionCheck = async () => {
         liveReady: diagnostics.available,
         lastCheckedAt: diagnostics.checkedAt,
         quotaExceeded: diagnostics.quotaExceeded,
-        diagnostics
+        diagnostics,
       };
     } catch (error) {
       const isQuota = isQuotaError(error);
-      const friendlyError = isQuota 
+      const friendlyError = isQuota
         ? 'AI Quota Exceeded. Please try again in 1-2 minutes or check your billing account.'
         : error.message;
 
@@ -1681,7 +1780,7 @@ const runStudioConnectionCheck = async () => {
         model: AI_STUDIO_CONFIG.modelCandidates[0],
         latencyMs: Date.now() - startedAt,
         preview: `AI connection failed: ${friendlyError}`,
-        error: friendlyError
+        error: friendlyError,
       };
 
       const diagnostics = createStudioDiagnostics(payload);
@@ -1693,7 +1792,7 @@ const runStudioConnectionCheck = async () => {
         liveReady: diagnostics.available,
         lastCheckedAt: diagnostics.checkedAt,
         quotaExceeded: diagnostics.quotaExceeded,
-        diagnostics
+        diagnostics,
       };
     }
   }
@@ -1704,7 +1803,8 @@ const runStudioConnectionCheck = async () => {
     configured: true,
     model: 'local-basic-engine',
     latencyMs: Date.now() - startedAt,
-    preview: 'CollabLearn Local Engine connection is working. Set GEMINI_API_KEY for AI-powered responses.'
+    preview:
+      'CollabLearn Local Engine connection is working. Set GEMINI_API_KEY for AI-powered responses.',
   };
 
   const diagnostics = createStudioDiagnostics(payload);
@@ -1716,7 +1816,7 @@ const runStudioConnectionCheck = async () => {
     liveReady: diagnostics.available,
     lastCheckedAt: diagnostics.checkedAt,
     quotaExceeded: diagnostics.quotaExceeded,
-    diagnostics
+    diagnostics,
   };
 };
 
@@ -1725,25 +1825,34 @@ const testStudioConnection = async (_req, res) => {
   const httpStatus = resolveStudioHttpStatus(result.diagnostics);
   return res.json({
     ...result,
-    httpStatus
+    httpStatus,
   });
 };
 
 // --- Learning Studio Tool ---
 
 const STUDIO_TOOLS = [
-  'flashcards', 'quiz', 'mind-map', 'notes', 'summary-slides',
-  'audio-script', 'report', 'infographic-data', 'data-table'
+  'flashcards',
+  'quiz',
+  'mind-map',
+  'notes',
+  'summary-slides',
+  'audio-script',
+  'report',
+  'infographic-data',
+  'data-table',
 ];
 
 const normalizeStudioInput = (body = {}) => ({
-  tool: String(body.tool || '').trim().toLowerCase(),
+  tool: String(body.tool || '')
+    .trim()
+    .toLowerCase(),
   skill: sanitizeText(body.skill),
   learnerLevel: normalizeLevel(body.learnerLevel),
   roadmapSummary: sanitizeText(body.roadmapSummary),
   currentStepTitle: sanitizeText(body.currentStepTitle),
   currentStepDescription: sanitizeText(body.currentStepDescription),
-  focusAreas: normalizeFocusAreas(body.focusAreas)
+  focusAreas: normalizeFocusAreas(body.focusAreas),
 });
 
 const buildStudioContext = (input) => {
@@ -1752,127 +1861,358 @@ const buildStudioContext = (input) => {
 };
 
 const STUDIO_PROMPTS = {
-  flashcards: (ctx) => `You are a learning flashcard generator for CollabLearn.\n${ctx}\n\nGenerate 10 flashcards as JSON: { "cards": [{ "front": "question", "back": "answer" }] }. Cards should test key concepts, definitions, and practical knowledge. Return ONLY valid JSON.`,
+  flashcards: (ctx) =>
+    `You are a learning flashcard generator for CollabLearn.\n${ctx}\n\nGenerate 10 flashcards as JSON: { "cards": [{ "front": "question", "back": "answer" }] }. Cards should test key concepts, definitions, and practical knowledge. Return ONLY valid JSON.`,
 
-  quiz: (ctx) => `You are a quiz generator for CollabLearn.\n${ctx}\n\nGenerate 8 multiple-choice questions as JSON: { "questions": [{ "question": "string", "options": ["A","B","C","D"], "correctIndex": 0, "explanation": "string" }] }. Mix difficulty levels. Return ONLY valid JSON.`,
+  quiz: (ctx) =>
+    `You are a quiz generator for CollabLearn.\n${ctx}\n\nGenerate 8 multiple-choice questions as JSON: { "questions": [{ "question": "string", "options": ["A","B","C","D"], "correctIndex": 0, "explanation": "string" }] }. Mix difficulty levels. Return ONLY valid JSON.`,
 
-  'mind-map': (ctx) => `You are a mind map generator for CollabLearn.\n${ctx}\n\nGenerate a mind map as JSON: { "root": "string", "branches": [{ "label": "string", "children": [{ "label": "string" }] }] }. Create 4-6 main branches with 2-4 children each covering the key topics. Return ONLY valid JSON.`,
+  'mind-map': (ctx) =>
+    `You are a mind map generator for CollabLearn.\n${ctx}\n\nGenerate a mind map as JSON: { "root": "string", "branches": [{ "label": "string", "children": [{ "label": "string" }] }] }. Create 4-6 main branches with 2-4 children each covering the key topics. Return ONLY valid JSON.`,
 
-  notes: (ctx) => `You are a study notes generator for CollabLearn.\n${ctx}\n\nGenerate structured notes as JSON: { "title": "string", "sections": [{ "heading": "string", "bullets": ["string"] }] }. Create 4-6 sections covering key concepts, examples, and tips. Return ONLY valid JSON.`,
+  notes: (ctx) =>
+    `You are a study notes generator for CollabLearn.\n${ctx}\n\nGenerate structured notes as JSON: { "title": "string", "sections": [{ "heading": "string", "bullets": ["string"] }] }. Create 4-6 sections covering key concepts, examples, and tips. Return ONLY valid JSON.`,
 
-  'summary-slides': (ctx) => `You are a slide deck generator for CollabLearn.\n${ctx}\n\nGenerate 8 presentation slides as JSON: { "slides": [{ "title": "string", "body": "string", "footer": "string" }] }. Cover key concepts progressively. Return ONLY valid JSON.`,
+  'summary-slides': (ctx) =>
+    `You are a slide deck generator for CollabLearn.\n${ctx}\n\nGenerate 8 presentation slides as JSON: { "slides": [{ "title": "string", "body": "string", "footer": "string" }] }. Cover key concepts progressively. Return ONLY valid JSON.`,
 
-  'audio-script': (ctx) => `You are an audio overview script writer for CollabLearn.\n${ctx}\n\nGenerate a concise 2-3 minute audio overview script as JSON: { "title": "string", "duration": "2-3 min", "paragraphs": ["string"] }. Write 4-5 short conversational paragraphs. Return ONLY valid JSON.`,
+  'audio-script': (ctx) =>
+    `You are an audio overview script writer for CollabLearn.\n${ctx}\n\nGenerate a concise 2-3 minute audio overview script as JSON: { "title": "string", "duration": "2-3 min", "paragraphs": ["string"] }. Write 4-5 short conversational paragraphs. Return ONLY valid JSON.`,
 
-  report: (ctx) => `You are a learning report generator for CollabLearn.\n${ctx}\n\nGenerate a learning analysis report as JSON: { "title": "string", "executive_summary": "string", "sections": [{ "heading": "string", "content": "string" }], "recommendations": ["string"] }. Include 4-5 analytical sections. Return ONLY valid JSON.`,
+  report: (ctx) =>
+    `You are a learning report generator for CollabLearn.\n${ctx}\n\nGenerate a learning analysis report as JSON: { "title": "string", "executive_summary": "string", "sections": [{ "heading": "string", "content": "string" }], "recommendations": ["string"] }. Include 4-5 analytical sections. Return ONLY valid JSON.`,
 
-  'infographic-data': (ctx) => `You are an infographic data generator for CollabLearn.\n${ctx}\n\nGenerate key stats and facts for an infographic as JSON: { "title": "string", "stats": [{ "label": "string", "value": "string", "icon": "string" }], "facts": ["string"] }. Include 6-8 stats and 4-5 interesting facts. For icon use emoji. Return ONLY valid JSON.`,
+  'infographic-data': (ctx) =>
+    `You are an infographic data generator for CollabLearn.\n${ctx}\n\nGenerate key stats and facts for an infographic as JSON: { "title": "string", "stats": [{ "label": "string", "value": "string", "icon": "string" }], "facts": ["string"] }. Include 6-8 stats and 4-5 interesting facts. For icon use emoji. Return ONLY valid JSON.`,
 
-  'data-table': (ctx) => `You are a reference table generator for CollabLearn.\n${ctx}\n\nGenerate a comparison/reference table as JSON: { "title": "string", "columns": ["string"], "rows": [["string"]] }. Create 6-10 rows comparing key concepts, tools, or techniques. Return ONLY valid JSON.`
+  'data-table': (ctx) =>
+    `You are a reference table generator for CollabLearn.\n${ctx}\n\nGenerate a comparison/reference table as JSON: { "title": "string", "columns": ["string"], "rows": [["string"]] }. Create 6-10 rows comparing key concepts, tools, or techniques. Return ONLY valid JSON.`,
 };
 
 const STUDIO_FALLBACKS = {
   flashcards: (input) => ({
     cards: [
-      { front: `What is the primary purpose of ${input.skill}?`, back: `${input.skill} is a systematic approach to solving problems in its domain. It provides tools, patterns, and methodologies that enable practitioners to build reliable, maintainable solutions at scale.` },
-      { front: `Name three core principles of ${input.skill}.`, back: `1. Abstraction — hiding complexity behind clean interfaces.\n2. Composition — building complex systems from simple, reusable parts.\n3. Iteration — improving through continuous feedback and refinement.` },
-      { front: `What distinguishes a ${input.learnerLevel} practitioner from a beginner in ${input.skill}?`, back: `A ${input.learnerLevel} practitioner can independently apply core concepts, debug common issues without guidance, understand trade-offs between approaches, and produce work that follows established best practices.` },
-      { front: `What is the "80/20 rule" as applied to learning ${input.skill}?`, back: `About 20% of ${input.skill} concepts account for 80% of practical use cases. Focus on mastering these high-impact fundamentals before pursuing advanced or niche topics.` },
-      { front: `How do you evaluate the quality of a ${input.skill} solution?`, back: `Key criteria include: correctness (does it solve the problem?), maintainability (can others understand and modify it?), performance (does it meet efficiency requirements?), and scalability (will it handle growth?).` },
-      { front: `What is "technical debt" in the context of ${input.skill}?`, back: `Technical debt refers to shortcuts taken during development that create future work. It accumulates when quick fixes are chosen over proper solutions, leading to increased maintenance costs and reduced agility.` },
-      { front: `Explain the concept of "separation of concerns" in ${input.skill}.`, back: `Separation of concerns means organizing your work so that each component handles one specific responsibility. This makes systems easier to understand, test, modify, and debug independently.` },
-      { front: `Why is documentation important in ${input.skill}?`, back: `Documentation serves as a knowledge base for current and future team members. It reduces onboarding time by 60%, prevents knowledge silos, and provides context for decisions that code alone cannot convey.` },
-      { front: `What role does testing play in ${input.skill}?`, back: `Testing validates that solutions work correctly, catches regressions early, serves as living documentation, and gives developers confidence to refactor and improve existing work without breaking functionality.` },
-      { front: `What is the difference between "learning" and "practicing" ${input.skill}?`, back: `Learning involves consuming information (reading, watching). Practicing means actively applying knowledge — building projects, solving problems, and getting feedback. Research shows practice produces 3-5x better retention than passive learning.` },
-      { front: `How do version control systems support ${input.skill} workflows?`, back: `Version control (like Git) tracks changes over time, enables collaboration without conflicts, provides rollback capability, supports branching for parallel work, and maintains a complete audit trail of project evolution.` },
-      { front: `What is "code review" and why does it matter?`, back: `Code review is the practice of having peers examine your work before it's finalized. It catches bugs early, shares knowledge across teams, enforces coding standards, and typically improves code quality by 30-50%.` }
-    ]
+      {
+        front: `What is the primary purpose of ${input.skill}?`,
+        back: `${input.skill} is a systematic approach to solving problems in its domain. It provides tools, patterns, and methodologies that enable practitioners to build reliable, maintainable solutions at scale.`,
+      },
+      {
+        front: `Name three core principles of ${input.skill}.`,
+        back: `1. Abstraction — hiding complexity behind clean interfaces.\n2. Composition — building complex systems from simple, reusable parts.\n3. Iteration — improving through continuous feedback and refinement.`,
+      },
+      {
+        front: `What distinguishes a ${input.learnerLevel} practitioner from a beginner in ${input.skill}?`,
+        back: `A ${input.learnerLevel} practitioner can independently apply core concepts, debug common issues without guidance, understand trade-offs between approaches, and produce work that follows established best practices.`,
+      },
+      {
+        front: `What is the "80/20 rule" as applied to learning ${input.skill}?`,
+        back: `About 20% of ${input.skill} concepts account for 80% of practical use cases. Focus on mastering these high-impact fundamentals before pursuing advanced or niche topics.`,
+      },
+      {
+        front: `How do you evaluate the quality of a ${input.skill} solution?`,
+        back: `Key criteria include: correctness (does it solve the problem?), maintainability (can others understand and modify it?), performance (does it meet efficiency requirements?), and scalability (will it handle growth?).`,
+      },
+      {
+        front: `What is "technical debt" in the context of ${input.skill}?`,
+        back: `Technical debt refers to shortcuts taken during development that create future work. It accumulates when quick fixes are chosen over proper solutions, leading to increased maintenance costs and reduced agility.`,
+      },
+      {
+        front: `Explain the concept of "separation of concerns" in ${input.skill}.`,
+        back: `Separation of concerns means organizing your work so that each component handles one specific responsibility. This makes systems easier to understand, test, modify, and debug independently.`,
+      },
+      {
+        front: `Why is documentation important in ${input.skill}?`,
+        back: `Documentation serves as a knowledge base for current and future team members. It reduces onboarding time by 60%, prevents knowledge silos, and provides context for decisions that code alone cannot convey.`,
+      },
+      {
+        front: `What role does testing play in ${input.skill}?`,
+        back: `Testing validates that solutions work correctly, catches regressions early, serves as living documentation, and gives developers confidence to refactor and improve existing work without breaking functionality.`,
+      },
+      {
+        front: `What is the difference between "learning" and "practicing" ${input.skill}?`,
+        back: `Learning involves consuming information (reading, watching). Practicing means actively applying knowledge — building projects, solving problems, and getting feedback. Research shows practice produces 3-5x better retention than passive learning.`,
+      },
+      {
+        front: `How do version control systems support ${input.skill} workflows?`,
+        back: `Version control (like Git) tracks changes over time, enables collaboration without conflicts, provides rollback capability, supports branching for parallel work, and maintains a complete audit trail of project evolution.`,
+      },
+      {
+        front: `What is "code review" and why does it matter?`,
+        back: `Code review is the practice of having peers examine your work before it's finalized. It catches bugs early, shares knowledge across teams, enforces coding standards, and typically improves code quality by 30-50%.`,
+      },
+    ],
   }),
 
   quiz: (input) => ({
     questions: [
-      { question: `Which of the following best describes the primary goal of ${input.skill}?`, options: ['Building efficient and maintainable solutions', 'Memorizing syntax and rules', 'Using the most advanced tools available', 'Writing the shortest possible code'], correctIndex: 0, explanation: `The primary goal of ${input.skill} is to create solutions that are both efficient and maintainable. While syntax and tools are important, they serve the higher goal of building quality solutions.` },
-      { question: `In ${input.skill}, what does "DRY" stand for?`, options: ["Don't Repeat Yourself", 'Data Retrieval Yield', 'Dynamic Resource Yielding', 'Debug, Refactor, Yield'], correctIndex: 0, explanation: `DRY (Don't Repeat Yourself) is a fundamental principle that reduces duplication. When you find yourself copying code, it's a signal to abstract the repeated logic into a reusable component.` },
-      { question: `A ${input.learnerLevel}-level practitioner of ${input.skill} should be able to:`, options: ['Apply core patterns independently', 'Only follow tutorials step-by-step', 'Architect enterprise-scale systems', 'Teach advanced masterclasses'], correctIndex: 0, explanation: `At the ${input.learnerLevel} level, you should be able to apply core patterns independently, understand common pitfalls, and solve standard problems without constant guidance.` },
-      { question: `What is the most effective way to learn ${input.skill}?`, options: ['Build real projects and learn from mistakes', 'Read textbooks cover to cover', 'Watch video courses passively', 'Memorize all available documentation'], correctIndex: 0, explanation: `Research consistently shows that active practice — building real projects, making mistakes, and iterating — is 3-5x more effective than passive learning methods like reading or watching videos.` },
-      { question: 'Which approach is best for debugging a complex issue?', options: ['Isolate the problem, reproduce it, then fix systematically', 'Change random things until it works', 'Rewrite everything from scratch', 'Ignore it and hope it resolves itself'], correctIndex: 0, explanation: 'Systematic debugging involves isolating the issue, creating a minimal reproduction, understanding the root cause, and then applying a targeted fix. This approach is faster and more reliable than trial-and-error.' },
-      { question: `Why are design patterns important in ${input.skill}?`, options: ['They provide proven solutions to common problems', 'They make code look more professional', 'They are required by all employers', 'They always improve performance'], correctIndex: 0, explanation: 'Design patterns are tried-and-tested solutions to recurring problems. They provide a shared vocabulary for developers and help avoid reinventing the wheel. However, they should be applied judiciously, not forced onto every problem.' },
-      { question: 'What is the purpose of refactoring?', options: ['Improving code structure without changing behavior', 'Adding new features to existing code', 'Fixing bugs in production', 'Optimizing for maximum performance'], correctIndex: 0, explanation: 'Refactoring specifically means restructuring existing code to improve its readability, maintainability, or design — without altering its external behavior. It is a key practice for managing technical debt.' },
-      { question: `When working on a ${input.skill} project, which should you prioritize first?`, options: ['Understanding the problem clearly before coding', 'Writing code as fast as possible', 'Choosing the newest framework', 'Making the UI look perfect'], correctIndex: 0, explanation: 'Understanding the problem thoroughly before writing any code is the most important step. A well-understood problem leads to cleaner architecture, fewer rewrites, and faster overall delivery.' }
-    ]
+      {
+        question: `Which of the following best describes the primary goal of ${input.skill}?`,
+        options: [
+          'Building efficient and maintainable solutions',
+          'Memorizing syntax and rules',
+          'Using the most advanced tools available',
+          'Writing the shortest possible code',
+        ],
+        correctIndex: 0,
+        explanation: `The primary goal of ${input.skill} is to create solutions that are both efficient and maintainable. While syntax and tools are important, they serve the higher goal of building quality solutions.`,
+      },
+      {
+        question: `In ${input.skill}, what does "DRY" stand for?`,
+        options: [
+          "Don't Repeat Yourself",
+          'Data Retrieval Yield',
+          'Dynamic Resource Yielding',
+          'Debug, Refactor, Yield',
+        ],
+        correctIndex: 0,
+        explanation: `DRY (Don't Repeat Yourself) is a fundamental principle that reduces duplication. When you find yourself copying code, it's a signal to abstract the repeated logic into a reusable component.`,
+      },
+      {
+        question: `A ${input.learnerLevel}-level practitioner of ${input.skill} should be able to:`,
+        options: [
+          'Apply core patterns independently',
+          'Only follow tutorials step-by-step',
+          'Architect enterprise-scale systems',
+          'Teach advanced masterclasses',
+        ],
+        correctIndex: 0,
+        explanation: `At the ${input.learnerLevel} level, you should be able to apply core patterns independently, understand common pitfalls, and solve standard problems without constant guidance.`,
+      },
+      {
+        question: `What is the most effective way to learn ${input.skill}?`,
+        options: [
+          'Build real projects and learn from mistakes',
+          'Read textbooks cover to cover',
+          'Watch video courses passively',
+          'Memorize all available documentation',
+        ],
+        correctIndex: 0,
+        explanation: `Research consistently shows that active practice — building real projects, making mistakes, and iterating — is 3-5x more effective than passive learning methods like reading or watching videos.`,
+      },
+      {
+        question: 'Which approach is best for debugging a complex issue?',
+        options: [
+          'Isolate the problem, reproduce it, then fix systematically',
+          'Change random things until it works',
+          'Rewrite everything from scratch',
+          'Ignore it and hope it resolves itself',
+        ],
+        correctIndex: 0,
+        explanation:
+          'Systematic debugging involves isolating the issue, creating a minimal reproduction, understanding the root cause, and then applying a targeted fix. This approach is faster and more reliable than trial-and-error.',
+      },
+      {
+        question: `Why are design patterns important in ${input.skill}?`,
+        options: [
+          'They provide proven solutions to common problems',
+          'They make code look more professional',
+          'They are required by all employers',
+          'They always improve performance',
+        ],
+        correctIndex: 0,
+        explanation:
+          'Design patterns are tried-and-tested solutions to recurring problems. They provide a shared vocabulary for developers and help avoid reinventing the wheel. However, they should be applied judiciously, not forced onto every problem.',
+      },
+      {
+        question: 'What is the purpose of refactoring?',
+        options: [
+          'Improving code structure without changing behavior',
+          'Adding new features to existing code',
+          'Fixing bugs in production',
+          'Optimizing for maximum performance',
+        ],
+        correctIndex: 0,
+        explanation:
+          'Refactoring specifically means restructuring existing code to improve its readability, maintainability, or design — without altering its external behavior. It is a key practice for managing technical debt.',
+      },
+      {
+        question: `When working on a ${input.skill} project, which should you prioritize first?`,
+        options: [
+          'Understanding the problem clearly before coding',
+          'Writing code as fast as possible',
+          'Choosing the newest framework',
+          'Making the UI look perfect',
+        ],
+        correctIndex: 0,
+        explanation:
+          'Understanding the problem thoroughly before writing any code is the most important step. A well-understood problem leads to cleaner architecture, fewer rewrites, and faster overall delivery.',
+      },
+    ],
   }),
 
   'mind-map': (input) => ({
     root: input.skill,
     branches: [
-      { label: 'Core Concepts', children: [{ label: 'Fundamental principles' }, { label: 'Key terminology' }, { label: 'Mental models' }, { label: 'Common patterns' }] },
-      { label: 'Tools & Environment', children: [{ label: 'Development setup' }, { label: 'Essential tools' }, { label: 'Version control' }, { label: 'Package management' }] },
-      { label: 'Best Practices', children: [{ label: 'Code organization' }, { label: 'Testing strategies' }, { label: 'Documentation' }, { label: 'Performance optimization' }] },
-      { label: 'Problem Solving', children: [{ label: 'Debugging techniques' }, { label: 'Error handling' }, { label: 'Edge case analysis' }, { label: 'Systematic approach' }] },
-      { label: 'Projects & Portfolio', children: [{ label: 'Starter projects' }, { label: 'Real-world applications' }, { label: 'Open source contributions' }, { label: 'Portfolio building' }] },
-      { label: 'Community & Growth', children: [{ label: 'Online communities' }, { label: 'Conferences & meetups' }, { label: 'Mentorship' }, { label: 'Continuous learning' }] }
-    ]
+      {
+        label: 'Core Concepts',
+        children: [
+          { label: 'Fundamental principles' },
+          { label: 'Key terminology' },
+          { label: 'Mental models' },
+          { label: 'Common patterns' },
+        ],
+      },
+      {
+        label: 'Tools & Environment',
+        children: [
+          { label: 'Development setup' },
+          { label: 'Essential tools' },
+          { label: 'Version control' },
+          { label: 'Package management' },
+        ],
+      },
+      {
+        label: 'Best Practices',
+        children: [
+          { label: 'Code organization' },
+          { label: 'Testing strategies' },
+          { label: 'Documentation' },
+          { label: 'Performance optimization' },
+        ],
+      },
+      {
+        label: 'Problem Solving',
+        children: [
+          { label: 'Debugging techniques' },
+          { label: 'Error handling' },
+          { label: 'Edge case analysis' },
+          { label: 'Systematic approach' },
+        ],
+      },
+      {
+        label: 'Projects & Portfolio',
+        children: [
+          { label: 'Starter projects' },
+          { label: 'Real-world applications' },
+          { label: 'Open source contributions' },
+          { label: 'Portfolio building' },
+        ],
+      },
+      {
+        label: 'Community & Growth',
+        children: [
+          { label: 'Online communities' },
+          { label: 'Conferences & meetups' },
+          { label: 'Mentorship' },
+          { label: 'Continuous learning' },
+        ],
+      },
+    ],
   }),
 
   notes: (input) => ({
     title: `${input.skill} — Comprehensive Study Notes`,
     sections: [
-      { heading: 'Key Concepts & Definitions', bullets: [
-        `${input.skill} is built on a foundation of core principles that guide all decision-making`,
-        'Abstraction: Hiding complexity behind simple interfaces to manage cognitive load',
-        'Composition: Building complex systems from smaller, well-defined, reusable components',
-        'Encapsulation: Bundling data and methods together while restricting direct access',
-        'Separation of Concerns: Each module should handle exactly one responsibility'
-      ]},
-      { heading: 'Current Learning Phase', bullets: [
-        `Currently at ${input.learnerLevel} level — focus on applying concepts independently`,
-        input.currentStepTitle ? `Active step: ${input.currentStepTitle} — ${input.currentStepDescription || 'Complete all exercises'}` : 'Follow your roadmap step-by-step for structured progress',
-        'Goal: Build proof-of-work outputs (solved exercises, mini projects, reflections)',
-        'Track your progress daily — consistency beats intensity for long-term retention'
-      ]},
-      { heading: 'Common Patterns & Anti-Patterns', bullets: [
-        '✅ DO: Write self-documenting code with clear names and logical structure',
-        '✅ DO: Test early and often — each test is an investment in future stability',
-        '✅ DO: Refactor regularly to keep code maintainable as requirements evolve',
-        '❌ AVOID: Premature optimization — make it work, then make it fast',
-        '❌ AVOID: Copy-pasting solutions you don\'t understand — always learn why it works',
-        '❌ AVOID: Skipping error handling — robust systems anticipate and handle failures gracefully'
-      ]},
-      { heading: 'Debugging Strategies', bullets: [
-        'Read the error message carefully — it usually points to the exact issue',
-        'Reproduce the bug consistently before attempting a fix',
-        'Use print/log statements or a debugger to trace execution flow',
-        'Binary search: Comment out half the code to narrow down the problem area',
-        'Rubber duck debugging: Explain the problem out loud to clarify your thinking'
-      ]},
-      { heading: 'Practice Recommendations', bullets: [
-        'Dedicate 25-minute focused sessions (Pomodoro technique) for deep practice',
-        'Build one mini-project per week that applies current concepts',
-        'Review and refactor your previous work with fresh eyes weekly',
-        'Join a study group or community for accountability and peer learning',
-        'Document your "aha moments" and common mistakes in a personal knowledge base'
-      ]},
-      { heading: 'Resources & Next Steps', bullets: [
-        'Official documentation is always the most authoritative reference',
-        'Interactive coding platforms (exercises, challenges) for hands-on practice',
-        'Video tutorials for visual/conceptual learning, then apply immediately',
-        'Open-source projects for real-world code reading and contribution practice',
-        'Set a 90-day skill milestone and review your progress at checkpoints'
-      ]}
-    ]
+      {
+        heading: 'Key Concepts & Definitions',
+        bullets: [
+          `${input.skill} is built on a foundation of core principles that guide all decision-making`,
+          'Abstraction: Hiding complexity behind simple interfaces to manage cognitive load',
+          'Composition: Building complex systems from smaller, well-defined, reusable components',
+          'Encapsulation: Bundling data and methods together while restricting direct access',
+          'Separation of Concerns: Each module should handle exactly one responsibility',
+        ],
+      },
+      {
+        heading: 'Current Learning Phase',
+        bullets: [
+          `Currently at ${input.learnerLevel} level — focus on applying concepts independently`,
+          input.currentStepTitle
+            ? `Active step: ${input.currentStepTitle} — ${input.currentStepDescription || 'Complete all exercises'}`
+            : 'Follow your roadmap step-by-step for structured progress',
+          'Goal: Build proof-of-work outputs (solved exercises, mini projects, reflections)',
+          'Track your progress daily — consistency beats intensity for long-term retention',
+        ],
+      },
+      {
+        heading: 'Common Patterns & Anti-Patterns',
+        bullets: [
+          '✅ DO: Write self-documenting code with clear names and logical structure',
+          '✅ DO: Test early and often — each test is an investment in future stability',
+          '✅ DO: Refactor regularly to keep code maintainable as requirements evolve',
+          '❌ AVOID: Premature optimization — make it work, then make it fast',
+          "❌ AVOID: Copy-pasting solutions you don't understand — always learn why it works",
+          '❌ AVOID: Skipping error handling — robust systems anticipate and handle failures gracefully',
+        ],
+      },
+      {
+        heading: 'Debugging Strategies',
+        bullets: [
+          'Read the error message carefully — it usually points to the exact issue',
+          'Reproduce the bug consistently before attempting a fix',
+          'Use print/log statements or a debugger to trace execution flow',
+          'Binary search: Comment out half the code to narrow down the problem area',
+          'Rubber duck debugging: Explain the problem out loud to clarify your thinking',
+        ],
+      },
+      {
+        heading: 'Practice Recommendations',
+        bullets: [
+          'Dedicate 25-minute focused sessions (Pomodoro technique) for deep practice',
+          'Build one mini-project per week that applies current concepts',
+          'Review and refactor your previous work with fresh eyes weekly',
+          'Join a study group or community for accountability and peer learning',
+          'Document your "aha moments" and common mistakes in a personal knowledge base',
+        ],
+      },
+      {
+        heading: 'Resources & Next Steps',
+        bullets: [
+          'Official documentation is always the most authoritative reference',
+          'Interactive coding platforms (exercises, challenges) for hands-on practice',
+          'Video tutorials for visual/conceptual learning, then apply immediately',
+          'Open-source projects for real-world code reading and contribution practice',
+          'Set a 90-day skill milestone and review your progress at checkpoints',
+        ],
+      },
+    ],
   }),
 
   'summary-slides': (input) => ({
     slides: [
-      { title: `Mastering ${input.skill}`, body: `A ${input.learnerLevel}-level learning journey designed to build practical, demonstrable competence through structured practice and real-world application.`, footer: 'Slide 1 of 8' },
-      { title: 'Learning Philosophy', body: 'Learn by doing. Every concept should be reinforced with hands-on practice. Build small, functional projects rather than consuming passive content. Document your journey for future reference.', footer: 'Slide 2 of 8' },
-      { title: 'Core Fundamentals', body: `The foundation of ${input.skill} rests on three pillars:\n\n1. Understanding core abstractions and mental models\n2. Mastering the tools and development environment\n3. Applying best practices consistently in every project`, footer: 'Slide 3 of 8' },
-      { title: 'Current Focus Area', body: input.currentStepTitle ? `${input.currentStepTitle}\n\n${input.currentStepDescription || 'Complete all practice tasks before moving to the next phase. Quality over speed.'}` : `Focus on building strong fundamentals at the ${input.learnerLevel} level. Each concept builds on the previous one.`, footer: 'Slide 4 of 8' },
-      { title: 'Practice Strategy', body: '• Week 1-2: Follow guided tutorials and reproduce examples\n• Week 3-4: Modify examples and solve practice challenges\n• Week 5-6: Build original mini-projects from scratch\n• Week 7-8: Contribute to real projects or build portfolio pieces', footer: 'Slide 5 of 8' },
-      { title: 'Common Pitfalls to Avoid', body: '⚠️ Tutorial hell — watching without building\n⚠️ Perfectionism — shipping beats perfection\n⚠️ Isolation — learn with others for 90% better retention\n⚠️ Skipping fundamentals — shortcuts create knowledge gaps', footer: 'Slide 6 of 8' },
-      { title: 'Measuring Progress', body: 'Track your growth with tangible outputs:\n\n✅ Projects completed and deployed\n✅ Problems solved independently\n✅ Concepts you can explain to others\n✅ Code reviews given and received\n✅ Your growing portfolio', footer: 'Slide 7 of 8' },
-      { title: 'Next Steps', body: `Continue your ${input.skill} roadmap with AI-guided study sessions. Generate flashcards for retention, take quizzes to test understanding, and use the Mind Map to see the big picture.\n\nRemember: Consistency beats intensity. 30 minutes daily > 8 hours on weekends.`, footer: 'Slide 8 of 8' }
-    ]
+      {
+        title: `Mastering ${input.skill}`,
+        body: `A ${input.learnerLevel}-level learning journey designed to build practical, demonstrable competence through structured practice and real-world application.`,
+        footer: 'Slide 1 of 8',
+      },
+      {
+        title: 'Learning Philosophy',
+        body: 'Learn by doing. Every concept should be reinforced with hands-on practice. Build small, functional projects rather than consuming passive content. Document your journey for future reference.',
+        footer: 'Slide 2 of 8',
+      },
+      {
+        title: 'Core Fundamentals',
+        body: `The foundation of ${input.skill} rests on three pillars:\n\n1. Understanding core abstractions and mental models\n2. Mastering the tools and development environment\n3. Applying best practices consistently in every project`,
+        footer: 'Slide 3 of 8',
+      },
+      {
+        title: 'Current Focus Area',
+        body: input.currentStepTitle
+          ? `${input.currentStepTitle}\n\n${input.currentStepDescription || 'Complete all practice tasks before moving to the next phase. Quality over speed.'}`
+          : `Focus on building strong fundamentals at the ${input.learnerLevel} level. Each concept builds on the previous one.`,
+        footer: 'Slide 4 of 8',
+      },
+      {
+        title: 'Practice Strategy',
+        body: '• Week 1-2: Follow guided tutorials and reproduce examples\n• Week 3-4: Modify examples and solve practice challenges\n• Week 5-6: Build original mini-projects from scratch\n• Week 7-8: Contribute to real projects or build portfolio pieces',
+        footer: 'Slide 5 of 8',
+      },
+      {
+        title: 'Common Pitfalls to Avoid',
+        body: '⚠️ Tutorial hell — watching without building\n⚠️ Perfectionism — shipping beats perfection\n⚠️ Isolation — learn with others for 90% better retention\n⚠️ Skipping fundamentals — shortcuts create knowledge gaps',
+        footer: 'Slide 6 of 8',
+      },
+      {
+        title: 'Measuring Progress',
+        body: 'Track your growth with tangible outputs:\n\n✅ Projects completed and deployed\n✅ Problems solved independently\n✅ Concepts you can explain to others\n✅ Code reviews given and received\n✅ Your growing portfolio',
+        footer: 'Slide 7 of 8',
+      },
+      {
+        title: 'Next Steps',
+        body: `Continue your ${input.skill} roadmap with AI-guided study sessions. Generate flashcards for retention, take quizzes to test understanding, and use the Mind Map to see the big picture.\n\nRemember: Consistency beats intensity. 30 minutes daily > 8 hours on weekends.`,
+        footer: 'Slide 8 of 8',
+      },
+    ],
   }),
 
   'audio-script': (input) => ({
@@ -1896,19 +2236,34 @@ const STUDIO_FALLBACKS = {
       input.focusAreas.length > 0
         ? `Focus areas: ${input.focusAreas.join(', ')}. Start with the first item and keep the rest in reserve.`
         : 'Stick to the highest-value concept in each session and avoid bouncing between topics.',
-      'Close each session by shipping one artifact: notes, a solved exercise, or a working draft.'
-    ]
+      'Close each session by shipping one artifact: notes, a solved exercise, or a working draft.',
+    ],
   }),
 
   report: (input) => ({
     title: `${input.skill} — Learning Progress Report`,
     executive_summary: `This report analyzes your ${input.skill} learning trajectory at the ${input.learnerLevel} level. ${input.roadmapSummary || `The assessment covers your current standing, skill gaps, and personalized recommendations for accelerated growth.`} Your structured approach through the CollabLearn platform positions you well for measurable progress.`,
     sections: [
-      { heading: 'Current Skill Assessment', content: `You are currently at the ${input.learnerLevel} level in ${input.skill}. ${input.currentStepTitle ? `Your active learning focus is "${input.currentStepTitle}" which involves ${input.currentStepDescription || 'building practical skills through hands-on exercises and real-world application'}.` : 'Based on your roadmap progression, you are building a solid foundation of core concepts that will support advanced learning.'} At this stage, the emphasis should be on consistent practice and building a portfolio of completed projects.` },
-      { heading: 'Strengths Identified', content: `Engaging with structured learning through CollabLearn demonstrates strong self-directed learning ability and commitment to growth. Your focus areas ${input.focusAreas.length > 0 ? '(' + input.focusAreas.join(', ') + ')' : ''} show strategic topic selection. The combination of AI-guided roadmaps and interactive study tools creates an effective multi-modal learning environment that leverages spaced repetition and active recall.` },
-      { heading: 'Areas for Improvement', content: `Based on your ${input.learnerLevel} level, key areas for growth include: deepening your understanding of core abstractions and design patterns, building confidence in debugging and problem-solving without external guidance, developing the ability to evaluate trade-offs between different approaches, and transitioning from following tutorials to independently designing and implementing solutions.` },
-      { heading: 'Learning Velocity Analysis', content: `Optimal learning at the ${input.learnerLevel} level typically requires 15-20 hours per week of focused practice. Studies show that distributed practice (daily sessions of 1-2 hours) produces 40% better retention than massed practice (weekend marathons). Track your daily practice time and aim for consistency over intensity.` },
-      { heading: 'Comparative Benchmarks', content: `Learners at the ${input.learnerLevel} level in ${input.skill} typically reach proficiency milestones within 3-6 months of consistent practice. Top performers share these habits: they build projects weekly, contribute to open source, participate in community discussions, and regularly review and refactor their previous work. Your use of AI-powered study tools gives you an advantage in efficient knowledge acquisition.` }
+      {
+        heading: 'Current Skill Assessment',
+        content: `You are currently at the ${input.learnerLevel} level in ${input.skill}. ${input.currentStepTitle ? `Your active learning focus is "${input.currentStepTitle}" which involves ${input.currentStepDescription || 'building practical skills through hands-on exercises and real-world application'}.` : 'Based on your roadmap progression, you are building a solid foundation of core concepts that will support advanced learning.'} At this stage, the emphasis should be on consistent practice and building a portfolio of completed projects.`,
+      },
+      {
+        heading: 'Strengths Identified',
+        content: `Engaging with structured learning through CollabLearn demonstrates strong self-directed learning ability and commitment to growth. Your focus areas ${input.focusAreas.length > 0 ? '(' + input.focusAreas.join(', ') + ')' : ''} show strategic topic selection. The combination of AI-guided roadmaps and interactive study tools creates an effective multi-modal learning environment that leverages spaced repetition and active recall.`,
+      },
+      {
+        heading: 'Areas for Improvement',
+        content: `Based on your ${input.learnerLevel} level, key areas for growth include: deepening your understanding of core abstractions and design patterns, building confidence in debugging and problem-solving without external guidance, developing the ability to evaluate trade-offs between different approaches, and transitioning from following tutorials to independently designing and implementing solutions.`,
+      },
+      {
+        heading: 'Learning Velocity Analysis',
+        content: `Optimal learning at the ${input.learnerLevel} level typically requires 15-20 hours per week of focused practice. Studies show that distributed practice (daily sessions of 1-2 hours) produces 40% better retention than massed practice (weekend marathons). Track your daily practice time and aim for consistency over intensity.`,
+      },
+      {
+        heading: 'Comparative Benchmarks',
+        content: `Learners at the ${input.learnerLevel} level in ${input.skill} typically reach proficiency milestones within 3-6 months of consistent practice. Top performers share these habits: they build projects weekly, contribute to open source, participate in community discussions, and regularly review and refactor their previous work. Your use of AI-powered study tools gives you an advantage in efficient knowledge acquisition.`,
+      },
     ],
     recommendations: [
       'Complete your current roadmap step with at least one concrete deliverable (project, exercise set, or written reflection)',
@@ -1916,8 +2271,8 @@ const STUDIO_FALLBACKS = {
       'Build one original mini-project per week that applies concepts from your current learning phase',
       'Schedule a weekly "refactor session" to improve code from previous weeks — this deepens understanding significantly',
       'Join at least one online community related to your skill and participate in discussions 2-3 times per week',
-      'Set a 30-day milestone goal and track progress with specific, measurable outcomes'
-    ]
+      'Set a 30-day milestone goal and track progress with specific, measurable outcomes',
+    ],
   }),
 
   'infographic-data': (input) => ({
@@ -1930,7 +2285,7 @@ const STUDIO_FALLBACKS = {
       { label: 'Optimal Study', value: '25 min/session', icon: '⏱️' },
       { label: 'Weekly Target', value: '5 projects', icon: '🏗️' },
       { label: 'Retention Method', value: 'Spaced Repetition', icon: '🧠' },
-      { label: 'Practice Style', value: 'Learn → Build → Review', icon: '🔄' }
+      { label: 'Practice Style', value: 'Learn → Build → Review', icon: '🔄' },
     ],
     facts: [
       'Active practice produces 3-5x better retention than passive reading',
@@ -1939,49 +2294,160 @@ const STUDIO_FALLBACKS = {
       'Daily 30-minute sessions outperform weekly 4-hour marathons by 40%',
       'Developers who write tests find 60% fewer bugs in production code',
       'Code review participation improves code quality by 30-50% on average',
-      'Building projects is the #1 way employers evaluate technical candidates'
-    ]
+      'Building projects is the #1 way employers evaluate technical candidates',
+    ],
   }),
 
   'data-table': (input) => ({
     title: `${input.skill} — Learning Reference Guide`,
     columns: ['Topic', 'Description', 'Level', 'Priority', 'Time Estimate', 'Output'],
     rows: [
-      ['Core Fundamentals', `Essential ${input.skill} building blocks and mental models`, 'Beginner', '🔴 Critical', '2-3 weeks', 'Notes & exercises'],
-      ['Development Environment', 'Setting up tools, IDE, and workflow', 'Beginner', '🔴 Critical', '1-2 days', 'Working setup'],
-      ['Best Practices', 'Code organization, naming, and structure', 'Beginner', '🟠 High', '1-2 weeks', 'Style guide'],
-      ['Problem Solving', 'Debugging techniques and systematic thinking', 'Intermediate', '🟠 High', '2-3 weeks', 'Solved challenges'],
-      ['Design Patterns', `Common ${input.skill} patterns and when to use them`, 'Intermediate', '🟡 Medium', '3-4 weeks', 'Pattern examples'],
-      ['Testing & QA', 'Unit tests, integration tests, and TDD basics', 'Intermediate', '🟠 High', '2-3 weeks', 'Test suite'],
-      ['Performance', 'Optimization, profiling, and efficiency', 'Advanced', '🟡 Medium', '2-3 weeks', 'Benchmarks'],
-      ['Architecture', 'System design and scalability patterns', 'Advanced', '🟡 Medium', '4-6 weeks', 'Design docs'],
-      ['Open Source', 'Reading, contributing to, and maintaining projects', 'Advanced', '🟢 Growth', 'Ongoing', 'Contributions'],
-      ['Portfolio Projects', `Real-world ${input.skill} applications for your portfolio`, 'All Levels', '🔴 Critical', 'Ongoing', 'Deployed projects']
-    ]
-  })
+      [
+        'Core Fundamentals',
+        `Essential ${input.skill} building blocks and mental models`,
+        'Beginner',
+        '🔴 Critical',
+        '2-3 weeks',
+        'Notes & exercises',
+      ],
+      [
+        'Development Environment',
+        'Setting up tools, IDE, and workflow',
+        'Beginner',
+        '🔴 Critical',
+        '1-2 days',
+        'Working setup',
+      ],
+      [
+        'Best Practices',
+        'Code organization, naming, and structure',
+        'Beginner',
+        '🟠 High',
+        '1-2 weeks',
+        'Style guide',
+      ],
+      [
+        'Problem Solving',
+        'Debugging techniques and systematic thinking',
+        'Intermediate',
+        '🟠 High',
+        '2-3 weeks',
+        'Solved challenges',
+      ],
+      [
+        'Design Patterns',
+        `Common ${input.skill} patterns and when to use them`,
+        'Intermediate',
+        '🟡 Medium',
+        '3-4 weeks',
+        'Pattern examples',
+      ],
+      [
+        'Testing & QA',
+        'Unit tests, integration tests, and TDD basics',
+        'Intermediate',
+        '🟠 High',
+        '2-3 weeks',
+        'Test suite',
+      ],
+      [
+        'Performance',
+        'Optimization, profiling, and efficiency',
+        'Advanced',
+        '🟡 Medium',
+        '2-3 weeks',
+        'Benchmarks',
+      ],
+      [
+        'Architecture',
+        'System design and scalability patterns',
+        'Advanced',
+        '🟡 Medium',
+        '4-6 weeks',
+        'Design docs',
+      ],
+      [
+        'Open Source',
+        'Reading, contributing to, and maintaining projects',
+        'Advanced',
+        '🟢 Growth',
+        'Ongoing',
+        'Contributions',
+      ],
+      [
+        'Portfolio Projects',
+        `Real-world ${input.skill} applications for your portfolio`,
+        'All Levels',
+        '🔴 Critical',
+        'Ongoing',
+        'Deployed projects',
+      ],
+    ],
+  }),
 };
 
 const normalizeStudioResult = (raw, tool) => {
   const safeRaw = raw && typeof raw === 'object' ? raw : {};
   switch (tool) {
     case 'flashcards':
-      return { cards: Array.isArray(safeRaw.cards) ? safeRaw.cards.filter(c => c && c.front && c.back).slice(0, 15) : [] };
+      return {
+        cards: Array.isArray(safeRaw.cards)
+          ? safeRaw.cards.filter((c) => c && c.front && c.back).slice(0, 15)
+          : [],
+      };
     case 'quiz':
-      return { questions: Array.isArray(safeRaw.questions) ? safeRaw.questions.filter(q => q && q.question && Array.isArray(q.options)).slice(0, 12) : [] };
+      return {
+        questions: Array.isArray(safeRaw.questions)
+          ? safeRaw.questions
+              .filter((q) => q && q.question && Array.isArray(q.options))
+              .slice(0, 12)
+          : [],
+      };
     case 'mind-map':
-      return { root: sanitizeText(safeRaw.root, 'Topic'), branches: Array.isArray(safeRaw.branches) ? safeRaw.branches.slice(0, 8) : [] };
+      return {
+        root: sanitizeText(safeRaw.root, 'Topic'),
+        branches: Array.isArray(safeRaw.branches) ? safeRaw.branches.slice(0, 8) : [],
+      };
     case 'notes':
-      return { title: sanitizeText(safeRaw.title, 'Study Notes'), sections: Array.isArray(safeRaw.sections) ? safeRaw.sections.slice(0, 8) : [] };
+      return {
+        title: sanitizeText(safeRaw.title, 'Study Notes'),
+        sections: Array.isArray(safeRaw.sections) ? safeRaw.sections.slice(0, 8) : [],
+      };
     case 'summary-slides':
-      return { slides: Array.isArray(safeRaw.slides) ? safeRaw.slides.filter(s => s && s.title).slice(0, 12) : [] };
+      return {
+        slides: Array.isArray(safeRaw.slides)
+          ? safeRaw.slides.filter((s) => s && s.title).slice(0, 12)
+          : [],
+      };
     case 'audio-script':
-      return { title: sanitizeText(safeRaw.title, 'Audio Overview'), duration: sanitizeText(safeRaw.duration, '3 min'), paragraphs: Array.isArray(safeRaw.paragraphs) ? safeRaw.paragraphs.filter(Boolean).slice(0, 10) : [] };
+      return {
+        title: sanitizeText(safeRaw.title, 'Audio Overview'),
+        duration: sanitizeText(safeRaw.duration, '3 min'),
+        paragraphs: Array.isArray(safeRaw.paragraphs)
+          ? safeRaw.paragraphs.filter(Boolean).slice(0, 10)
+          : [],
+      };
     case 'report':
-      return { title: sanitizeText(safeRaw.title, 'Report'), executive_summary: sanitizeText(safeRaw.executive_summary), sections: Array.isArray(safeRaw.sections) ? safeRaw.sections.slice(0, 8) : [], recommendations: Array.isArray(safeRaw.recommendations) ? safeRaw.recommendations.slice(0, 6) : [] };
+      return {
+        title: sanitizeText(safeRaw.title, 'Report'),
+        executive_summary: sanitizeText(safeRaw.executive_summary),
+        sections: Array.isArray(safeRaw.sections) ? safeRaw.sections.slice(0, 8) : [],
+        recommendations: Array.isArray(safeRaw.recommendations)
+          ? safeRaw.recommendations.slice(0, 6)
+          : [],
+      };
     case 'infographic-data':
-      return { title: sanitizeText(safeRaw.title, 'Infographic'), stats: Array.isArray(safeRaw.stats) ? safeRaw.stats.slice(0, 10) : [], facts: Array.isArray(safeRaw.facts) ? safeRaw.facts.slice(0, 8) : [] };
+      return {
+        title: sanitizeText(safeRaw.title, 'Infographic'),
+        stats: Array.isArray(safeRaw.stats) ? safeRaw.stats.slice(0, 10) : [],
+        facts: Array.isArray(safeRaw.facts) ? safeRaw.facts.slice(0, 8) : [],
+      };
     case 'data-table':
-      return { title: sanitizeText(safeRaw.title, 'Reference Table'), columns: Array.isArray(safeRaw.columns) ? safeRaw.columns : [], rows: Array.isArray(safeRaw.rows) ? safeRaw.rows.slice(0, 15) : [] };
+      return {
+        title: sanitizeText(safeRaw.title, 'Reference Table'),
+        columns: Array.isArray(safeRaw.columns) ? safeRaw.columns : [],
+        rows: Array.isArray(safeRaw.rows) ? safeRaw.rows.slice(0, 15) : [],
+      };
     default:
       return safeRaw;
   }
@@ -1995,7 +2461,9 @@ const generateStudioTool = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Skill is required' });
     }
     if (!STUDIO_TOOLS.includes(input.tool)) {
-      return res.status(400).json({ success: false, message: `Invalid tool. Use one of: ${STUDIO_TOOLS.join(', ')}` });
+      return res
+        .status(400)
+        .json({ success: false, message: `Invalid tool. Use one of: ${STUDIO_TOOLS.join(', ')}` });
     }
 
     const ctx = buildStudioContext(input);
@@ -2009,10 +2477,18 @@ const generateStudioTool = async (req, res) => {
         const parsed = parseJsonWithCleanup(responseText);
         const normalized = normalizeStudioResult(parsed, input.tool);
         console.log(`[AI] Studio tool "${input.tool}" generated successfully.`);
-        return res.json({ success: true, tool: input.tool, result: normalized, source: 'ai', provider: AI_STUDIO_CONFIG.provider });
+        return res.json({
+          success: true,
+          tool: input.tool,
+          result: normalized,
+          source: 'ai',
+          provider: AI_STUDIO_CONFIG.provider,
+        });
       } catch (error) {
         if (isAiTimeoutError(error)) {
-          console.warn(`[AI] Studio tool "${input.tool}" timed out after ${error.timeoutMs || AI_PROVIDER_TIMEOUT_MS}ms, using fallback.`);
+          console.warn(
+            `[AI] Studio tool "${input.tool}" timed out after ${error.timeoutMs || AI_PROVIDER_TIMEOUT_MS}ms, using fallback.`
+          );
         } else {
           console.error(`[AI] Studio tool "${input.tool}" failed, using fallback:`, error.message);
         }
@@ -2021,7 +2497,13 @@ const generateStudioTool = async (req, res) => {
 
     // Fallback
     const fallbackResult = STUDIO_FALLBACKS[input.tool](input);
-    return res.json({ success: true, tool: input.tool, result: fallbackResult, source: 'basic-engine', provider: 'fallback' });
+    return res.json({
+      success: true,
+      tool: input.tool,
+      result: fallbackResult,
+      source: 'basic-engine',
+      provider: 'fallback',
+    });
   } catch (error) {
     console.error('Studio tool error:', error);
     return res.status(500).json({ success: false, message: 'Failed to generate studio content' });
@@ -2029,6 +2511,7 @@ const generateStudioTool = async (req, res) => {
 };
 
 module.exports = {
+  aiPipelineService,
   chat,
   generateStudySession,
   generateRoadmap,
@@ -2037,5 +2520,5 @@ module.exports = {
   updateLearningProgress,
   getStudioStatus,
   testStudioConnection,
-  generateStudioTool
+  generateStudioTool,
 };

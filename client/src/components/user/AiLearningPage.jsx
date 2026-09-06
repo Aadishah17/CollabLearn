@@ -12,7 +12,7 @@ import {
   ListChecks,
   ShieldCheck,
   CircleAlert,
-  Cpu
+  Cpu,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import MainNavbar from '../../navbar/mainNavbar';
@@ -21,14 +21,14 @@ import {
   applySavedPlanProgress,
   buildRoadmapRequestPayload,
   createSavedPlanSnapshot,
-  upsertSavedPlanSnapshot
+  upsertSavedPlanSnapshot,
 } from '../../utils/aiLearningRoadmap';
 import {
   formatProviderLabel,
   formatStatusTimestamp,
   getAiStatusMeta,
   getStudioModelLabel,
-  getToneClasses
+  getToneClasses,
 } from '../../utils/status';
 
 const AiChatbot = lazy(() => import('./AiChatbot'));
@@ -41,7 +41,7 @@ const defaultFormState = {
   learnerLevel: 'Beginner',
   weeklyHours: 6,
   targetWeeks: 8,
-  focusAreas: ''
+  focusAreas: '',
 };
 
 const parseFocusAreas = (focusAreas) =>
@@ -99,7 +99,9 @@ const AiLearningPage = () => {
 
   const nextStep = useMemo(() => {
     if (!roadmap?.steps?.length) return null;
-    const candidateIndex = roadmap.steps.findIndex((_, index) => !completedStepIndexes.includes(index));
+    const candidateIndex = roadmap.steps.findIndex(
+      (_, index) => !completedStepIndexes.includes(index)
+    );
     const safeIndex = candidateIndex === -1 ? roadmap.steps.length - 1 : candidateIndex;
     const step = roadmap.steps[safeIndex];
     return step
@@ -107,7 +109,7 @@ const AiLearningPage = () => {
           index: safeIndex,
           title: step.title,
           description: step.description,
-          goals: Array.isArray(step.goals) ? step.goals : []
+          goals: Array.isArray(step.goals) ? step.goals : [],
         }
       : null;
   }, [roadmap, completedStepIndexes]);
@@ -121,7 +123,7 @@ const AiLearningPage = () => {
       focusAreas: parseFocusAreas(formState.focusAreas),
       roadmapSummary: roadmap?.summary || '',
       currentStepTitle: nextStep?.title || '',
-      currentStepDescription: nextStep?.description || ''
+      currentStepDescription: nextStep?.description || '',
     }),
     [formState, progressPercentage, roadmap, nextStep]
   );
@@ -129,11 +131,17 @@ const AiLearningPage = () => {
   const studioMeta = getAiStatusMeta(studioStatus);
   const studioToneClasses = getToneClasses(studioMeta.tone);
   const studioModelLabel = getStudioModelLabel(studioStatus);
-  const studioCheckedAt = formatStatusTimestamp(studioStatus?.lastCheckedAt || studioStatus?.diagnostics?.checkedAt);
+  const studioCheckedAt = formatStatusTimestamp(
+    studioStatus?.lastCheckedAt || studioStatus?.diagnostics?.checkedAt
+  );
 
   const topVideoResource = useMemo(() => {
     if (!Array.isArray(roadmap?.resources)) return null;
-    return roadmap.resources.find((resource) => String(resource?.type || '').toLowerCase() === 'video') || null;
+    return (
+      roadmap.resources.find(
+        (resource) => String(resource?.type || '').toLowerCase() === 'video'
+      ) || null
+    );
   }, [roadmap]);
 
   const fetchSavedPlans = async () => {
@@ -161,7 +169,7 @@ const AiLearningPage = () => {
         liveStatus: 'offline',
         lastCheckedAt: null,
         lastError: null,
-        quotaExceeded: false
+        quotaExceeded: false,
       });
     }
   };
@@ -191,7 +199,7 @@ const AiLearningPage = () => {
       const data = await requestJson('/api/ai/roadmap', {
         method: 'POST',
         body: payload,
-        auth: true
+        auth: true,
       });
 
       const nextSavedPlanId = data.savedPlanId || savedPlanId || null;
@@ -200,7 +208,7 @@ const AiLearningPage = () => {
       setRoadmapMeta({
         source: data.source || null,
         provider: data.provider || null,
-        model: data.model || null
+        model: data.model || null,
       });
       setSavedPlanId(nextSavedPlanId);
       setCompletedStepIndexes([]);
@@ -217,7 +225,7 @@ const AiLearningPage = () => {
           source: data.source,
           provider: data.provider,
           model: data.model,
-          completedStepIndexes: []
+          completedStepIndexes: [],
         });
 
         if (updatedPlan) {
@@ -238,13 +246,13 @@ const AiLearningPage = () => {
       learnerLevel: plan.learnerLevel || 'Beginner',
       weeklyHours: plan.weeklyHours || 6,
       targetWeeks: plan.targetWeeks || 8,
-      focusAreas: Array.isArray(plan.focusAreas) ? plan.focusAreas.join(', ') : ''
+      focusAreas: Array.isArray(plan.focusAreas) ? plan.focusAreas.join(', ') : '',
     });
     setRoadmap(plan.plan || null);
     setRoadmapMeta({
       source: plan.source || 'fallback',
       provider: plan.provider || (plan.source === 'ai' ? 'local-basic-engine' : 'fallback'),
-      model: null
+      model: null,
     });
     setSavedPlanId(plan._id || null);
     setCompletedStepIndexes(plan.completedStepIndexes || []);
@@ -262,7 +270,7 @@ const AiLearningPage = () => {
       await requestJson(`/api/ai/plans/${savedPlanId}/progress`, {
         method: 'PATCH',
         body: { completedStepIndexes: nextIndexes },
-        auth: true
+        auth: true,
       });
       setSavedPlans((prev) =>
         applySavedPlanProgress(prev, savedPlanId, nextIndexes, roadmap?.steps?.length || 0)
@@ -310,7 +318,9 @@ const AiLearningPage = () => {
       ),
       '',
       '## Resources',
-      ...(roadmap.resources || []).map((resource) => `- [${resource.title}](${resource.url}) (${resource.type})`)
+      ...(roadmap.resources || []).map(
+        (resource) => `- [${resource.title}](${resource.url}) (${resource.type})`
+      ),
     ].join('\n');
 
     const blob = new Blob([markdown], { type: 'text/markdown;charset=utf-8' });
@@ -350,21 +360,24 @@ const AiLearningPage = () => {
         skill: formState.skill.trim(),
         learnerLevel: formState.learnerLevel,
         weeklyHours: Number(formState.weeklyHours),
-        availableMinutes: Math.min(180, Math.max(45, Math.round((Number(formState.weeklyHours) || 6) * 10))),
+        availableMinutes: Math.min(
+          180,
+          Math.max(45, Math.round((Number(formState.weeklyHours) || 6) * 10))
+        ),
         focusAreas: parseFocusAreas(formState.focusAreas),
         progressPercentage,
         roadmap: {
           summary: roadmap.summary || '',
           currentStepTitle: nextStep?.title || '',
           currentStepDescription: nextStep?.description || '',
-          currentStepGoals: nextStep?.goals || []
-        }
+          currentStepGoals: nextStep?.goals || [],
+        },
       };
 
       const data = await requestJson('/api/ai/study-session', {
         method: 'POST',
         body: payload,
-        auth: true
+        auth: true,
       });
 
       if (!data.session) {
@@ -395,10 +408,10 @@ const AiLearningPage = () => {
           context: {
             ...aiChatContext,
             currentStepTitle: step.title,
-            currentStepDescription: step.description
-          }
+            currentStepDescription: step.description,
+          },
         },
-        auth: true
+        auth: true,
       });
 
       if (!data.response) {
@@ -483,14 +496,21 @@ const AiLearningPage = () => {
                     <Sparkles size={14} />
                     AI Learning Workspace
                   </p>
-                  <h1 className="text-2xl md:text-3xl font-bold mt-2">Build your personalized skill roadmap</h1>
+                  <h1 className="text-2xl md:text-3xl font-bold mt-2">
+                    Build your personalized skill roadmap
+                  </h1>
                   <p className="text-zinc-400 mt-2 text-sm">
-                    Generate a focused plan, track your progress, and keep all study resources in one place.
+                    Generate a focused plan, track your progress, and keep all study resources in
+                    one place.
                   </p>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
                   <span className={`glass-chip ${studioToneClasses}`}>
-                    {studioMeta.tone === 'emerald' ? <ShieldCheck size={14} /> : <CircleAlert size={14} />}
+                    {studioMeta.tone === 'emerald' ? (
+                      <ShieldCheck size={14} />
+                    ) : (
+                      <CircleAlert size={14} />
+                    )}
                     {studioMeta.label}
                   </span>
 
@@ -562,15 +582,22 @@ const AiLearningPage = () => {
 
               {studioStatus?.quotaExceeded ? (
                 <div className="mb-6 rounded-[24px] border border-amber-500/35 bg-amber-500/10 p-4 text-sm leading-6 text-amber-100">
-                  Gemini is configured, but the latest live check hit provider quota. Roadmaps can still fall back to the local planner until quota or billing is restored.
+                  Gemini is configured, but the latest live check hit provider quota. Roadmaps can
+                  still fall back to the local planner until quota or billing is restored.
                 </div>
               ) : null}
 
-              <form onSubmit={handleGenerateRoadmap} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <form
+                onSubmit={handleGenerateRoadmap}
+                className="grid grid-cols-1 md:grid-cols-2 gap-4"
+              >
                 <div className="md:col-span-2">
                   <label className="block text-sm text-zinc-300 mb-2">Skill to learn</label>
                   <div className="relative">
-                    <Target className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" size={18} />
+                    <Target
+                      className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500"
+                      size={18}
+                    />
                     <input
                       type="text"
                       value={formState.skill}
@@ -609,7 +636,9 @@ const AiLearningPage = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm text-zinc-300 mb-2">Target duration (weeks)</label>
+                  <label className="block text-sm text-zinc-300 mb-2">
+                    Target duration (weeks)
+                  </label>
                   <input
                     type="number"
                     min={2}
@@ -621,7 +650,9 @@ const AiLearningPage = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm text-zinc-300 mb-2">Focus areas (comma separated)</label>
+                  <label className="block text-sm text-zinc-300 mb-2">
+                    Focus areas (comma separated)
+                  </label>
                   <input
                     type="text"
                     value={formState.focusAreas}
@@ -637,8 +668,8 @@ const AiLearningPage = () => {
                     disabled={loadingRoadmap}
                     className="w-full md:w-auto glass-cta px-6 py-3 disabled:opacity-60 disabled:cursor-not-allowed font-semibold"
                   >
-                     {loadingRoadmap ? 'Generating plan...' : 'Generate roadmap'}
-                   </button>
+                    {loadingRoadmap ? 'Generating plan...' : 'Generate roadmap'}
+                  </button>
                 </div>
               </form>
 
@@ -689,7 +720,8 @@ const AiLearningPage = () => {
                   <div className="glass-panel p-6">
                     <h2 className="text-xl font-semibold mb-2">Video guidance</h2>
                     <p className="text-zinc-300 text-sm leading-relaxed">
-                      Open the top YouTube guidance for this skill and use it as your primary walkthrough for the current phase.
+                      Open the top YouTube guidance for this skill and use it as your primary
+                      walkthrough for the current phase.
                     </p>
                     <a
                       href={topVideoResource.url}
@@ -724,7 +756,10 @@ const AiLearningPage = () => {
 
                     <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-3">
                       {(studySession.tasks || []).map((task, index) => (
-                        <div key={`${task.title}-${index}`} className="p-3 rounded-lg bg-zinc-950 border border-zinc-800">
+                        <div
+                          key={`${task.title}-${index}`}
+                          className="p-3 rounded-lg bg-zinc-950 border border-zinc-800"
+                        >
                           <p className="text-sm font-semibold text-red-300">
                             {index + 1}. {task.title} ({task.minutes} min)
                           </p>
@@ -736,7 +771,9 @@ const AiLearningPage = () => {
 
                     <div className="mt-4 grid grid-cols-1 xl:grid-cols-2 gap-3">
                       <div className="p-3 rounded-lg bg-zinc-950 border border-zinc-800">
-                        <p className="text-sm font-semibold text-zinc-200 mb-2">Reflection questions</p>
+                        <p className="text-sm font-semibold text-zinc-200 mb-2">
+                          Reflection questions
+                        </p>
                         <ul className="text-xs text-zinc-400 space-y-1">
                           {(studySession.reflectionQuestions || []).map((item, index) => (
                             <li key={`${item}-${index}`}>- {item}</li>
@@ -744,7 +781,9 @@ const AiLearningPage = () => {
                         </ul>
                       </div>
                       <div className="p-3 rounded-lg bg-zinc-950 border border-zinc-800">
-                        <p className="text-sm font-semibold text-zinc-200 mb-2">Pitfalls to avoid</p>
+                        <p className="text-sm font-semibold text-zinc-200 mb-2">
+                          Pitfalls to avoid
+                        </p>
                         <ul className="text-xs text-zinc-400 space-y-1">
                           {(studySession.pitfalls || []).map((item, index) => (
                             <li key={`${item}-${index}`}>- {item}</li>
@@ -792,8 +831,12 @@ const AiLearningPage = () => {
                               )}
                               {stepCoachNotes[index] && (
                                 <div className="mt-3 p-3 rounded-lg bg-zinc-950 border border-zinc-800">
-                                  <p className="text-[11px] uppercase tracking-wide text-red-300 mb-1">AI coach note</p>
-                                  <p className="text-xs text-zinc-300 leading-relaxed">{stepCoachNotes[index]}</p>
+                                  <p className="text-[11px] uppercase tracking-wide text-red-300 mb-1">
+                                    AI coach note
+                                  </p>
+                                  <p className="text-xs text-zinc-300 leading-relaxed">
+                                    {stepCoachNotes[index]}
+                                  </p>
                                 </div>
                               )}
                             </div>
@@ -830,7 +873,10 @@ const AiLearningPage = () => {
                     <h2 className="text-xl font-semibold mb-4">Milestones</h2>
                     <div className="space-y-3">
                       {(roadmap.milestones || []).map((milestone, index) => (
-                        <div key={`${milestone.title}-${index}`} className="p-3 rounded-lg bg-zinc-950 border border-zinc-800">
+                        <div
+                          key={`${milestone.title}-${index}`}
+                          className="p-3 rounded-lg bg-zinc-950 border border-zinc-800"
+                        >
                           <p className="text-sm font-semibold text-red-300">
                             Week {milestone.week}: {milestone.title}
                           </p>
@@ -853,9 +899,13 @@ const AiLearningPage = () => {
                         >
                           <div className="flex items-center justify-between gap-2">
                             <p className="font-medium text-sm">{resource.title}</p>
-                            <span className="text-[10px] uppercase tracking-wide text-zinc-400">{resource.type}</span>
+                            <span className="text-[10px] uppercase tracking-wide text-zinc-400">
+                              {resource.type}
+                            </span>
                           </div>
-                          {resource.reason && <p className="text-xs text-zinc-400 mt-1">{resource.reason}</p>}
+                          {resource.reason && (
+                            <p className="text-xs text-zinc-400 mt-1">{resource.reason}</p>
+                          )}
                         </a>
                       ))}
                     </div>
@@ -875,5 +925,3 @@ const AiLearningPage = () => {
 };
 
 export default AiLearningPage;
-
-

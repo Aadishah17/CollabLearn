@@ -15,7 +15,7 @@ const postSkill = async (req, res) => {
     if (!title || !description || !skillName || !timePerHour) {
       return res.status(400).json({
         success: false,
-        message: 'Title, description, skill name, and duration are required'
+        message: 'Title, description, skill name, and duration are required',
       });
     }
 
@@ -24,14 +24,13 @@ const postSkill = async (req, res) => {
       'offering.description': description,
       'offering.duration': timePerHour,
       isPosted: true, // Activate the skill
-      'offering.price': 0 // Default price to 0
+      'offering.price': 0, // Default price to 0
     };
 
     // Add subCategory if provided
     if (req.body.subCategory) {
       updateData.subCategory = req.body.subCategory;
     }
-
 
     if (price) {
       const parsedPrice = parseFloat(price.replace(/[^\d.]/g, ''));
@@ -50,22 +49,21 @@ const postSkill = async (req, res) => {
     if (!updatedSkill) {
       return res.status(404).json({
         success: false,
-        message: 'Skill not found. Please add this skill to your profile first.'
+        message: 'Skill not found. Please add this skill to your profile first.',
       });
     }
 
     res.status(200).json({
       success: true,
       message: 'Skill has been posted and is now active.',
-      data: updatedSkill
+      data: updatedSkill,
     });
-
   } catch (error) {
     console.error('Post skill error:', error);
     res.status(500).json({
       success: false,
       message: 'Server error during skill posting',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
     });
   }
 };
@@ -82,13 +80,13 @@ const addSkillOffering = async (req, res) => {
     const existingSkill = await Skill.findOne({
       user: userId,
       name: { $regex: new RegExp(`^${name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') },
-      isOffering: true
+      isOffering: true,
     });
 
     if (existingSkill) {
       return res.status(400).json({
         success: false,
-        message: 'You are already offering this skill'
+        message: 'You are already offering this skill',
       });
     }
 
@@ -103,11 +101,11 @@ const addSkillOffering = async (req, res) => {
         level: level || 'Beginner',
         description: description || '',
         duration: duration || '1 hour',
-        price: price || 0
+        price: price || 0,
       },
       category: category || 'Other',
       subCategory: subCategory || '',
-      tags: tags || []
+      tags: tags || [],
     });
 
     await newSkill.save();
@@ -115,15 +113,14 @@ const addSkillOffering = async (req, res) => {
     res.status(201).json({
       success: true,
       message: 'Skill offering added successfully',
-      skill: newSkill
+      skill: newSkill,
     });
-
   } catch (error) {
     console.error('Add skill offering error:', error);
     res.status(500).json({
       success: false,
       message: 'Server error during skill addition',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
     });
   }
 };
@@ -140,7 +137,7 @@ const updateSkillOffering = async (req, res) => {
     if (!skill) {
       return res.status(404).json({
         success: false,
-        message: 'Skill offering not found'
+        message: 'Skill offering not found',
       });
     }
 
@@ -155,15 +152,14 @@ const updateSkillOffering = async (req, res) => {
     res.json({
       success: true,
       message: 'Skill offering updated successfully',
-      skill
+      skill,
     });
-
   } catch (error) {
     console.error('Update skill offering error:', error);
     res.status(500).json({
       success: false,
       message: 'Server error during skill update',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
     });
   }
 };
@@ -179,7 +175,7 @@ const deleteSkillOffering = async (req, res) => {
     if (!skill) {
       return res.status(404).json({
         success: false,
-        message: 'Skill offering not found'
+        message: 'Skill offering not found',
       });
     }
 
@@ -195,15 +191,14 @@ const deleteSkillOffering = async (req, res) => {
 
     res.json({
       success: true,
-      message: 'Skill offering removed successfully'
+      message: 'Skill offering removed successfully',
     });
-
   } catch (error) {
     console.error('Delete skill offering error:', error);
     res.status(500).json({
       success: false,
       message: 'Server error during skill deletion',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
     });
   }
 };
@@ -220,13 +215,13 @@ const addSkillSeeking = async (req, res) => {
     const existingSkill = await Skill.findOne({
       user: userId,
       name: { $regex: new RegExp(`^${name.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\$&')}$`, 'i') },
-      isSeeking: true
+      isSeeking: true,
     });
 
     if (existingSkill) {
       return res.status(400).json({
         success: false,
-        message: 'You are already seeking this skill'
+        message: 'You are already seeking this skill',
       });
     }
 
@@ -235,11 +230,11 @@ const addSkillSeeking = async (req, res) => {
       user: userId,
       isSeeking: true,
       seeking: {
-        preferredSchedule: preferredSchedule || []
+        preferredSchedule: preferredSchedule || [],
       },
       category: category || 'Other',
       subCategory: subCategory || '',
-      tags: tags || []
+      tags: tags || [],
     });
 
     await newSkill.save();
@@ -247,15 +242,14 @@ const addSkillSeeking = async (req, res) => {
     res.status(201).json({
       success: true,
       message: 'Skill seeking added successfully',
-      skill: newSkill
+      skill: newSkill,
     });
-
   } catch (error) {
     console.error('Add skill seeking error:', error);
     res.status(500).json({
       success: false,
       message: 'Server error during skill addition',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
     });
   }
 };
@@ -272,7 +266,7 @@ const updateSkillSeeking = async (req, res) => {
     if (!skill) {
       return res.status(404).json({
         success: false,
-        message: 'Skill seeking not found'
+        message: 'Skill seeking not found',
       });
     }
 
@@ -285,15 +279,14 @@ const updateSkillSeeking = async (req, res) => {
     res.json({
       success: true,
       message: 'Skill seeking updated successfully',
-      skill
+      skill,
     });
-
   } catch (error) {
     console.error('Update skill seeking error:', error);
     res.status(500).json({
       success: false,
       message: 'Server error during skill update',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
     });
   }
 };
@@ -309,7 +302,7 @@ const deleteSkillSeeking = async (req, res) => {
     if (!skill) {
       return res.status(404).json({
         success: false,
-        message: 'Skill seeking not found'
+        message: 'Skill seeking not found',
       });
     }
 
@@ -325,15 +318,14 @@ const deleteSkillSeeking = async (req, res) => {
 
     res.json({
       success: true,
-      message: 'Skill seeking removed successfully'
+      message: 'Skill seeking removed successfully',
     });
-
   } catch (error) {
     console.error('Delete skill seeking error:', error);
     res.status(500).json({
       success: false,
       message: 'Server error during skill deletion',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
     });
   }
 };
@@ -351,23 +343,22 @@ const getUserSkills = async (req, res) => {
       .populate('seeking.currentInstructor', 'name email')
       .sort({ createdAt: -1 });
 
-    const skillsOffering = skills.filter(skill => skill.isOffering);
-    const skillsSeeking = skills.filter(skill => skill.isSeeking);
+    const skillsOffering = skills.filter((skill) => skill.isOffering);
+    const skillsSeeking = skills.filter((skill) => skill.isSeeking);
 
     res.json({
       success: true,
       data: {
         skillsOffering,
         skillsSeeking,
-        totalSkills: skills.length
-      }
+        totalSkills: skills.length,
+      },
     });
-
   } catch (error) {
     console.error('Get user skills error:', error);
     res.status(500).json({
       success: false,
-      message: 'Server error fetching skills'
+      message: 'Server error fetching skills',
     });
   }
 };
@@ -397,7 +388,7 @@ const searchSkills = async (req, res) => {
       query.$or = [
         { name: { $regex: q, $options: 'i' } },
         { 'offering.description': { $regex: q, $options: 'i' } },
-        { tags: { $in: [new RegExp(q, 'i')] } }
+        { tags: { $in: [new RegExp(q, 'i')] } },
       ];
     }
 
@@ -407,7 +398,7 @@ const searchSkills = async (req, res) => {
       .limit(50);
 
     // Process skills to include computed avatar URLs
-    const processedSkills = skills.map(skill => {
+    const processedSkills = skills.map((skill) => {
       const skillObj = skill.toObject();
       if (skillObj.user && skill.user.getAvatarUrl) {
         skillObj.user.avatarUrl = skill.user.getAvatarUrl();
@@ -419,14 +410,13 @@ const searchSkills = async (req, res) => {
     res.json({
       success: true,
       data: processedSkills,
-      count: processedSkills.length
+      count: processedSkills.length,
     });
-
   } catch (error) {
     console.error('Search skills error:', error);
     res.status(500).json({
       success: false,
-      message: 'Server error during search'
+      message: 'Server error during search',
     });
   }
 };
@@ -438,14 +428,13 @@ const getSkillCategories = async (req, res) => {
 
     res.json({
       success: true,
-      categories: categories.sort()
+      categories: categories.sort(),
     });
-
   } catch (error) {
     console.error('Get categories error:', error);
     res.status(500).json({
       success: false,
-      message: 'Server error fetching categories'
+      message: 'Server error fetching categories',
     });
   }
 };
@@ -457,14 +446,13 @@ const getAllSkillNames = async (req, res) => {
 
     res.json({
       success: true,
-      skillNames: skillNames.sort()
+      skillNames: skillNames.sort(),
     });
-
   } catch (error) {
     console.error('Get skill names error:', error);
     res.status(500).json({
       success: false,
-      message: 'Server error fetching skill names'
+      message: 'Server error fetching skill names',
     });
   }
 };
@@ -481,14 +469,13 @@ const getPersonalizedRecommendations = async (req, res) => {
 
     res.json({
       success: true,
-      ...result
+      ...result,
     });
-
   } catch (error) {
     console.error('Get personalized recommendations error:', error);
     res.status(500).json({
       success: false,
-      message: 'Server error generating recommendations'
+      message: 'Server error generating recommendations',
     });
   }
 };
@@ -514,5 +501,5 @@ module.exports = {
   getAllSkillNames,
 
   // Advanced Recommendations
-  getPersonalizedRecommendations
+  getPersonalizedRecommendations,
 };

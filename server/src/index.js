@@ -6,10 +6,15 @@ const cors = require('cors');
 const helmet = require('helmet');
 require('dotenv').config();
 const { connectDB, resolveMongoUri, getMongoConnectionState } = require('./db');
-const { assertJwtSecretConfigured } = require('./config/auth');
+const { assertJwtSecretConfigured, isOriginAllowed, resolveCorsOrigins } = require('./config/auth');
 const { ensureUploadDirectories, uploadsPath } = require('./config/storage');
 const auth = require('./middleware/auth');
 const { createRateLimiter } = require('./middleware/rateLimit');
+const {
+  logSocketTelemetry,
+  observabilityErrorHandler,
+  requestObservability,
+} = require('./middleware/observability');
 
 const app = express();
 const http = require('http');
@@ -31,49 +36,6 @@ const logSocket = (...args) => {
   }
 };
 
-const normalizeOriginEntry = (origin) => {
-  const trimmed = String(origin || '').trim().replace(/\/+$/, '');
-  if (!trimmed) {
-    return '';
-  }
-
-  if (/^https?:\/\//i.test(trimmed)) {
-    return trimmed;
-  }
-
-  if (trimmed.startsWith('//')) {
-    return `https:${trimmed}`;
-  }
-
-  return `https://${trimmed}`;
-};
-
-const parseAllowedOrigins = () => {
-  const defaults = [
-    'http://localhost:4173',
-    'http://127.0.0.1:4173',
-    'http://localhost:5173',
-    'http://127.0.0.1:5173',
-    'http://localhost:5174',
-    'http://127.0.0.1:5174',
-    'http://localhost:5175',
-    'http://127.0.0.1:5175',
-    'http://localhost:5176',
-    'http://127.0.0.1:5176',
-    'http://localhost:5177',
-    'http://127.0.0.1:5177',
-    'http://localhost:3000',
-    'http://127.0.0.1:3000'
-  ];
-
-  const configured = String(process.env.CORS_ORIGINS || '')
-    .split(',')
-    .map((origin) => normalizeOriginEntry(origin))
-    .filter(Boolean);
-
-  return configured.length > 0 ? configured : defaults;
-};
-
 const resolveTrustProxy = () => {
   const configured = String(process.env.TRUST_PROXY || '').trim();
   if (!configured) {
@@ -92,11 +54,11 @@ const resolveTrustProxy = () => {
   return Number.isInteger(numeric) ? numeric : configured;
 };
 
-const allowedOrigins = parseAllowedOrigins();
+const allowedOrigins = resolveCorsOrigins();
 const trustProxy = resolveTrustProxy();
 const corsOptions = {
   origin(origin, callback) {
-    if (!origin || allowedOrigins.includes(origin)) {
+    if (!origin || isOriginAllowed(origin, allowedOrigins)) {
       return callback(null, true);
     }
 
@@ -104,17 +66,17 @@ const corsOptions = {
   },
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   credentials: true,
-  optionsSuccessStatus: 204
+  optionsSuccessStatus: 204,
 };
 const authRateLimiter = createRateLimiter({
   windowMs: 15 * 60 * 1000,
   max: 30,
-  message: 'Too many authentication requests. Please try again later.'
+  message: 'Too many authentication requests. Please try again later.',
 });
 const aiRateLimiter = createRateLimiter({
   windowMs: 60 * 1000,
   max: 20,
-  message: 'Too many AI requests. Please slow down and try again shortly.'
+  message: 'Too many AI requests. Please slow down and try again shortly.',
 });
 
 ensureUploadDirectories();
@@ -136,8 +98,8 @@ const io = new Server(server, {
   cors: {
     origin: allowedOrigins,
     methods: ['GET', 'POST'],
-    credentials: true
-  }
+    credentials: true,
+  },
 });
 
 const User = require('./models/User');
@@ -190,16 +152,18 @@ io.on('connection', (socket) => {
   socket.on('disconnect', () => {
     if (!socket.userId) return;
     logSocket(`User disconnected: ${socket.userId}`);
+    logSocketTelemetry('disconnect', { socketId: socket.id, userId: socket.userId });
     onlineUsers.delete(socket.userId);
     socket.broadcast.emit('user_status_change', { userId: socket.userId, isOnline: false });
   });
 });
 
+app.use(requestObservability);
 app.use(
   helmet({
     contentSecurityPolicy: false,
     crossOriginEmbedderPolicy: false,
-    crossOriginResourcePolicy: { policy: 'cross-origin' }
+    crossOriginResourcePolicy: { policy: 'cross-origin' },
   })
 );
 app.use(cors(corsOptions));
@@ -207,7 +171,7 @@ app.use((error, _req, res, next) => {
   if (error?.message === 'Origin not allowed by CORS') {
     return res.status(403).json({
       success: false,
-      message: 'Origin not allowed'
+      message: 'Origin not allowed',
     });
   }
 
@@ -221,7 +185,7 @@ app.use(
   '/uploads',
   express.static(uploadsPath, {
     etag: true,
-    maxAge: isProduction ? '1d' : 0
+    maxAge: isProduction ? '1d' : 0,
   })
 );
 
@@ -253,7 +217,7 @@ app.get('/api/health', (_req, res) => {
     0: 'disconnected',
     1: 'connected',
     2: 'connecting',
-    3: 'disconnecting'
+    3: 'disconnecting',
   };
   const dbStatus = dbStateLabelMap[dbState] || 'unknown';
 
@@ -268,8 +232,8 @@ app.get('/api/health', (_req, res) => {
     mongo: mongoState,
     services: {
       api: 'ok',
-      database: dbStatus
-    }
+      database: dbStatus,
+    },
   });
 });
 
@@ -283,6 +247,8 @@ app.use('/api/courses', require('./routes/courses'));
 app.use('/api/public', require('./routes/public'));
 app.use('/api/ai', aiRateLimiter, require('./routes/ai'));
 app.use('/api/modules', require('./routes/moduleRoutes'));
+
+app.use(observabilityErrorHandler);
 
 app.get('/', (_req, res) => {
   res.json({ message: 'CollabLearn API Running!' });

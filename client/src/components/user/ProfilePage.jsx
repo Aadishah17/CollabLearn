@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect } from 'react';
 import {
   Pencil,
   Star,
@@ -16,15 +16,14 @@ import {
   BookOpen,
   Edit,
   Crown,
-} from "lucide-react";
-import MainNavbar from "../../navbar/mainNavbar";
-import EditProfile from "./EditProfile";
-import Avatar from "./Avatar";
+} from 'lucide-react';
+import MainNavbar from '../../navbar/mainNavbar';
+import EditProfile from './EditProfile';
+import Avatar from './Avatar';
 import { API_URL } from '../../config';
 
-
 export default function ProfilePage() {
-  const [activeTab, setActiveTab] = useState("skills");
+  const [activeTab, setActiveTab] = useState('skills');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [showAddSkillModal, setShowAddSkillModal] = useState(false);
@@ -32,28 +31,20 @@ export default function ProfilePage() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [skillToDelete, setSkillToDelete] = useState(null);
   const [newSkill, setNewSkill] = useState({
-    name: "",
-    level: "Beginner",
+    name: '',
+    level: 'Beginner',
   });
 
   // Predefined skills list
-  const predefinedSkills = [
-    "Java",
-    "Python",
-    "C/C++",
-    "MongoDB",
-    "Express",
-    "React",
-    "Node.js",
-  ];
+  const predefinedSkills = ['Java', 'Python', 'C/C++', 'MongoDB', 'Express', 'React', 'Node.js'];
   const [profileData, setProfileData] = useState({
-    name: "",
-    joinDate: "",
+    name: '',
+    joinDate: '',
     rating: { average: 0, count: 0 },
-    bio: "",
-    email: "",
+    bio: '',
+    email: '',
     totalSessions: 0,
-    avatar: "",
+    avatar: '',
     isPremium: false,
     skillsOffering: [],
     skillsSeeking: [],
@@ -63,42 +54,36 @@ export default function ProfilePage() {
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        const token = localStorage.getItem("token");
+        const token = localStorage.getItem('token');
         if (!token) {
-          setError("No authentication token found");
+          setError('No authentication token found');
           setLoading(false);
           return;
         }
 
         // Fetch user profile
-        const profileResponse = await fetch(
-          `${API_URL}/api/auth/me`,
-          {
-            method: "GET",
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "Content-Type": "application/json",
-            },
-          }
-        );
+        const profileResponse = await fetch(`${API_URL}/api/auth/me`, {
+          method: 'GET',
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        });
 
         if (!profileResponse.ok) {
-          throw new Error("Failed to fetch profile data");
+          throw new Error('Failed to fetch profile data');
         }
 
         const profileData = await profileResponse.json();
 
         // Fetch user skills separately
-        const skillsResponse = await fetch(
-          `${API_URL}/api/skills/my-skills`,
-          {
-            method: "GET",
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "Content-Type": "application/json",
-            },
-          }
-        );
+        const skillsResponse = await fetch(`${API_URL}/api/skills/my-skills`, {
+          method: 'GET',
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        });
 
         let userSkills = { skillsOffering: [], skillsSeeking: [] };
         if (skillsResponse.ok) {
@@ -112,31 +97,31 @@ export default function ProfilePage() {
           const user = profileData.user;
           console.log('User data received:', user); // Debug log
           setProfileData({
-            name: user.name || "",
+            name: user.name || '',
             joinDate: user.joinDate
-              ? new Date(user.joinDate).toLocaleDateString("en-US", {
-                year: "numeric",
-                month: "long",
-              })
-              : "",
+              ? new Date(user.joinDate).toLocaleDateString('en-US', {
+                  year: 'numeric',
+                  month: 'long',
+                })
+              : '',
             rating: user.rating || { average: 0, count: 0 },
-            bio: user.bio || "",
-            email: user.email || "",
+            bio: user.bio || '',
+            email: user.email || '',
             totalSessions: user.totalSessions || 0,
             isPremium: user.isPremium || false,
             avatar:
               user.avatar ||
-              "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=400&h=400&fit=crop",
+              'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=400&h=400&fit=crop',
             skillsOffering: userSkills.skillsOffering || [],
             skillsSeeking: userSkills.skillsSeeking || [],
           });
           console.log('isPremium set to:', user.isPremium); // Debug log
         } else {
-          setError(profileData.message || "Failed to load profile");
+          setError(profileData.message || 'Failed to load profile');
         }
       } catch (err) {
-        console.error("Error fetching profile:", err);
-        setError("Error loading profile data");
+        console.error('Error fetching profile:', err);
+        setError('Error loading profile data');
       } finally {
         setLoading(false);
       }
@@ -157,32 +142,29 @@ export default function ProfilePage() {
   // Fetch user skills separately for dynamic updates
   const fetchSkills = async () => {
     try {
-      const token = localStorage.getItem("token");
+      const token = localStorage.getItem('token');
       if (!token) return;
 
-      const skillsResponse = await fetch(
-        `${API_URL}/api/skills/my-skills`,
-        {
-          method: "GET",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        }
-      );
+      const skillsResponse = await fetch(`${API_URL}/api/skills/my-skills`, {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
 
       if (skillsResponse.ok) {
         const skillsData = await skillsResponse.json();
         if (skillsData.success) {
-          setProfileData(prev => ({
+          setProfileData((prev) => ({
             ...prev,
             skillsOffering: skillsData.data.skillsOffering || [],
-            skillsSeeking: skillsData.data.skillsSeeking || []
+            skillsSeeking: skillsData.data.skillsSeeking || [],
           }));
         }
       }
     } catch (error) {
-      console.error("Error fetching skills:", error);
+      console.error('Error fetching skills:', error);
     }
   };
 
@@ -191,59 +173,53 @@ export default function ProfilePage() {
     e.preventDefault();
 
     if (!newSkill.name) {
-      alert("Please fill in skill name");
+      alert('Please fill in skill name');
       return;
     }
 
     try {
-      const token = localStorage.getItem("token");
-      const response = await fetch(
-        `${API_URL}/api/skills/offering`,
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            name: newSkill.name,
-            level: newSkill.level,
-          }),
-        }
-      );
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_URL}/api/skills/offering`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: newSkill.name,
+          level: newSkill.level,
+        }),
+      });
 
       const data = await response.json();
 
       if (data.success) {
         // Reset form and close modal
-        setNewSkill({ name: "", level: "Beginner" });
+        setNewSkill({ name: '', level: 'Beginner' });
         setShowAddSkillModal(false);
         // Refresh skills data dynamically
         await fetchSkills();
-        alert("Skill added successfully!");
+        alert('Skill added successfully!');
       } else {
-        alert(data.message || "Failed to add skill");
+        alert(data.message || 'Failed to add skill');
       }
     } catch (err) {
-      console.error("Error adding skill:", err);
-      alert("Error adding skill");
+      console.error('Error adding skill:', err);
+      alert('Error adding skill');
     }
   };
 
   // Delete an offering skill
   const deleteOfferingSkill = async (skillId) => {
     try {
-      const token = localStorage.getItem("token");
-      const response = await fetch(
-        `${API_URL}/api/skills/offering/${skillId}`,
-        {
-          method: "DELETE",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        }
-      );
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_URL}/api/skills/offering/${skillId}`, {
+        method: 'DELETE',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
 
       const data = await response.json();
 
@@ -251,32 +227,29 @@ export default function ProfilePage() {
         // Remove the skill from local state
         setProfileData((prev) => ({
           ...prev,
-          skillsOffering: prev.skillsOffering.filter((skill) => skill._id !== skillId)
+          skillsOffering: prev.skillsOffering.filter((skill) => skill._id !== skillId),
         }));
-        alert("Skill deleted successfully!");
+        alert('Skill deleted successfully!');
       } else {
-        console.error("Failed to delete skill:", data.message);
-        alert("Failed to delete skill: " + data.message);
+        console.error('Failed to delete skill:', data.message);
+        alert('Failed to delete skill: ' + data.message);
       }
     } catch (err) {
-      console.error("Error deleting skill:", err);
+      console.error('Error deleting skill:', err);
     }
   };
 
   // Delete a seeking skill
   const deleteSeekingSkill = async (skillId) => {
     try {
-      const token = localStorage.getItem("token");
-      const response = await fetch(
-        `${API_URL}/api/skills/seeking/${skillId}`,
-        {
-          method: "DELETE",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        }
-      );
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_URL}/api/skills/seeking/${skillId}`, {
+        method: 'DELETE',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
 
       const data = await response.json();
 
@@ -284,15 +257,15 @@ export default function ProfilePage() {
         // Remove the skill from local state
         setProfileData((prev) => ({
           ...prev,
-          skillsSeeking: prev.skillsSeeking.filter((skill) => skill._id !== skillId)
+          skillsSeeking: prev.skillsSeeking.filter((skill) => skill._id !== skillId),
         }));
-        alert("Skill deleted successfully!");
+        alert('Skill deleted successfully!');
       } else {
-        console.error("Failed to delete skill:", data.message);
-        alert("Failed to delete skill: " + data.message);
+        console.error('Failed to delete skill:', data.message);
+        alert('Failed to delete skill: ' + data.message);
       }
     } catch (err) {
-      console.error("Error deleting skill:", err);
+      console.error('Error deleting skill:', err);
     }
   };
 
@@ -324,22 +297,22 @@ export default function ProfilePage() {
   // Handle profile update
   const handleProfileUpdate = async (updatedData) => {
     try {
-      const token = localStorage.getItem("token");
+      const token = localStorage.getItem('token');
 
       const response = await fetch(`${API_URL}/api/auth/profile`, {
-        method: "PUT",
+        method: 'PUT',
         headers: {
           Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify(updatedData),
       });
 
       // Check if response is actually JSON
-      const contentType = response.headers.get("content-type");
-      if (!contentType || !contentType.includes("application/json")) {
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
         throw new Error(
-          "Server returned non-JSON response. Please check if the server is running."
+          'Server returned non-JSON response. Please check if the server is running.'
         );
       }
 
@@ -356,7 +329,7 @@ export default function ProfilePage() {
 
         // Update localStorage to reflect changes in navbar
         if (data.user.name) {
-          localStorage.setItem("username", data.user.name);
+          localStorage.setItem('username', data.user.name);
         }
         if (data.user.avatar) {
           localStorage.setItem('userAvatar', data.user.avatar);
@@ -364,7 +337,7 @@ export default function ProfilePage() {
 
         // Dispatch custom event to notify navbar of changes
         window.dispatchEvent(
-          new CustomEvent("profileUpdated", {
+          new CustomEvent('profileUpdated', {
             detail: {
               name: data.user.name,
               email: data.user.email,
@@ -372,34 +345,33 @@ export default function ProfilePage() {
             },
           })
         );
-
       } else {
-        throw new Error(data.message || "Failed to update profile");
+        throw new Error(data.message || 'Failed to update profile');
       }
     } catch (err) {
-      console.error("Error updating profile:", err);
+      console.error('Error updating profile:', err);
       throw err; // Re-throw to be handled by EditProfile component
     }
   };
 
   const getLevelColor = (level) => {
     switch (level) {
-      case "Expert":
-        return "bg-red-500";
-      case "Advanced":
-        return "bg-orange-500";
-      case "Intermediate":
-        return "bg-yellow-500";
+      case 'Expert':
+        return 'bg-red-500';
+      case 'Advanced':
+        return 'bg-orange-500';
+      case 'Intermediate':
+        return 'bg-yellow-500';
       default:
-        return "bg-gray-500";
+        return 'bg-gray-500';
     }
   };
 
   const tabs = [
-    { id: "skills", label: "Skills" },
+    { id: 'skills', label: 'Skills' },
     // { id: 'reviews', label: 'Reviews' },
     // { id: 'achievements', label: 'Achievements' },
-    { id: "availability", label: "Availability" },
+    { id: 'availability', label: 'Availability' },
     // { id: 'settings', label: 'Settings' }
   ];
 
@@ -475,9 +447,7 @@ export default function ProfilePage() {
                   {profileData.joinDate && (
                     <div className="flex items-center gap-1 transition-colors duration-200 hover:text-red-600">
                       <Calendar size={16} />
-                      <span className="text-sm">
-                        Joined {profileData.joinDate}
-                      </span>
+                      <span className="text-sm">Joined {profileData.joinDate}</span>
                     </div>
                   )}
                 </div>
@@ -488,10 +458,11 @@ export default function ProfilePage() {
                       <Star
                         key={i}
                         size={16}
-                        className={`${i < Math.floor(profileData.rating.average)
-                          ? "fill-yellow-400 text-yellow-400"
-                          : "text-gray-300"
-                          } transition-all duration-200`}
+                        className={`${
+                          i < Math.floor(profileData.rating.average)
+                            ? 'fill-yellow-400 text-yellow-400'
+                            : 'text-gray-300'
+                        } transition-all duration-200`}
                       />
                     ))}
                   </div>
@@ -504,7 +475,7 @@ export default function ProfilePage() {
                 </div>
 
                 <p className="text-gray-600 mb-4 max-w-3xl leading-relaxed">
-                  {profileData.bio || "No bio provided yet."}
+                  {profileData.bio || 'No bio provided yet.'}
                 </p>
 
                 <div className="flex items-center gap-6 text-sm">
@@ -530,9 +501,7 @@ export default function ProfilePage() {
 
               <div className="text-right space-y-2">
                 <div>
-                  <div className="text-4xl font-bold text-red-600">
-                    {profileData.totalSessions}
-                  </div>
+                  <div className="text-4xl font-bold text-red-600">{profileData.totalSessions}</div>
                   <div className="text-sm text-gray-500">Total Sessions</div>
                 </div>
                 <div>
@@ -553,10 +522,11 @@ export default function ProfilePage() {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex-1 px-6 py-4 text-sm font-medium transition-all duration-200 cursor-pointer ${activeTab === tab.id
-                  ? "text-red-600 border-b-2 border-red-600"
-                  : "text-gray-400 hover:text-gray-200"
-                  }`}
+                className={`flex-1 px-6 py-4 text-sm font-medium transition-all duration-200 cursor-pointer ${
+                  activeTab === tab.id
+                    ? 'text-red-600 border-b-2 border-red-600'
+                    : 'text-gray-400 hover:text-gray-200'
+                }`}
               >
                 {tab.label}
               </button>
@@ -565,16 +535,14 @@ export default function ProfilePage() {
         </div>
 
         {/* Content */}
-        {activeTab === "skills" && (
+        {activeTab === 'skills' && (
           <div className="space-y-8">
             {/* Skills I Teach */}
             <div className="bg-black border border-white rounded-2xl shadow-sm p-6 transform transition-all duration-300 hover:shadow-md">
               <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center gap-2">
                   <BookOpen className="text-red-600" size={24} />
-                  <h2 className="text-2xl font-bold text-white">
-                    Skills I Offer
-                  </h2>
+                  <h2 className="text-2xl font-bold text-white">Skills I Offer</h2>
                 </div>
                 <button
                   onClick={() => setShowAddSkillModal(true)}
@@ -595,15 +563,13 @@ export default function ProfilePage() {
                     >
                       <div className="flex items-start justify-between mb-3">
                         <div className="flex-1">
-                          <h3 className="text-base font-bold text-white mb-2">
-                            {skill.name}
-                          </h3>
+                          <h3 className="text-base font-bold text-white mb-2">{skill.name}</h3>
                           <span
                             className={`inline-block px-2 py-1 ${getLevelColor(
-                              skill.offering?.level || "Beginner"
+                              skill.offering?.level || 'Beginner'
                             )} text-white text-xs font-medium rounded-full`}
                           >
-                            {skill.offering?.level || "Beginner"}
+                            {skill.offering?.level || 'Beginner'}
                           </span>
                         </div>
                         <div className="flex items-center gap-2 ml-2">
@@ -622,10 +588,7 @@ export default function ProfilePage() {
                             {skill.offering?.sessions || 0} sessions
                           </span>
                           <div className="flex items-center gap-1">
-                            <Star
-                              size={12}
-                              className="fill-yellow-400 text-yellow-400"
-                            />
+                            <Star size={12} className="fill-yellow-400 text-yellow-400" />
                             <span className="font-medium text-white">
                               {skill.offering?.rating || 0}
                             </span>
@@ -637,14 +600,9 @@ export default function ProfilePage() {
                 </div>
               ) : (
                 <div className="text-center py-8 text-gray-500">
-                  <BookOpen
-                    size={48}
-                    className="mx-auto mb-4 text-gray-300"
-                  />
+                  <BookOpen size={48} className="mx-auto mb-4 text-gray-300" />
                   <p>No skills offered yet.</p>
-                  <p className="text-sm">
-                    Add your first skill to start offering expertise!
-                  </p>
+                  <p className="text-sm">Add your first skill to start offering expertise!</p>
                 </div>
               )}
             </div>
@@ -653,9 +611,7 @@ export default function ProfilePage() {
             <div className="bg-black border border-white rounded-2xl shadow-sm p-6 transform transition-all duration-300 hover:shadow-md">
               <div className="flex items-center gap-2 mb-6">
                 <BookOpen className="text-red-500" size={24} />
-                <h2 className="text-2xl font-bold text-white">
-                  Skills I'm Seeking
-                </h2>
+                <h2 className="text-2xl font-bold text-white">Skills I'm Seeking</h2>
               </div>
 
               {profileData.skillsSeeking.length > 0 ? (
@@ -668,9 +624,7 @@ export default function ProfilePage() {
                     >
                       <div className="flex items-start justify-between mb-3">
                         <div className="flex-1">
-                          <h3 className="text-lg font-bold text-white mb-2">
-                            {skill.name}
-                          </h3>
+                          <h3 className="text-lg font-bold text-white mb-2">{skill.name}</h3>
                         </div>
                         <button
                           onClick={() => handleDeleteSkill(skill)}
@@ -687,8 +641,8 @@ export default function ProfilePage() {
                               <span className="text-white font-semibold text-xs">
                                 {typeof skill.seeking.currentInstructor === 'string'
                                   ? skill.seeking.currentInstructor.charAt(0).toUpperCase()
-                                  : skill.seeking.currentInstructor.name?.charAt(0).toUpperCase() || 'I'
-                                }
+                                  : skill.seeking.currentInstructor.name?.charAt(0).toUpperCase() ||
+                                    'I'}
                               </span>
                             </div>
                             <div>
@@ -696,8 +650,7 @@ export default function ProfilePage() {
                               <p className="font-medium">
                                 {typeof skill.seeking.currentInstructor === 'string'
                                   ? skill.seeking.currentInstructor
-                                  : skill.seeking.currentInstructor.name || 'Unknown Instructor'
-                                }
+                                  : skill.seeking.currentInstructor.name || 'Unknown Instructor'}
                               </p>
                             </div>
                           </div>
@@ -721,10 +674,7 @@ export default function ProfilePage() {
                 </div>
               ) : (
                 <div className="text-center py-8 text-gray-400">
-                  <BookOpen
-                    size={48}
-                    className="mx-auto mb-4 text-gray-600"
-                  />
+                  <BookOpen size={48} className="mx-auto mb-4 text-gray-600" />
                   <p>No skills being sought yet.</p>
                   <p className="text-sm">Start your learning journey!</p>
                 </div>
@@ -733,25 +683,25 @@ export default function ProfilePage() {
           </div>
         )}
 
-        {activeTab === "reviews" && (
+        {activeTab === 'reviews' && (
           <div className="bg-black border border-white rounded-2xl shadow-sm p-8 text-center">
             <p className="text-gray-500">Reviews content coming soon...</p>
           </div>
         )}
 
-        {activeTab === "achievements" && (
+        {activeTab === 'achievements' && (
           <div className="bg-black border border-white rounded-2xl shadow-sm p-8 text-center">
             <p className="text-gray-500">Achievements content coming soon...</p>
           </div>
         )}
 
-        {activeTab === "availability" && (
+        {activeTab === 'availability' && (
           <div className="bg-black border border-white rounded-2xl shadow-sm p-8 text-center">
             <p className="text-gray-500">Availability content coming soon...</p>
           </div>
         )}
 
-        {activeTab === "settings" && (
+        {activeTab === 'settings' && (
           <div className="bg-black border border-white rounded-2xl shadow-sm p-8 text-center">
             <p className="text-gray-500">Settings content coming soon...</p>
           </div>
@@ -767,7 +717,8 @@ export default function ProfilePage() {
             const params = new URLSearchParams(window.location.search);
             if (params.get('edit')) {
               params.delete('edit');
-              const base = window.location.pathname + (params.toString() ? `?${params.toString()}` : '');
+              const base =
+                window.location.pathname + (params.toString() ? `?${params.toString()}` : '');
               window.history.replaceState({}, '', base);
             }
           } catch {
@@ -783,9 +734,7 @@ export default function ProfilePage() {
         <div className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50">
           <div className="bg-black border border-white rounded-lg p-6 w-full max-w-md mx-4">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-bold text-white">
-                Add Offering Skill
-              </h2>
+              <h2 className="text-xl font-bold text-white">Add Offering Skill</h2>
               <button
                 onClick={() => setShowAddSkillModal(false)}
                 className="p-2 hover:bg-gray-800 rounded-lg transition-colors duration-200"
@@ -796,14 +745,10 @@ export default function ProfilePage() {
 
             <form onSubmit={handleAddSkill} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-1">
-                  Skill Name *
-                </label>
+                <label className="block text-sm font-medium text-gray-300 mb-1">Skill Name *</label>
                 <select
                   value={newSkill.name}
-                  onChange={(e) =>
-                    setNewSkill({ ...newSkill, name: e.target.value })
-                  }
+                  onChange={(e) => setNewSkill({ ...newSkill, name: e.target.value })}
                   className="w-full px-3 py-2 bg-black border border-gray-600 text-white rounded-lg focus:ring-2 focus:ring-red-600 focus:border-red-600"
                   required
                 >
@@ -822,9 +767,7 @@ export default function ProfilePage() {
                 </label>
                 <select
                   value={newSkill.level}
-                  onChange={(e) =>
-                    setNewSkill({ ...newSkill, level: e.target.value })
-                  }
+                  onChange={(e) => setNewSkill({ ...newSkill, level: e.target.value })}
                   className="w-full px-3 py-2 bg-black border border-gray-600 text-white rounded-lg focus:ring-2 focus:ring-red-600 focus:border-red-600"
                   required
                 >
@@ -855,8 +798,6 @@ export default function ProfilePage() {
         </div>
       )}
 
-
-
       {/* Delete Confirmation Modal */}
       {showDeleteConfirm && (
         <div className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50">
@@ -866,12 +807,8 @@ export default function ProfilePage() {
                 <Trash2 size={24} className="text-red-600" />
               </div>
               <div>
-                <h3 className="text-lg font-semibold text-white">
-                  Delete Skill
-                </h3>
-                <p className="text-sm text-gray-400">
-                  This action cannot be undone
-                </p>
+                <h3 className="text-lg font-semibold text-white">Delete Skill</h3>
+                <p className="text-sm text-gray-400">This action cannot be undone</p>
               </div>
             </div>
 

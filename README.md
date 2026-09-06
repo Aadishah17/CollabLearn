@@ -10,35 +10,41 @@ CollabLearn is a skill-learning platform centered on the web experience. The act
 
 The repository contains:
 
-- **`client/`**: React-based web frontend.
-- **`server/`**: Node.js & Express backend API.
-- **`flutter_app/`**: Secondary mobile codebase that is not the current product priority.
+- **`client/`**: React 19 web frontend with Cyber-Luminescent UI/UX and Tailwind CSS.
+- **`server/`**: Node.js & Express API with unified auth, AI pipeline orchestration, and pluggable storage.
+- **`android/`**: Native Kotlin Android companion app (**Tier 1: Production-Supported**).
+- **`ios/`**: Native Swift companion app (**Tier 2: Experimental**).
+- **`flutter_app/`**: Legacy Flutter prototype (**Tier 3: Archived**).
+- **`docs/api/openapi.yaml`**: Shared OpenAPI 3.1 contract preventing client/web drift.
+
+See [`docs/mobile/MOBILE_SUPPORT.md`](./docs/mobile/MOBILE_SUPPORT.md) for platform support tiers.
 
 ## Core Experience
 
-- **AI Learning Roadmaps**: Personalized generation based on skill, level, and timeline.
-- **Progress Tracking**: Persistent learning plans to monitor your growth.
-- **AI Mentor Chat**: Built-in guidance for next-step recommendations and study-session planning.
+- **AI Learning Roadmaps**: Personalized multi-week curriculum generated via an isolated AI orchestration pipeline.
+- **Progress Tracking**: Persistent learning plans to monitor milestone growth.
+- **AI Mentor Chat**: Interactive guidance with multi-provider fallback.
 - **Skill Marketplace**: Platform for users to teach and learn from each other.
 - **Session Booking**: 1v1 booking system with calendar management.
 - **Community Engagement**: Posting, commenting, and real-time messaging with Socket.IO.
-- **Admin Console**: Protected moderation, analytics, user management, and settings.
+- **Admin Console**: Protected moderation, analytics, user management, and telemetry.
 
 ## Tech Stack
 
 ### Web & Backend
 
-- **Frontend**: React + Vite + Tailwind CSS
-- **Backend**: Node.js + Express + MongoDB + Mongoose
+- **Frontend**: React 19 + Vite 7 + Tailwind CSS 4
+- **Backend**: Node.js (>=20.0.0) + Express + MongoDB + Mongoose 8
+- **Authentication**: Unified HTTP-only cookies + Bearer token fallback + Role authorization
+- **Storage**: Pluggable adapter (Local Disk, AWS S3 / S3-compatible, Cloudinary)
+- **Observability**: Structured JSON logging, `X-Request-Id` tracing, and route latency tracking
 - **Real-time**: Socket.IO
-- **Planning Engine**: Local roadmap and study-session engine with optional external resource enrichment
 
-### Mobile
+### Mobile Companions
 
-- **Framework**: Flutter / Dart
-- **State Management**: Provider
-- **Local Storage**: Shared Preferences
-- **Networking**: Http
+- **Primary (Tier 1)**: Android Kotlin (API 24-34, Material 3, ViewBinding, Retrofit)
+- **Experimental (Tier 2)**: iOS Swift (UIKit / URLSession)
+- **Archived (Tier 3)**: Flutter (Preserved for historical reference)
 
 ## Local Setup
 
@@ -74,6 +80,7 @@ Run these from the repository root:
 - `npm run test` - run server and client tests.
 - `npm run lint` / `npm run lint:fix` - run ESLint checks and autofix where possible.
 - `npm run format` / `npm run format:check` - apply or verify Prettier formatting.
+- `npm run audit` - audit production dependencies without dev packages.
 
 ## Environment Variables
 
@@ -117,8 +124,9 @@ All three commands should complete successfully before you open or update a pull
 - Set `TRUST_PROXY=1` when the API is deployed behind a reverse proxy or platform load balancer.
 - Optionally set `REDIS_URL` to share rate-limit counters across multiple API instances. If Redis is unavailable, the server falls back to local in-memory counters instead of failing requests.
 - Use `DB_CONNECT_MAX_ATTEMPTS`, `DB_CONNECT_RETRY_BASE_MS`, and `DB_CONNECT_RETRY_MAX_MS` if you need to tune MongoDB retry behavior for slower environments.
-- MongoDB connection failures no longer terminate the process immediately. The API stays up, retries in the background, and exposes the current readiness state through `/api/health`.
-- Runtime uploads are served from `server/uploads/` and should stay out of version control.
+- Production storage supports pluggable providers: local filesystem fallback (`server/uploads/` or `/tmp` in serverless), AWS S3/S3-compatible (`AWS_S3_BUCKET`), or Cloudinary (`CLOUDINARY_URL`). MongoDB persists only URLs and object metadata.
+- Request tracing and observability automatically attach an `X-Request-Id` to all responses with structured JSON logging and latency metrics.
+- For planned major version bumps (Mongoose 9, Vite 8, etc.), consult the isolated roadmap in [`docs/upgrades/major-dependency-upgrades.md`](./docs/upgrades/major-dependency-upgrades.md).
 - The AI model is configurable through `GEMINI_MODEL`; if omitted, the server falls back to `gemini-2.0-flash`.
 
 ## Render Deployment

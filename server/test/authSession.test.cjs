@@ -20,7 +20,7 @@ const originalEnv = {
   AUTH_COOKIE_SAMESITE: process.env.AUTH_COOKIE_SAMESITE,
   AUTH_COOKIE_SECURE: process.env.AUTH_COOKIE_SECURE,
   JWT_SECRET: process.env.JWT_SECRET,
-  NODE_ENV: process.env.NODE_ENV
+  NODE_ENV: process.env.NODE_ENV,
 };
 
 const restoreEnv = () => {
@@ -72,7 +72,7 @@ const withPatched = async (target, key, replacement, fn) => {
 const createFindByIdMock = (result) => () => ({
   select() {
     return Promise.resolve(result);
-  }
+  },
 });
 
 const createResponse = () => {
@@ -80,7 +80,7 @@ const createResponse = () => {
     statusCode: 200,
     jsonBody: null,
     cookieArgs: null,
-    clearCookieArgs: null
+    clearCookieArgs: null,
   };
 
   const res = {
@@ -99,7 +99,7 @@ const createResponse = () => {
     clearCookie(...args) {
       state.clearCookieArgs = args;
       return res;
-    }
+    },
   };
 
   return { res, state };
@@ -114,7 +114,7 @@ test('resolveAuthCookieConfig honors env overrides', async () => {
       AUTH_COOKIE_PATH: '/api',
       AUTH_COOKIE_SAMESITE: 'strict',
       AUTH_COOKIE_SECURE: 'false',
-      NODE_ENV: 'development'
+      NODE_ENV: 'development',
     },
     () => {
       const config = authConfig.resolveAuthCookieConfig();
@@ -126,14 +126,14 @@ test('resolveAuthCookieConfig honors env overrides', async () => {
         sameSite: 'strict',
         path: '/api',
         domain: 'example.com',
-        maxAge: 1234
+        maxAge: 1234,
       });
       assert.deepEqual(config.clearOptions, {
         httpOnly: true,
         secure: false,
         sameSite: 'strict',
         path: '/api',
-        domain: 'example.com'
+        domain: 'example.com',
       });
     }
   );
@@ -143,7 +143,7 @@ test('auth middleware prefers cookie auth but falls back to bearer tokens', asyn
   await withEnv(
     {
       JWT_SECRET: 'test-secret',
-      AUTH_COOKIE_NAME: 'collablearn_access_token'
+      AUTH_COOKIE_NAME: 'collablearn_access_token',
     },
     async () => {
       const cookieToken = jwt.sign(
@@ -160,11 +160,11 @@ test('auth middleware prefers cookie auth but falls back to bearer tokens', asyn
       const req = {
         headers: {
           cookie: `collablearn_access_token=${cookieToken}`,
-          authorization: `Bearer ${bearerToken}`
+          authorization: `Bearer ${bearerToken}`,
         },
         header(name) {
           return this.headers[String(name).toLowerCase()];
-        }
+        },
       };
 
       let nextCalled = false;
@@ -176,7 +176,7 @@ test('auth middleware prefers cookie auth but falls back to bearer tokens', asyn
         createFindByIdMock({
           _id: 'cookie-user',
           email: 'cookie@example.com',
-          isActive: true
+          isActive: true,
         }),
         async () => {
           await withPatched(Admin, 'findById', createFindByIdMock(null), async () => {
@@ -198,7 +198,7 @@ test('auth middleware prefers cookie auth but falls back to bearer tokens', asyn
   await withEnv(
     {
       JWT_SECRET: 'test-secret',
-      AUTH_COOKIE_NAME: 'collablearn_access_token'
+      AUTH_COOKIE_NAME: 'collablearn_access_token',
     },
     async () => {
       const bearerToken = jwt.sign(
@@ -210,11 +210,11 @@ test('auth middleware prefers cookie auth but falls back to bearer tokens', asyn
       const req = {
         headers: {
           cookie: 'collablearn_access_token=invalid-cookie-token',
-          authorization: `Bearer ${bearerToken}`
+          authorization: `Bearer ${bearerToken}`,
         },
         header(name) {
           return this.headers[String(name).toLowerCase()];
-        }
+        },
       };
 
       let nextCalled = false;
@@ -227,7 +227,7 @@ test('auth middleware prefers cookie auth but falls back to bearer tokens', asyn
           createFindByIdMock({
             _id: 'bearer-user',
             email: 'bearer@example.com',
-            isActive: true
+            isActive: true,
           }),
           async () => {
             await auth(req, res, () => {
@@ -250,7 +250,7 @@ test('optionalAuth accepts cookie sessions without forcing an error', async () =
   await withEnv(
     {
       JWT_SECRET: 'test-secret',
-      AUTH_COOKIE_NAME: 'collablearn_access_token'
+      AUTH_COOKIE_NAME: 'collablearn_access_token',
     },
     async () => {
       const token = jwt.sign(
@@ -261,11 +261,11 @@ test('optionalAuth accepts cookie sessions without forcing an error', async () =
 
       const req = {
         headers: {
-          cookie: `collablearn_access_token=${token}`
+          cookie: `collablearn_access_token=${token}`,
         },
         header(name) {
           return this.headers[String(name).toLowerCase()];
-        }
+        },
       };
 
       let nextCalled = false;
@@ -276,7 +276,7 @@ test('optionalAuth accepts cookie sessions without forcing an error', async () =
         createFindByIdMock({
           _id: 'opt-user',
           email: 'opt@example.com',
-          isActive: true
+          isActive: true,
         }),
         async () => {
           await withPatched(Admin, 'findById', createFindByIdMock(null), async () => {
@@ -299,7 +299,7 @@ test('auth middleware rejects tokens for deleted accounts with a 401', async () 
   await withEnv(
     {
       JWT_SECRET: 'test-secret',
-      AUTH_COOKIE_NAME: 'collablearn_access_token'
+      AUTH_COOKIE_NAME: 'collablearn_access_token',
     },
     async () => {
       const token = jwt.sign(
@@ -310,11 +310,11 @@ test('auth middleware rejects tokens for deleted accounts with a 401', async () 
 
       const req = {
         headers: {
-          authorization: `Bearer ${token}`
+          authorization: `Bearer ${token}`,
         },
         header(name) {
           return this.headers[String(name).toLowerCase()];
-        }
+        },
       };
 
       let nextCalled = false;
@@ -332,7 +332,7 @@ test('auth middleware rejects tokens for deleted accounts with a 401', async () 
       assert.equal(state.statusCode, 401);
       assert.deepEqual(state.jsonBody, {
         success: false,
-        message: 'Session is no longer valid. Please login again.'
+        message: 'Session is no longer valid. Please login again.',
       });
     }
   );
@@ -345,7 +345,7 @@ test('login and logout use the httpOnly auth cookie', async () => {
       AUTH_COOKIE_NAME: 'collablearn_access_token',
       AUTH_COOKIE_PATH: '/',
       AUTH_COOKIE_SAMESITE: 'lax',
-      AUTH_COOKIE_SECURE: 'false'
+      AUTH_COOKIE_SECURE: 'false',
     },
     async () => {
       const account = {
@@ -356,26 +356,41 @@ test('login and logout use the httpOnly auth cookie', async () => {
         avatar: null,
         getAvatarUrl() {
           return 'https://example.com/avatar.png';
-        }
+        },
       };
 
       const { res: loginRes, state: loginState } = createResponse();
 
-      await withPatched(User, 'findOne', async () => account, async () => {
-        await withPatched(Admin, 'findOne', async () => null, async () => {
-          await withPatched(bcrypt, 'compare', async () => true, async () => {
-            await authController.login(
-              {
-                body: {
-                  email: 'learner@example.com',
-                  password: 'correct-password'
+      await withPatched(
+        User,
+        'findOne',
+        async () => account,
+        async () => {
+          await withPatched(
+            Admin,
+            'findOne',
+            async () => null,
+            async () => {
+              await withPatched(
+                bcrypt,
+                'compare',
+                async () => true,
+                async () => {
+                  await authController.login(
+                    {
+                      body: {
+                        email: 'learner@example.com',
+                        password: 'correct-password',
+                      },
+                    },
+                    loginRes
+                  );
                 }
-              },
-              loginRes
-            );
-          });
-        });
-      });
+              );
+            }
+          );
+        }
+      );
 
       assert.equal(loginState.statusCode, 200);
       assert.equal(loginState.jsonBody.success, true);
@@ -389,7 +404,7 @@ test('login and logout use the httpOnly auth cookie', async () => {
         secure: false,
         sameSite: 'lax',
         path: '/',
-        maxAge: 7 * 24 * 60 * 60 * 1000
+        maxAge: 7 * 24 * 60 * 60 * 1000,
       });
 
       const { res: logoutRes, state: logoutState } = createResponse();
@@ -401,7 +416,7 @@ test('login and logout use the httpOnly auth cookie', async () => {
         httpOnly: true,
         secure: false,
         sameSite: 'lax',
-        path: '/'
+        path: '/',
       });
     }
   );
@@ -415,7 +430,7 @@ test('super admin login falls back to the matching user account when admin passw
       AUTH_COOKIE_PATH: '/',
       AUTH_COOKIE_SAMESITE: 'lax',
       AUTH_COOKIE_SECURE: 'false',
-      SUPER_ADMIN_EMAILS: 'shahaadi285@gmail.com'
+      SUPER_ADMIN_EMAILS: 'shahaadi285@gmail.com',
     },
     async () => {
       const userAccount = {
@@ -428,37 +443,52 @@ test('super admin login falls back to the matching user account when admin passw
         isPremium: false,
         getAvatarUrl() {
           return null;
-        }
+        },
       };
       const adminAccount = {
         _id: '66f000000000000000000011',
         email: 'shahaadi285@gmail.com',
         password: 'admin-hash',
         isActive: true,
-        createdAt: new Date('2026-01-01T00:00:00.000Z')
+        createdAt: new Date('2026-01-01T00:00:00.000Z'),
       };
       const compareCalls = [];
       const { res, state } = createResponse();
 
-      await withPatched(Admin, 'findOne', async () => adminAccount, async () => {
-        await withPatched(User, 'findOne', async () => userAccount, async () => {
-          await withPatched(bcrypt, 'compare', async (plain, hashed) => {
-            compareCalls.push([plain, hashed]);
-            return hashed === 'user-hash';
-          }, async () => {
-            await authController.login(
-              {
-                body: {
-                  email: 'shahaadi285@gmail.com',
-                  password: 'correct-password',
-                  role: 'admin'
+      await withPatched(
+        Admin,
+        'findOne',
+        async () => adminAccount,
+        async () => {
+          await withPatched(
+            User,
+            'findOne',
+            async () => userAccount,
+            async () => {
+              await withPatched(
+                bcrypt,
+                'compare',
+                async (plain, hashed) => {
+                  compareCalls.push([plain, hashed]);
+                  return hashed === 'user-hash';
+                },
+                async () => {
+                  await authController.login(
+                    {
+                      body: {
+                        email: 'shahaadi285@gmail.com',
+                        password: 'correct-password',
+                        role: 'admin',
+                      },
+                    },
+                    res
+                  );
                 }
-              },
-              res
-            );
-          });
-        });
-      });
+              );
+            }
+          );
+        }
+      );
 
       assert.equal(state.statusCode, 200);
       assert.equal(state.jsonBody.success, true);
@@ -468,7 +498,7 @@ test('super admin login falls back to the matching user account when admin passw
       assert.equal(state.jsonBody.user.name, 'Shahaadi');
       assert.deepEqual(compareCalls, [
         ['correct-password', 'admin-hash'],
-        ['correct-password', 'user-hash']
+        ['correct-password', 'user-hash'],
       ]);
     }
   );
@@ -481,37 +511,52 @@ test('register issues the same cookie-backed session as login', async () => {
       AUTH_COOKIE_NAME: 'collablearn_access_token',
       AUTH_COOKIE_PATH: '/',
       AUTH_COOKIE_SAMESITE: 'lax',
-      AUTH_COOKIE_SECURE: 'false'
+      AUTH_COOKIE_SECURE: 'false',
     },
     async () => {
       const { res, state } = createResponse();
 
-      await withPatched(User, 'findOne', async () => null, async () => {
-        await withPatched(User.prototype, 'save', async function saveUser() {
-          this._id = this._id || '66f000000000000000000002';
-          return this;
-        }, async () => {
-          await withPatched(Setting, 'findOne', async () => ({
-            select() {
+      await withPatched(
+        User,
+        'findOne',
+        async () => null,
+        async () => {
+          await withPatched(
+            User.prototype,
+            'save',
+            async function saveUser() {
+              this._id = this._id || '66f000000000000000000002';
               return this;
             },
-            lean() {
-              return Promise.resolve({ minPasswordLength: 6 });
-            }
-          }), async () => {
-            await authController.register(
-              {
-                body: {
-                  name: 'New Learner',
-                  email: 'new-learner@example.com',
-                  password: 'secret123'
+            async () => {
+              await withPatched(
+                Setting,
+                'findOne',
+                async () => ({
+                  select() {
+                    return this;
+                  },
+                  lean() {
+                    return Promise.resolve({ minPasswordLength: 6 });
+                  },
+                }),
+                async () => {
+                  await authController.register(
+                    {
+                      body: {
+                        name: 'New Learner',
+                        email: 'new-learner@example.com',
+                        password: 'secret123',
+                      },
+                    },
+                    res
+                  );
                 }
-              },
-              res
-            );
-          });
-        });
-      });
+              );
+            }
+          );
+        }
+      );
 
       assert.equal(state.statusCode, 201);
       assert.equal(state.jsonBody.success, true);

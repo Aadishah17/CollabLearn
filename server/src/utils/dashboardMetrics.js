@@ -35,7 +35,9 @@ const createLearningGoals = (skills = []) =>
     progress: Math.max(0, Math.min(100, Number(skill?.seeking?.progress || 0))),
     currentInstructor: skill?.seeking?.currentInstructor
       ? {
-          id: String(skill.seeking.currentInstructor._id || skill.seeking.currentInstructor.id || ''),
+          id: String(
+            skill.seeking.currentInstructor._id || skill.seeking.currentInstructor.id || ''
+          ),
           name: skill.seeking.currentInstructor.name || 'Unknown instructor',
           email: skill.seeking.currentInstructor.email || '',
         }
@@ -49,7 +51,7 @@ const calculateAverageLearningProgress = (skills = []) => {
 
   const total = skills.reduce(
     (sum, skill) => sum + Math.max(0, Math.min(100, Number(skill?.seeking?.progress || 0))),
-    0,
+    0
   );
 
   return Math.round(total / skills.length);
@@ -70,7 +72,9 @@ const buildStudentProgressLookup = (skills = []) => {
       progress: Math.max(0, Math.min(100, Number(skill?.seeking?.progress || 0))),
       currentInstructor: skill?.seeking?.currentInstructor
         ? {
-            id: String(skill.seeking.currentInstructor._id || skill.seeking.currentInstructor.id || ''),
+            id: String(
+              skill.seeking.currentInstructor._id || skill.seeking.currentInstructor.id || ''
+            ),
             name: skill.seeking.currentInstructor.name || 'Unknown instructor',
           }
         : null,
@@ -80,7 +84,11 @@ const buildStudentProgressLookup = (skills = []) => {
   return lookup;
 };
 
-const buildStudentSummaries = (teachingBookings = [], studentSeekingSkills = [], now = new Date()) => {
+const buildStudentSummaries = (
+  teachingBookings = [],
+  studentSeekingSkills = [],
+  now = new Date()
+) => {
   const progressLookup = buildStudentProgressLookup(studentSeekingSkills);
   const summaries = new Map();
 
@@ -142,12 +150,13 @@ const buildStudentSummaries = (teachingBookings = [], studentSeekingSkills = [],
       let focusSkillName = summary.upcomingSkillName;
 
       if (!focusSkillName) {
-        focusSkillName = Array.from(summary.skillCounts.entries()).sort((left, right) => {
-          if (right[1] !== left[1]) {
-            return right[1] - left[1];
-          }
-          return left[0].localeCompare(right[0]);
-        })[0]?.[0] || null;
+        focusSkillName =
+          Array.from(summary.skillCounts.entries()).sort((left, right) => {
+            if (right[1] !== left[1]) {
+              return right[1] - left[1];
+            }
+            return left[0].localeCompare(right[0]);
+          })[0]?.[0] || null;
       }
 
       const progressSignal = focusSkillName
@@ -191,7 +200,9 @@ const buildRecentActivity = (bookings = [], userId, now = new Date()) =>
     .sort((left, right) => new Date(right.date) - new Date(left.date))
     .slice(0, 10)
     .map((booking) => {
-      const instructorId = String(booking?.instructor?._id || booking?.instructor?.id || booking?.instructor || '');
+      const instructorId = String(
+        booking?.instructor?._id || booking?.instructor?.id || booking?.instructor || ''
+      );
       const isTeaching = instructorId === String(userId);
 
       return {
@@ -215,7 +226,9 @@ const buildStudentDetailsPayload = ({
   const completedBookings = bookings.filter((booking) => isCompletedBooking(booking, now));
   const upcomingBookings = bookings.filter((booking) => isUpcomingBooking(booking, now));
   const totalMinutes = bookings.reduce((sum, booking) => sum + Number(booking?.duration || 0), 0);
-  const sortedByDateDesc = [...bookings].sort((left, right) => new Date(right.date) - new Date(left.date));
+  const sortedByDateDesc = [...bookings].sort(
+    (left, right) => new Date(right.date) - new Date(left.date)
+  );
   const lastSessionAt = completedBookings
     .map((booking) => toDate(booking?.date))
     .filter(Boolean)
@@ -240,7 +253,9 @@ const buildStudentDetailsPayload = ({
       upcomingSessions: upcomingBookings.length,
       totalMinutes,
       totalHours: Math.round((totalMinutes / 60) * 10) / 10,
-      completionRate: bookings.length ? Math.round((completedBookings.length / bookings.length) * 100) : 0,
+      completionRate: bookings.length
+        ? Math.round((completedBookings.length / bookings.length) * 100)
+        : 0,
       lastSessionAt: lastSessionAt ? lastSessionAt.toISOString() : null,
       nextSessionAt: nextSessionAt ? nextSessionAt.toISOString() : null,
     },

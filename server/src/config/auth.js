@@ -4,7 +4,7 @@ const PLACEHOLDER_SECRETS = new Set([
   'your_jwt_secret',
   'your_jwt_secret_here',
   'change-me',
-  'changeme'
+  'changeme',
 ]);
 
 const DEFAULT_AUTH_COOKIE_NAME = 'collablearn_access_token';
@@ -33,7 +33,9 @@ const parseBoolean = (value, defaultValue = false) => {
 };
 
 const parseSameSite = (value, defaultValue = 'lax') => {
-  const normalized = String(value || '').trim().toLowerCase();
+  const normalized = String(value || '')
+    .trim()
+    .toLowerCase();
   if (['strict', 'lax', 'none'].includes(normalized)) {
     return normalized;
   }
@@ -108,9 +110,10 @@ const resolveAuthCookieConfig = () => {
     secure,
     sameSite,
     path: configuredPath || DEFAULT_AUTH_COOKIE_PATH,
-    maxAge: Number.isInteger(configuredMaxAge) && configuredMaxAge > 0
-      ? configuredMaxAge
-      : DEFAULT_AUTH_COOKIE_MAX_AGE_MS
+    maxAge:
+      Number.isInteger(configuredMaxAge) && configuredMaxAge > 0
+        ? configuredMaxAge
+        : DEFAULT_AUTH_COOKIE_MAX_AGE_MS,
   };
 
   if (configuredDomain) {
@@ -121,7 +124,7 @@ const resolveAuthCookieConfig = () => {
     httpOnly: true,
     secure,
     sameSite,
-    path: options.path
+    path: options.path,
   };
 
   if (configuredDomain) {
@@ -131,7 +134,7 @@ const resolveAuthCookieConfig = () => {
   return {
     name: resolveAuthCookieName(),
     options,
-    clearOptions
+    clearOptions,
   };
 };
 
@@ -155,7 +158,7 @@ const extractAuthTokenCandidates = (req) => {
   if (cookieToken) {
     candidates.push({
       source: 'cookie',
-      token: cookieToken
+      token: cookieToken,
     });
   }
 
@@ -165,7 +168,7 @@ const extractAuthTokenCandidates = (req) => {
     if (bearerToken && !candidates.some((candidate) => candidate.token === bearerToken)) {
       candidates.push({
         source: 'bearer',
-        token: bearerToken
+        token: bearerToken,
       });
     }
   }
@@ -195,14 +198,117 @@ const clearAuthCookie = (res) => {
   return res;
 };
 
+const jwt = require('jsonwebtoken');
+
+const createSessionToken = ({ userId, email, role, isSuperAdmin, expiresIn = '7d' }) =>
+  jwt.sign(
+    {
+      userId,
+      email,
+      role: role || (isSuperAdmin ? 'admin' : 'user'),
+      isSuperAdmin: Boolean(isSuperAdmin),
+    },
+    resolveJwtSecret(),
+    { expiresIn }
+  );
+
+const sendSessionResponse = ({ res, statusCode = 200, message, token, user, extra = {} }) => {
+  setAuthCookie(res, token);
+  return res.status(statusCode).json({
+    success: true,
+    message,
+    token,
+    user,
+    ...extra,
+  });
+};
+
+const buildSessionUserPayload = ({ account, accountType, role, isSuperAdmin }) => {
+  const baseUser = {
+    id: account?._id || account?.id,
+    email: account?.email,
+    role: role || (isSuperAdmin ? 'admin' : 'user'),
+    isSuperAdmin: Boolean(isSuperAdmin),
+  };
+
+  if (accountType === 'admin') {
+    return {
+      ...baseUser,
+      name: isSuperAdmin ? 'Super Admin' : account?.name || 'Admin',
+      avatar: null,
+      avatarType: 'default',
+      isPremium: false,
+      createdAt: account?.createdAt,
+    };
+  }
+
+  return {
+    ...baseUser,
+    name: account?.name || 'Learner',
+    avatar:
+      typeof account?.getAvatarUrl === 'function'
+        ? account.getAvatarUrl()
+        : account?.avatar?.url || null,
+    avatarType: account?.avatar?.type || 'default',
+    isPremium: Boolean(account?.isPremium),
+    createdAt: account?.createdAt,
+  };
+};
+
+const hasRole = (currentRole, allowedRoles = []) => {
+  if (!currentRole) return false;
+  const roles = Array.isArray(allowedRoles) ? allowedRoles : [allowedRoles];
+  return roles.includes(currentRole);
+};
+
+const isAdminRole = (role) => role === 'admin';
+
+const DEFAULT_ALLOWED_ORIGINS = [
+  'http://localhost:4173',
+  'http://127.0.0.1:4173',
+  'http://localhost:5173',
+  'http://127.0.0.1:5173',
+  'http://localhost:5174',
+  'http://127.0.0.1:5174',
+  'http://localhost:5175',
+  'http://127.0.0.1:5175',
+  'http://localhost:5176',
+  'http://127.0.0.1:5176',
+  'http://localhost:5177',
+  'http://127.0.0.1:5177',
+  'http://localhost:3000',
+  'http://127.0.0.1:3000',
+];
+
+const resolveCorsOrigins = () => {
+  const configured = String(process.env.CORS_ORIGINS || '')
+    .split(',')
+    .map((origin) => origin.trim().replace(/\/+$/, ''))
+    .filter(Boolean);
+
+  return configured.length > 0 ? configured : DEFAULT_ALLOWED_ORIGINS;
+};
+
+const isOriginAllowed = (origin, allowedOrigins = resolveCorsOrigins()) => {
+  if (!origin) return true;
+  return allowedOrigins.includes(origin);
+};
+
 module.exports = {
-  assertJwtSecretConfigured,
   applyAuthContext,
+  assertJwtSecretConfigured,
+  buildSessionUserPayload,
   clearAuthCookie,
+  createSessionToken,
   extractAuthTokenCandidates,
+  hasRole,
+  isAdminRole,
+  isOriginAllowed,
   parseCookieHeader,
   resolveAuthCookieConfig,
   resolveAuthCookieName,
+  resolveCorsOrigins,
   resolveJwtSecret,
-  setAuthCookie
+  sendSessionResponse,
+  setAuthCookie,
 };

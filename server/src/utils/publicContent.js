@@ -2,7 +2,10 @@ const mongoose = require('mongoose');
 
 const deepClone = (value) => JSON.parse(JSON.stringify(value));
 
-const normalizeSlug = (value) => String(value || '').trim().toLowerCase();
+const normalizeSlug = (value) =>
+  String(value || '')
+    .trim()
+    .toLowerCase();
 
 const COMPETITION_FIXTURES = [
   {
@@ -15,11 +18,11 @@ const COMPETITION_FIXTURES = [
       startsAt: '2026-04-01T09:00:00.000Z',
       endsAt: '2026-04-21T18:00:00.000Z',
       timezone: 'UTC',
-      label: 'Live now'
+      label: 'Live now',
     },
     summary: 'Build a polished learner-facing product surface with real-world constraints.',
     prize: 'Mentorship, portfolio review, and community showcase placement.',
-    eligibility: ['Open to all learners', 'Solo or team entries', 'Public repository required']
+    eligibility: ['Open to all learners', 'Solo or team entries', 'Public repository required'],
   },
   {
     slug: 'career-path-sprint',
@@ -31,11 +34,11 @@ const COMPETITION_FIXTURES = [
       startsAt: '2026-04-18T09:00:00.000Z',
       endsAt: '2026-05-02T18:00:00.000Z',
       timezone: 'UTC',
-      label: 'Starts soon'
+      label: 'Starts soon',
     },
     summary: 'A guided challenge for turning learning progress into a credible role pitch.',
     prize: 'Mock interviews, resume feedback, and booking credits.',
-    eligibility: ['Portfolio-ready learners', 'Career switchers welcome']
+    eligibility: ['Portfolio-ready learners', 'Career switchers welcome'],
   },
   {
     slug: 'ai-learning-showcase',
@@ -47,12 +50,12 @@ const COMPETITION_FIXTURES = [
       startsAt: '2026-05-05T09:00:00.000Z',
       endsAt: '2026-05-19T18:00:00.000Z',
       timezone: 'UTC',
-      label: 'Planned next'
+      label: 'Planned next',
     },
     summary: 'Ship a small, useful AI learning project and present it publicly.',
     prize: 'Showcase slot, mentor feedback, and profile feature.',
-    eligibility: ['One prototype per entrant', 'Public demo link required']
-  }
+    eligibility: ['One prototype per entrant', 'Public demo link required'],
+  },
 ];
 
 const CAREER_TRACK_FIXTURES = [
@@ -65,32 +68,33 @@ const CAREER_TRACK_FIXTURES = [
     timing: {
       durationWeeks: 12,
       pace: 'Self-paced',
-      label: '12 week track'
+      label: '12 week track',
     },
-    roleSummary: 'Prepare for product-focused frontend and full-stack roles with one deployable portfolio project.',
+    roleSummary:
+      'Prepare for product-focused frontend and full-stack roles with one deployable portfolio project.',
     hiringAdvice:
       'Show one shipped app, one measurable outcome, and one example of debugging a real production issue.',
     linkedSkills: ['React component design', 'Express APIs', 'Testing and release checks'],
     linkedCourses: [
       {
         slug: 'react-patterns',
-        title: 'React Patterns for Product Teams'
+        title: 'React Patterns for Product Teams',
       },
       {
         slug: 'api-testing-basics',
-        title: 'API Testing Basics'
-      }
+        title: 'API Testing Basics',
+      },
     ],
     linkedModules: [
       {
         slug: 'shipping-a-public-api',
-        title: 'Shipping a Public API'
+        title: 'Shipping a Public API',
       },
       {
         slug: 'portfolio-review-checklist',
-        title: 'Portfolio Review Checklist'
-      }
-    ]
+        title: 'Portfolio Review Checklist',
+      },
+    ],
   },
   {
     slug: 'career-ops-coordinator',
@@ -101,25 +105,26 @@ const CAREER_TRACK_FIXTURES = [
     timing: {
       durationWeeks: 8,
       pace: 'Guided',
-      label: '8 week track'
+      label: '8 week track',
     },
-    roleSummary: 'Build the communication, planning, and learner support skills needed for people operations roles.',
+    roleSummary:
+      'Build the communication, planning, and learner support skills needed for people operations roles.',
     hiringAdvice:
       'Recruiters want to see calm follow-through, organized notes, and evidence you can keep multiple learners moving.',
     linkedSkills: ['Learner support', 'Scheduling', 'Communication'],
     linkedCourses: [
       {
         slug: 'career-communication',
-        title: 'Career Communication Essentials'
-      }
+        title: 'Career Communication Essentials',
+      },
     ],
     linkedModules: [
       {
         slug: 'booking-workflows',
-        title: 'Booking Workflows'
-      }
-    ]
-  }
+        title: 'Booking Workflows',
+      },
+    ],
+  },
 ];
 
 const COUNSELLOR_FIXTURES = [
@@ -131,10 +136,10 @@ const COUNSELLOR_FIXTURES = [
     specialties: ['portfolio review', 'role selection', 'interview prep'],
     cta: {
       label: 'Book a strategy call',
-      target: '/bookings/career-strategy-call'
+      target: '/bookings/career-strategy-call',
     },
     sourceUrl: 'https://collablearn.example.com/counsellors/maya-khan',
-    responseTime: 'Usually replies within 1 business day'
+    responseTime: 'Usually replies within 1 business day',
   },
   {
     slug: 'devin-cole',
@@ -144,11 +149,11 @@ const COUNSELLOR_FIXTURES = [
     specialties: ['study planning', 'accountability', 'progress reviews'],
     cta: {
       label: 'Reserve a check-in',
-      target: '/bookings/learning-check-in'
+      target: '/bookings/learning-check-in',
     },
     sourceUrl: 'https://collablearn.example.com/counsellors/devin-cole',
-    responseTime: 'Replies within one business day'
-  }
+    responseTime: 'Replies within one business day',
+  },
 ];
 
 const toPlain = (value) => {
@@ -228,5 +233,5 @@ module.exports = {
   COUNSELLOR_FIXTURES,
   normalizeSlug,
   readManyWithFallback,
-  readOneBySlugWithFallback
+  readOneBySlugWithFallback,
 };

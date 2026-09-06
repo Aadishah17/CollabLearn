@@ -25,7 +25,8 @@ export const quickSignals = [
   {
     title: 'Mentor sessions',
     value: 'Bring in live help at the right moment',
-    detail: 'Use sessions for blockers, feedback, and sharper next steps instead of generic advice.',
+    detail:
+      'Use sessions for blockers, feedback, and sharper next steps instead of generic advice.',
     icon: Calendar,
     iconClass: 'border-blue-400/25 bg-blue-500/12 text-blue-100',
     haloClass: 'from-blue-500/16 via-blue-500/5 to-transparent',
@@ -57,12 +58,14 @@ export const heroStats = [
   {
     value: '1',
     label: 'Shared workspace',
-    detail: 'Study planning, sessions, and progress tracking live together instead of across scattered tools.',
+    detail:
+      'Study planning, sessions, and progress tracking live together instead of across scattered tools.',
   },
   {
     value: '7d',
     label: 'Momentum window',
-    detail: 'The product is designed to keep your next step obvious after the first burst of motivation fades.',
+    detail:
+      'The product is designed to keep your next step obvious after the first burst of motivation fades.',
   },
 ];
 
@@ -247,7 +250,11 @@ export const teacherBenefits = [
   },
 ];
 
-export const ctaFeatures = ['Goal-first planning', 'Visible momentum', 'Mentor support when needed'];
+export const ctaFeatures = [
+  'Goal-first planning',
+  'Visible momentum',
+  'Mentor support when needed',
+];
 
 export const landingCtaCopy = {
   guestPrimary: 'Start free and build your roadmap',

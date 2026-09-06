@@ -27,8 +27,8 @@ const AiChatbot = ({ defaultSkill = '', context = {} }) => {
     {
       role: 'assistant',
       content:
-        'I am your AI learning mentor. Ask for study strategy help or type "roadmap for <skill>" to generate a plan.'
-    }
+        'I am your AI learning mentor. Ask for study strategy help or type "roadmap for <skill>" to generate a plan.',
+    },
   ]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -43,7 +43,7 @@ const AiChatbot = ({ defaultSkill = '', context = {} }) => {
     focusAreas: Array.isArray(context.focusAreas) ? context.focusAreas : [],
     roadmapSummary: context.roadmapSummary || '',
     currentStepTitle: context.currentStepTitle || '',
-    currentStepDescription: context.currentStepDescription || ''
+    currentStepDescription: context.currentStepDescription || '',
   };
 
   const quickPrompts = useMemo(() => {
@@ -52,7 +52,7 @@ const AiChatbot = ({ defaultSkill = '', context = {} }) => {
       `What should I do in my next ${Math.max(1, Math.round(normalizedContext.weeklyHours / 2))}-hour study block?`,
       `Roadmap for ${skillLabel}`,
       `Explain "${normalizedContext.currentStepTitle || 'my current roadmap step'}" in simple terms`,
-      'How do I stay consistent every week?'
+      'How do I stay consistent every week?',
     ];
   }, [defaultSkill, normalizedContext.currentStepTitle, normalizedContext.weeklyHours]);
 
@@ -86,9 +86,9 @@ const AiChatbot = ({ defaultSkill = '', context = {} }) => {
             weeklyHours: normalizedContext.weeklyHours,
             targetWeeks: normalizedContext.targetWeeks,
             focusAreas: normalizedContext.focusAreas,
-            savePlan: false
+            savePlan: false,
           },
-          auth: true
+          auth: true,
         });
 
         const normalizedRoadmap = sanitizeRoadmapFromResponse(roadmapData);
@@ -98,7 +98,7 @@ const AiChatbot = ({ defaultSkill = '', context = {} }) => {
 
         setMessages((prev) => [
           ...prev,
-          { role: 'assistant', content: `Here is your roadmap for ${requestedSkill}.` }
+          { role: 'assistant', content: `Here is your roadmap for ${requestedSkill}.` },
         ]);
         setInlineRoadmap(normalizedRoadmap);
         return;
@@ -110,9 +110,9 @@ const AiChatbot = ({ defaultSkill = '', context = {} }) => {
           message: messageText,
           skillContext: defaultSkill || 'General learning',
           learnerLevel: normalizedContext.learnerLevel,
-          context: normalizedContext
+          context: normalizedContext,
         },
-        auth: true
+        auth: true,
       });
 
       if (!data.response) {
@@ -124,7 +124,10 @@ const AiChatbot = ({ defaultSkill = '', context = {} }) => {
       console.error('AI chatbot error:', error);
       setMessages((prev) => [
         ...prev,
-        { role: 'assistant', content: 'I could not complete that request. Please try again in a moment.' }
+        {
+          role: 'assistant',
+          content: 'I could not complete that request. Please try again in a moment.',
+        },
       ]);
     } finally {
       setIsLoading(false);
@@ -157,7 +160,10 @@ const AiChatbot = ({ defaultSkill = '', context = {} }) => {
               <MessageSquare size={18} />
               <span className="font-semibold text-sm">AI Learning Mentor</span>
             </div>
-            <button onClick={() => setIsOpen(false)} className="p-1 rounded hover:bg-white/15 transition-colors">
+            <button
+              onClick={() => setIsOpen(false)}
+              className="p-1 rounded hover:bg-white/15 transition-colors"
+            >
               <X size={18} />
             </button>
           </div>
@@ -179,7 +185,10 @@ const AiChatbot = ({ defaultSkill = '', context = {} }) => {
 
           <div className="flex-1 overflow-y-auto p-4 space-y-3">
             {messages.map((msg, index) => (
-              <div key={`${msg.role}-${index}`} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+              <div
+                key={`${msg.role}-${index}`}
+                className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+              >
                 <div
                   className={`max-w-[85%] text-sm p-3 rounded-2xl ${
                     msg.role === 'user'
@@ -200,8 +209,13 @@ const AiChatbot = ({ defaultSkill = '', context = {} }) => {
                 </p>
                 <div className="space-y-2">
                   {inlineRoadmap.steps.slice(0, 5).map((step, idx) => (
-                    <div key={`${step.title}-${idx}`} className="text-xs text-zinc-300 p-2 rounded-lg bg-zinc-950 border border-zinc-800">
-                      <p className="font-semibold">{idx + 1}. {step.title}</p>
+                    <div
+                      key={`${step.title}-${idx}`}
+                      className="text-xs text-zinc-300 p-2 rounded-lg bg-zinc-950 border border-zinc-800"
+                    >
+                      <p className="font-semibold">
+                        {idx + 1}. {step.title}
+                      </p>
                       <p className="text-zinc-400 mt-1">{step.description}</p>
                     </div>
                   ))}

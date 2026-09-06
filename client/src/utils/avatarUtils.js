@@ -8,7 +8,7 @@ export const AVATAR_TYPES = {
   DEFAULT: 'default',
   UPLOAD: 'upload',
   URL: 'url',
-  BASE64: 'base64'
+  BASE64: 'base64',
 };
 
 const toAbsoluteAssetUrl = (value) => {
@@ -37,12 +37,12 @@ const toAbsoluteAssetUrl = (value) => {
  */
 export const getAvatarUrl = (user) => {
   if (!user) return null;
-  
+
   // If user has avatarUrl property (from processed backend response)
   if (user.avatarUrl) {
     return user.avatarUrl;
   }
-  
+
   // If user has legacy avatar field (string)
   if (typeof user.avatar === 'string') {
     if (user.avatar === 'default' || user.avatar === '') {
@@ -50,7 +50,7 @@ export const getAvatarUrl = (user) => {
     }
     return toAbsoluteAssetUrl(user.avatar);
   }
-  
+
   // If user has new avatar object structure
   if (typeof user.avatar === 'object' && user.avatar) {
     switch (user.avatar.type) {
@@ -67,7 +67,7 @@ export const getAvatarUrl = (user) => {
         return null;
     }
   }
-  
+
   return null;
 };
 
@@ -78,11 +78,11 @@ export const getAvatarUrl = (user) => {
  */
 export const getAvatarType = (user) => {
   if (!user) return AVATAR_TYPES.DEFAULT;
-  
+
   if (user.avatarType) {
     return user.avatarType;
   }
-  
+
   if (typeof user.avatar === 'string') {
     if (user.avatar === 'default' || user.avatar === '') {
       return AVATAR_TYPES.DEFAULT;
@@ -95,11 +95,11 @@ export const getAvatarType = (user) => {
     }
     return AVATAR_TYPES.UPLOAD;
   }
-  
+
   if (typeof user.avatar === 'object' && user.avatar) {
     return user.avatar.type || AVATAR_TYPES.DEFAULT;
   }
-  
+
   return AVATAR_TYPES.DEFAULT;
 };
 
@@ -123,8 +123,13 @@ export const hasCustomAvatar = (user) => {
  */
 export const generatePlaceholderAvatar = (name, size = 48, background = 'random') => {
   const userName = name || 'User';
-  const initials = userName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
-  
+  const initials = userName
+    .split(' ')
+    .map((n) => n[0])
+    .join('')
+    .toUpperCase()
+    .slice(0, 2);
+
   return `https://ui-avatars.com/api/?name=${encodeURIComponent(userName)}&size=${size}&background=${background}&color=fff&font-size=0.6&bold=true&initials=${initials}`;
 };
 
@@ -135,12 +140,28 @@ export const generatePlaceholderAvatar = (name, size = 48, background = 'random'
  */
 export const getInitialsColor = (name) => {
   const colors = [
-    '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FECA57',
-    '#FF9FF3', '#54A0FF', '#5F27CD', '#00D2D3', '#FF9F43',
-    '#10AC84', '#EE5A6F', '#C44569', '#F8B500', '#6C5CE7',
-    '#A29BFE', '#FD79A8', '#FDCB6E', '#E17055', '#00B894'
+    '#FF6B6B',
+    '#4ECDC4',
+    '#45B7D1',
+    '#96CEB4',
+    '#FECA57',
+    '#FF9FF3',
+    '#54A0FF',
+    '#5F27CD',
+    '#00D2D3',
+    '#FF9F43',
+    '#10AC84',
+    '#EE5A6F',
+    '#C44569',
+    '#F8B500',
+    '#6C5CE7',
+    '#A29BFE',
+    '#FD79A8',
+    '#FDCB6E',
+    '#E17055',
+    '#00B894',
   ];
-  
+
   let hash = 0;
   for (let i = 0; i < (name || '').length; i++) {
     hash = (name || '').charCodeAt(i) + ((hash << 5) - hash);
@@ -156,12 +177,12 @@ export const getInitialsColor = (name) => {
  */
 export const getInitials = (name) => {
   if (!name) return 'U';
-  
+
   const words = name.trim().split(' ');
   if (words.length === 1) {
     return words[0].charAt(0).toUpperCase();
   }
-  
+
   return (words[0].charAt(0) + words[words.length - 1].charAt(0)).toUpperCase();
 };
 
@@ -172,22 +193,22 @@ export const getInitials = (name) => {
  */
 export const validateAvatarFile = (file) => {
   const errors = [];
-  
+
   // Check file type
   const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
   if (!validTypes.includes(file.type)) {
     errors.push('Please select a valid image file (JPEG, PNG, or WebP)');
   }
-  
+
   // Check file size (5MB limit)
   const maxSize = 5 * 1024 * 1024; // 5MB
   if (file.size > maxSize) {
     errors.push('Image size must be less than 5MB');
   }
-  
+
   return {
     isValid: errors.length === 0,
-    errors
+    errors,
   };
 };
 
@@ -201,7 +222,7 @@ export const fileToBase64 = (file) => {
     const reader = new FileReader();
     reader.readAsDataURL(file);
     reader.onload = () => resolve(reader.result);
-    reader.onerror = error => reject(error);
+    reader.onerror = (error) => reject(error);
   });
 };
 
@@ -216,7 +237,7 @@ export const getAvatarDisplayProps = (user, size = 48) => {
   const avatarUrl = getAvatarUrl(user);
   const avatarType = getAvatarType(user);
   const hasCustom = hasCustomAvatar(user);
-  
+
   return {
     userName,
     avatarUrl,
@@ -226,9 +247,10 @@ export const getAvatarDisplayProps = (user, size = 48) => {
     initials: getInitials(userName),
     initialsColor: getInitialsColor(userName),
     fallbackProps: {
-  className: "w-12 h-12 bg-gradient-to-br from-sky-500 to-purple-600 rounded-full flex items-center justify-center text-white font-semibold hover:scale-110 transition-transform border-2 border-gray-200 flex-shrink-0",
+      className:
+        'w-12 h-12 bg-gradient-to-br from-sky-500 to-purple-600 rounded-full flex items-center justify-center text-white font-semibold hover:scale-110 transition-transform border-2 border-gray-200 flex-shrink-0',
       style: { backgroundColor: getInitialsColor(userName) },
-      children: getInitials(userName)
-    }
+      children: getInitials(userName),
+    },
   };
 };

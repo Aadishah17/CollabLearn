@@ -49,7 +49,8 @@ export default function SignupPage() {
   ];
 
   useEffect(() => {
-    const storedRole = typeof localStorage === 'undefined' ? null : localStorage.getItem('userRole');
+    const storedRole =
+      typeof localStorage === 'undefined' ? null : localStorage.getItem('userRole');
 
     if (hasStoredSession()) {
       navigate(resolveNextRoute(null, storedRole), { replace: true });
@@ -103,7 +104,7 @@ export default function SignupPage() {
           'A new account should feel like the start of a working system, not the start of more coordination overhead.',
       },
     }),
-    [],
+    []
   );
 
   const completeSignup = (responseData, successMessage) => {
@@ -206,8 +207,8 @@ export default function SignupPage() {
               Build a learning system that lasts.
             </h1>
             <p className="mt-4 text-base leading-7 text-zinc-300">
-              Create an account to start with a guided roadmap, make time for mentor
-              sessions, and keep progress visible from week one.
+              Create an account to start with a guided roadmap, make time for mentor sessions, and
+              keep progress visible from week one.
             </p>
 
             <div className="mt-6 grid gap-3 sm:grid-cols-2">
@@ -237,7 +238,10 @@ export default function SignupPage() {
 
             <form onSubmit={handleSignup} className="mt-8 space-y-5">
               <div>
-                <label htmlFor="signup-name" className="mb-2 block text-sm font-medium text-zinc-200">
+                <label
+                  htmlFor="signup-name"
+                  className="mb-2 block text-sm font-medium text-zinc-200"
+                >
                   Full name
                 </label>
                 <input
@@ -253,7 +257,10 @@ export default function SignupPage() {
               </div>
 
               <div>
-                <label htmlFor="signup-email" className="mb-2 block text-sm font-medium text-zinc-200">
+                <label
+                  htmlFor="signup-email"
+                  className="mb-2 block text-sm font-medium text-zinc-200"
+                >
                   Email
                 </label>
                 <input
@@ -270,10 +277,13 @@ export default function SignupPage() {
 
               <div className="grid gap-4 md:grid-cols-2">
                 <div>
-                  <label htmlFor="signup-password" className="mb-2 block text-sm font-medium text-zinc-200">
+                  <label
+                    htmlFor="signup-password"
+                    className="mb-2 block text-sm font-medium text-zinc-200"
+                  >
                     Password
                   </label>
-                <div className="relative">
+                  <div className="relative">
                     <input
                       id="signup-password"
                       type={showPassword ? 'text' : 'password'}
@@ -295,12 +305,16 @@ export default function SignupPage() {
                     </button>
                   </div>
                   <p className="mt-2 text-xs leading-6 text-zinc-400">
-                    Use at least 6 characters. Stronger passwords make your workspace easier to keep secure.
+                    Use at least 6 characters. Stronger passwords make your workspace easier to keep
+                    secure.
                   </p>
                 </div>
 
                 <div>
-                  <label htmlFor="signup-confirm-password" className="mb-2 block text-sm font-medium text-zinc-200">
+                  <label
+                    htmlFor="signup-confirm-password"
+                    className="mb-2 block text-sm font-medium text-zinc-200"
+                  >
                     Confirm password
                   </label>
                   <div className="relative">
@@ -392,7 +406,8 @@ export default function SignupPage() {
                 </>
               ) : (
                 <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-4 text-sm leading-7 text-zinc-300">
-                  Google sign-up appears when `VITE_GOOGLE_CLIENT_ID` is configured for this deployment.
+                  Google sign-up appears when `VITE_GOOGLE_CLIENT_ID` is configured for this
+                  deployment.
                 </div>
               )}
             </form>

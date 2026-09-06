@@ -17,7 +17,7 @@ const resolveAuthenticatedAccount = async (decoded = {}) => {
       account: user,
       accountType: 'user',
       role: accessProfile.role,
-      isSuperAdmin: accessProfile.isSuperAdmin
+      isSuperAdmin: accessProfile.isSuperAdmin,
     };
   }
 
@@ -29,7 +29,7 @@ const resolveAuthenticatedAccount = async (decoded = {}) => {
       account: admin,
       accountType: 'admin',
       role: 'admin',
-      isSuperAdmin: accessProfile.isSuperAdmin
+      isSuperAdmin: accessProfile.isSuperAdmin,
     };
   }
 
@@ -42,7 +42,7 @@ const applyResolvedAuthContext = (req, decoded, source, resolvedAccount) => {
     userId: String(resolvedAccount.account._id),
     email: resolvedAccount.account.email,
     role: resolvedAccount.role,
-    isSuperAdmin: resolvedAccount.isSuperAdmin
+    isSuperAdmin: resolvedAccount.isSuperAdmin,
   };
 
   applyAuthContext(req, normalizedDecoded, source);
@@ -52,5 +52,5 @@ const applyResolvedAuthContext = (req, decoded, source, resolvedAccount) => {
 
 module.exports = {
   applyResolvedAuthContext,
-  resolveAuthenticatedAccount
+  resolveAuthenticatedAccount,
 };

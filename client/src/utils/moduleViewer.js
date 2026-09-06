@@ -1,5 +1,7 @@
 export const isPretextModule = (module) =>
-  String(module?.contentType || 'richtext').trim().toLowerCase() === 'pretext';
+  String(module?.contentType || 'richtext')
+    .trim()
+    .toLowerCase() === 'pretext';
 
 export const getModuleViewPath = (moduleId) => `/modules/${moduleId}/view`;
 

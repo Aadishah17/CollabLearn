@@ -35,7 +35,8 @@ class ErrorBoundary extends React.Component {
               The interface hit an unexpected problem.
             </h1>
             <p className="mt-4 max-w-2xl text-sm leading-7 text-zinc-300 md:text-base">
-              Reload the page to retry. In development, the details below help track it down quickly.
+              Reload the page to retry. In development, the details below help track it down
+              quickly.
             </p>
 
             <div className="mt-8 space-y-4 rounded-[26px] border border-white/10 bg-black/25 p-5 text-left">

@@ -61,27 +61,29 @@ const getMockPosts = () => [
     author: 'TechLead_Sarah',
     authorRole: 'Senior Developer',
     title: 'How I mastered React Server Components in 2 weeks',
-    excerpt: 'Sharing my internal roadmap and resources that helped me grasp RSC and Suspense without the headache.',
+    excerpt:
+      'Sharing my internal roadmap and resources that helped me grasp RSC and Suspense without the headache.',
     timestamp: new Date().toISOString(),
     category: 'React',
     tags: ['React', 'NextJS', 'Frontend'],
     stats: { likes: 42, comments: 12, views: 540 },
     likedBy: [],
-    isHot: true
+    isHot: true,
   },
   {
     _id: 'p2',
     author: 'DesignGuru',
     authorRole: 'UI/UX Mentor',
     title: 'The secret to consistent spacing in Figma',
-    excerpt: 'Stop eye-balling your margins. Here is a 4px grid system walkthrough that will save your designs.',
+    excerpt:
+      'Stop eye-balling your margins. Here is a 4px grid system walkthrough that will save your designs.',
     timestamp: new Date(Date.now() - 86400000).toISOString(),
     category: 'Design',
     tags: ['Figma', 'UI', 'DesignSystems'],
     stats: { likes: 28, comments: 5, views: 210 },
     likedBy: [],
-    isHot: false
-  }
+    isHot: false,
+  },
 ];
 
 function getCurrentUserId(post) {
@@ -207,7 +209,9 @@ function CommunityPostCard({
                 <span className="rounded-full border border-white/10 bg-white/[0.06] px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-300">
                   {post.authorRole || 'Community member'}
                 </span>
-                <span className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${getCategoryTone(post.category)}`}>
+                <span
+                  className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${getCategoryTone(post.category)}`}
+                >
                   {post.category || 'General Discussion'}
                 </span>
               </div>
@@ -490,7 +494,12 @@ export default function CommunityPage() {
       }
 
       const data = await requestJson(`/api/posts?${query.toString()}`);
-      const posts = Array.isArray(data.posts) && data.posts.length > 0 ? data.posts : (nextPage === 1 ? getMockPosts() : []);
+      const posts =
+        Array.isArray(data.posts) && data.posts.length > 0
+          ? data.posts
+          : nextPage === 1
+            ? getMockPosts()
+            : [];
       setAllPosts((current) => (append ? [...current, ...posts] : posts));
       setPage(nextPage);
       setHasMorePosts(nextPage * POSTS_PAGE_SIZE < Number(data.total || 0));
@@ -545,9 +554,7 @@ export default function CommunityPage() {
       });
     });
 
-    return [...counts.entries()]
-      .sort((left, right) => right[1] - left[1])
-      .slice(0, 6);
+    return [...counts.entries()].sort((left, right) => right[1] - left[1]).slice(0, 6);
   }, [allPosts]);
 
   const filteredPosts = useMemo(() => {
@@ -570,13 +577,7 @@ export default function CommunityPage() {
         return true;
       }
 
-      const haystack = [
-        post.title,
-        post.excerpt,
-        post.author,
-        post.category,
-        ...(post.tags || []),
-      ]
+      const haystack = [post.title, post.excerpt, post.author, post.category, ...(post.tags || [])]
         .filter(Boolean)
         .join(' ')
         .toLowerCase();
@@ -603,7 +604,7 @@ export default function CommunityPage() {
       unanswered: allPosts.filter((post) => (post?.stats?.comments || 0) === 0).length,
       contributors: topContributors.length,
     }),
-    [allPosts, topContributors],
+    [allPosts, topContributors]
   );
 
   const featuredPost = useMemo(() => {
@@ -613,7 +614,7 @@ export default function CommunityPage() {
 
   const upsertPost = useCallback((updatedPost) => {
     setAllPosts((current) =>
-      current.map((post) => (post._id === updatedPost._id ? updatedPost : post)),
+      current.map((post) => (post._id === updatedPost._id ? updatedPost : post))
     );
   }, []);
 
@@ -646,7 +647,7 @@ export default function CommunityPage() {
         setIsSubmitting(false);
       }
     },
-    [fetchTopContributors, hasAuthSession],
+    [fetchTopContributors, hasAuthSession]
   );
 
   const handleDeletePost = useCallback(
@@ -669,7 +670,7 @@ export default function CommunityPage() {
         setError(deleteError.message || 'Unable to delete discussion.');
       }
     },
-    [fetchTopContributors, hasAuthSession],
+    [fetchTopContributors, hasAuthSession]
   );
 
   const handleToggleLike = useCallback(
@@ -690,7 +691,7 @@ export default function CommunityPage() {
         setError(likeError.message || 'Unable to update reaction.');
       }
     },
-    [hasAuthSession, upsertPost],
+    [hasAuthSession, upsertPost]
   );
 
   const handleAddComment = useCallback(
@@ -716,7 +717,7 @@ export default function CommunityPage() {
         return false;
       }
     },
-    [hasAuthSession, upsertPost],
+    [hasAuthSession, upsertPost]
   );
 
   const handleSharePost = useCallback(async (post) => {
@@ -891,7 +892,10 @@ export default function CommunityPage() {
             <div className="glass-panel p-5">
               <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
                 <div className="relative flex-1">
-                  <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
+                  <Search
+                    size={16}
+                    className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400"
+                  />
                   <input
                     type="text"
                     value={searchQuery}
@@ -913,7 +917,11 @@ export default function CommunityPage() {
                       </option>
                     ))}
                   </select>
-                  <button type="button" onClick={() => setIsComposerOpen(true)} className="glass-cta">
+                  <button
+                    type="button"
+                    onClick={() => setIsComposerOpen(true)}
+                    className="glass-cta"
+                  >
                     <Plus size={16} />
                     New post
                   </button>

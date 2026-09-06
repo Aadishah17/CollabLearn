@@ -51,7 +51,11 @@ export default defineConfig(({ mode }) => {
               return 'vendor-misc';
             }
 
-            if (['react', 'react-dom', 'scheduler', 'react-router-dom', '@remix-run/router'].includes(packageName)) {
+            if (
+              ['react', 'react-dom', 'scheduler', 'react-router-dom', '@remix-run/router'].includes(
+                packageName
+              )
+            ) {
               return 'react-core';
             }
 
@@ -71,7 +75,9 @@ export default defineConfig(({ mode }) => {
               return 'dashjs';
             }
 
-            if (['socket.io-client', 'socket.io-parser', 'engine.io-client'].includes(packageName)) {
+            if (
+              ['socket.io-client', 'socket.io-parser', 'engine.io-client'].includes(packageName)
+            ) {
               return 'realtime';
             }
 
@@ -100,9 +106,9 @@ export default defineConfig(({ mode }) => {
             }
 
             return toChunkName(packageName);
-          }
-        }
-      }
+          },
+        },
+      },
     },
     server: {
       host: true,
@@ -111,14 +117,14 @@ export default defineConfig(({ mode }) => {
         '/api': {
           target: proxyTarget,
           changeOrigin: true,
-          secure: false
+          secure: false,
         },
         '/uploads': {
           target: proxyTarget,
           changeOrigin: true,
-          secure: false
-        }
-      }
-    }
+          secure: false,
+        },
+      },
+    },
   };
 });

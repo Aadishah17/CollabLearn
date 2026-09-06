@@ -1,73 +1,84 @@
 const mongoose = require('mongoose');
 
-const moduleSchema = new mongoose.Schema({
+const moduleSchema = new mongoose.Schema(
+  {
     title: {
-        type: String,
-        required: [true, 'Title is required'],
-        trim: true,
-        maxlength: [100, 'Title cannot exceed 100 characters']
+      type: String,
+      required: [true, 'Title is required'],
+      trim: true,
+      maxlength: [100, 'Title cannot exceed 100 characters'],
     },
     description: {
-        type: String,
-        maxlength: [500, 'Description cannot exceed 500 characters'],
-        default: ''
+      type: String,
+      maxlength: [500, 'Description cannot exceed 500 characters'],
+      default: '',
     },
     owner: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'User',
-        required: true
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      required: true,
     },
-    collaborators: [{
+    collaborators: [
+      {
         user: {
-            type: mongoose.Schema.Types.ObjectId,
-            ref: 'User'
+          type: mongoose.Schema.Types.ObjectId,
+          ref: 'User',
         },
         role: {
-            type: String,
-            enum: ['editor', 'viewer'],
-            default: 'editor'
+          type: String,
+          enum: ['editor', 'viewer'],
+          default: 'editor',
         },
         joinedAt: {
-            type: Date,
-            default: Date.now
-        }
-    }],
+          type: Date,
+          default: Date.now,
+        },
+      },
+    ],
     // For the MVP, content can be a simple big string (e.g. HTML or stringified Delta from Quill)
     // or a more structured array of sections. Let's start flexible.
     content: {
-        type: String,
-        default: ''
+      type: String,
+      default: '',
     },
     contentType: {
-        type: String,
-        enum: ['richtext', 'pretext'],
-        default: 'richtext'
+      type: String,
+      enum: ['richtext', 'pretext'],
+      default: 'richtext',
     },
     contentUrl: {
-        type: String,
-        default: ''
+      type: String,
+      default: '',
     },
     visibility: {
-        type: String,
-        enum: ['public', 'private', 'link'],
-        default: 'private'
+      type: String,
+      enum: ['public', 'private', 'link'],
+      default: 'private',
     },
-    tags: [{
+    tags: [
+      {
         type: String,
-        trim: true
-    }],
+        trim: true,
+      },
+    ],
     // Placeholder for future Quiz integration
-    quizzes: [{
+    quizzes: [
+      {
         title: String,
-        questions: [{
+        questions: [
+          {
             questionText: String,
             options: [String],
-            correctAnswerIndex: Number
-        }]
-    }]
-}, {
-    timestamps: true
-});
+            correctAnswerIndex: Number,
+          },
+        ],
+      },
+    ],
+  },
+  {
+    timestamps: true,
+  }
+);
 
 // Indexes for faster searching
 moduleSchema.index({ owner: 1 });

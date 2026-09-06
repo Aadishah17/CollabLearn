@@ -5,7 +5,7 @@ const {
   buildStudioStatusPayload,
   createStudioDiagnostics,
   detectAiIssueCode,
-  resolveStudioHttpStatus
+  resolveStudioHttpStatus,
 } = require('../src/utils/aiStatus');
 
 test('detectAiIssueCode identifies provider quota failures', () => {
@@ -22,7 +22,7 @@ test('createStudioDiagnostics marks configured provider failures as degraded', (
     configured: true,
     model: 'gemini-2.0-flash',
     latencyMs: 841,
-    error: '429 Resource exhausted: quota exceeded'
+    error: '429 Resource exhausted: quota exceeded',
   });
 
   assert.equal(diagnostics.liveStatus, 'degraded');
@@ -37,9 +37,9 @@ test('buildStudioStatusPayload defaults configured remote providers to unknown u
       provider: 'gemini',
       configured: true,
       modelCandidates: ['gemini-2.0-flash'],
-      generationConfig: {}
+      generationConfig: {},
     },
-    diagnostics: null
+    diagnostics: null,
   });
 
   assert.equal(payload.ready, true);
@@ -52,7 +52,7 @@ test('resolveStudioHttpStatus returns 429 for quota failures', () => {
     success: false,
     provider: 'gemini',
     configured: true,
-    error: '429 Resource exhausted'
+    error: '429 Resource exhausted',
   });
 
   assert.equal(resolveStudioHttpStatus(diagnostics), 429);

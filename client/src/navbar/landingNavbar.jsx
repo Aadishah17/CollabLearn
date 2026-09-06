@@ -11,10 +11,10 @@ export default function LandingNavbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [hasSession, setHasSession] = useState(hasStoredSession);
   const [userRole, setUserRole] = useState(
-    typeof localStorage === 'undefined' ? 'user' : localStorage.getItem('userRole'),
+    typeof localStorage === 'undefined' ? 'user' : localStorage.getItem('userRole')
   );
   const [isSuperAdmin, setIsSuperAdmin] = useState(
-    typeof localStorage === 'undefined' ? false : localStorage.getItem('isSuperAdmin') === 'true',
+    typeof localStorage === 'undefined' ? false : localStorage.getItem('isSuperAdmin') === 'true'
   );
 
   const links = [
@@ -30,7 +30,9 @@ export default function LandingNavbar() {
       setHasSession(hasStoredSession());
       setUserRole(typeof localStorage === 'undefined' ? 'user' : localStorage.getItem('userRole'));
       setIsSuperAdmin(
-        typeof localStorage === 'undefined' ? false : localStorage.getItem('isSuperAdmin') === 'true',
+        typeof localStorage === 'undefined'
+          ? false
+          : localStorage.getItem('isSuperAdmin') === 'true'
       );
     };
 
@@ -91,7 +93,7 @@ export default function LandingNavbar() {
                 >
                   {item.label}
                 </a>
-              ),
+              )
             )}
           </div>
 
@@ -169,7 +171,7 @@ export default function LandingNavbar() {
                   >
                     {item.label}
                   </a>
-                ),
+                )
               )}
             </div>
 
