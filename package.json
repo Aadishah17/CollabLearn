@@ -35,9 +35,9 @@
     "*.{json,md,css,scss,html,yml,yaml}": "prettier --write"
   },
   "devDependencies": {
-    "concurrently": "^8.2.2",
+    "concurrently": "^10.0.5",
     "husky": "^9.1.7",
-    "lint-staged": "^16.2.1",
+    "lint-staged": "^17.5.0",
     "prettier": "^3.9.6"
   }
 }
